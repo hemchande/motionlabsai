@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Display Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .video-test {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        video {
+            width: 100%;
+            border-radius: 4px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background: #1a2a1a; color: #4ade80; }
+        .error { background: #2a1a1a; color: #f87171; }
+        .loading { background: #2a2a2a; color: #fbbf24; }
+        .info { background: #1a1a2a; color: #4a9eff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Video Display Test</h1>
+        <p>Testing if videos display correctly with the fixed source order</p>
+        
+        <div class="video-test">
+            <h3>UgWHozR_LLA.mp4 - Katelyn Ohashi - Balance Beam</h3>
+            <div class="status info" id="status1">Loading video...</div>
+            <video id="video1" controls preload="metadata">
+                <source src="http://localhost:5004/downloadPerFrameVideo?video_filename=UgWHozR_LLA.mp4" type="video/mp4">
+                <source src="http://localhost:5004/downloadEnhancedReplay?video_filename=UgWHozR_LLA.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        
+        <div class="video-test">
+            <h3>MeLfAr3GY6w.mp4 - Simone Biles - Vault</h3>
+            <div class="status info" id="status2">Loading video...</div>
+            <video id="video2" controls preload="metadata">
+                <source src="http://localhost:5004/downloadPerFrameVideo?video_filename=MeLfAr3GY6w.mp4" type="video/mp4">
+                <source src="http://localhost:5004/downloadEnhancedReplay?video_filename=MeLfAr3GY6w.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        
+        <div class="video-test">
+            <h3>pdtyUo5UELk.mp4 - Simone Biles - Floor Exercise</h3>
+            <div class="status info" id="status3">Loading video...</div>
+            <video id="video3" controls preload="metadata">
+                <source src="http://localhost:5004/downloadPerFrameVideo?video_filename=pdtyUo5UELk.mp4" type="video/mp4">
+                <source src="http://localhost:5004/downloadEnhancedReplay?video_filename=pdtyUo5UELk.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+
+    <script>
+        const videos = [
+            { id: 'video1', statusId: 'status1', name: 'UgWHozR_LLA.mp4' },
+            { id: 'video2', statusId: 'status2', name: 'MeLfAr3GY6w.mp4' },
+            { id: 'video3', statusId: 'status3', name: 'pdtyUo5UELk.mp4' }
+        ];
+        
+        videos.forEach(video => {
+            const videoEl = document.getElementById(video.id);
+            const statusEl = document.getElementById(video.statusId);
+            
+            videoEl.addEventListener('loadstart', () => {
+                statusEl.textContent = 'Loading video...';
+                statusEl.className = 'status loading';
+            });
+            
+            videoEl.addEventListener('loadedmetadata', () => {
+                statusEl.textContent = `✅ Video loaded successfully - Duration: ${videoEl.duration.toFixed(1)}s`;
+                statusEl.className = 'status success';
+            });
+            
+            videoEl.addEventListener('error', (e) => {
+                statusEl.textContent = `❌ Video failed to load: ${e.message}`;
+                statusEl.className = 'status error';
+            });
+            
+            videoEl.addEventListener('canplay', () => {
+                statusEl.textContent = `✅ Video ready to play - Duration: ${videoEl.duration.toFixed(1)}s`;
+                statusEl.className = 'status success';
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+

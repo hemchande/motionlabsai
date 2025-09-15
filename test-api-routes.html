@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Routes Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>API Routes Test</h1>
+    
+    <div class="test-section">
+        <h2>Analytics API Test</h2>
+        <button onclick="testAnalyticsAPI()">Test Analytics API</button>
+        <div id="analytics-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Processed Video API Test</h2>
+        <button onclick="testVideoAPI()">Test Video API</button>
+        <div id="video-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Video Player Test</h2>
+        <button onclick="testVideoPlayer()">Test Video Player</button>
+        <div id="player-result">
+            <video id="test-video" controls style="max-width: 400px; margin-top: 10px;">
+                <source src="http://localhost:5004/downloadPerFrameVideo?video_filename=pdtyUo5UELk" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+    </div>
+
+    <script>
+        async function testAnalyticsAPI() {
+            const resultDiv = document.getElementById('analytics-result');
+            resultDiv.innerHTML = '<div class="loading">Testing analytics API...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:5004/getPerFrameStatistics?video_filename=pdtyUo5UELk');
+                const contentType = response.headers.get('content-type');
+                
+                if (response.ok) {
+                    if (contentType && contentType.includes('application/json')) {
+                        const data = await response.json();
+                        resultDiv.innerHTML = `
+                            <div class="success">
+                                <h3>✅ Analytics API Working</h3>
+                                <p>Status: ${response.status}</p>
+                                <p>Content-Type: ${contentType}</p>
+                                <p>Data size: ${JSON.stringify(data).length} characters</p>
+                                <details>
+                                    <summary>View Data Preview</summary>
+                                    <pre>${JSON.stringify(data, null, 2).substring(0, 500)}...</pre>
+                                </details>
+                            </div>
+                        `;
+                    } else {
+                        resultDiv.innerHTML = `
+                            <div class="error">
+                                <h3>❌ Wrong Content-Type</h3>
+                                <p>Expected: application/json</p>
+                                <p>Received: ${contentType}</p>
+                                <p>Response: ${await response.text()}</p>
+                            </div>
+                        `;
+                    }
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Analytics API Error</h3>
+                            <p>Status: ${response.status}</p>
+                            <p>Error: ${errorText}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Analytics API Exception</h3>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        async function testVideoAPI() {
+            const resultDiv = document.getElementById('video-result');
+            resultDiv.innerHTML = '<div class="loading">Testing video API...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:5004/downloadPerFrameVideo?video_filename=pdtyUo5UELk', {
+                    method: 'HEAD'
+                });
+                
+                if (response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    const contentLength = response.headers.get('content-length');
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Video API Working</h3>
+                            <p>Status: ${response.status}</p>
+                            <p>Content-Type: ${contentType}</p>
+                            <p>Content-Length: ${contentLength} bytes</p>
+                        </div>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Video API Error</h3>
+                            <p>Status: ${response.status}</p>
+                            <p>Error: ${errorText}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Video API Exception</h3>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        function testVideoPlayer() {
+            const resultDiv = document.getElementById('player-result');
+            const video = document.getElementById('test-video');
+            
+            video.addEventListener('loadstart', () => {
+                resultDiv.innerHTML += '<p>🔄 Video loading started...</p>';
+            });
+            
+            video.addEventListener('loadedmetadata', () => {
+                resultDiv.innerHTML += '<p>✅ Video metadata loaded</p>';
+            });
+            
+            video.addEventListener('canplay', () => {
+                resultDiv.innerHTML += '<p>✅ Video can play</p>';
+            });
+            
+            video.addEventListener('error', (e) => {
+                resultDiv.innerHTML += `<p>❌ Video error: ${e.target.error?.message || 'Unknown error'}</p>`;
+            });
+            
+            // Try to load the video
+            video.load();
+        }
+    </script>
+</body>
+</html>

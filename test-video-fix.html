@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Fix Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+        }
+        .video-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        video {
+            width: 100%;
+            border-radius: 4px;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        button {
+            background: #3a3a3a;
+            border: 1px solid #555;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #4a4a4a;
+        }
+        .error {
+            color: #ff6b6b;
+            background: #2a1a1a;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #6bff6b;
+            background: #1a2a1a;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <h2>Enhanced Video Replay Test</h2>
+        <p>Testing video playback with proper error handling</p>
+        
+        <div id="status" class="success">Video loading...</div>
+        
+        <video 
+            id="testVideo" 
+            preload="metadata" 
+            playsInline 
+            muted
+            controls
+        >
+            <source src="http://localhost:5004/downloadEnhancedReplay?video_filename=FWSpWksgk60.mp4" type="video/mp4">
+            <source src="http://localhost:5004/downloadPerFrameVideo?video_filename=FWSpWksgk60.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        
+        <div class="controls">
+            <button onclick="testPlay()">Test Play</button>
+            <button onclick="testPause()">Test Pause</button>
+            <button onclick="testReload()">Test Reload</button>
+            <button onclick="testErrorHandling()">Test Error Handling</button>
+        </div>
+        
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const video = document.getElementById('testVideo');
+        const status = document.getElementById('status');
+        const log = document.getElementById('log');
+        
+        function logMessage(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ff6b6b' : type === 'success' ? '#6bff6b' : '#ffffff';
+            log.innerHTML += `<div style="color: ${color}; margin: 5px 0;">[${timestamp}] ${message}</div>`;
+        }
+        
+        // Event listeners
+        video.addEventListener('loadstart', () => {
+            status.textContent = 'Video loading...';
+            status.className = 'success';
+            logMessage('Video load started');
+        });
+        
+        video.addEventListener('loadedmetadata', () => {
+            status.textContent = 'Video loaded successfully!';
+            status.className = 'success';
+            logMessage('Video metadata loaded', 'success');
+        });
+        
+        video.addEventListener('canplay', () => {
+            logMessage('Video can play', 'success');
+        });
+        
+        video.addEventListener('play', () => {
+            logMessage('Video started playing', 'success');
+        });
+        
+        video.addEventListener('pause', () => {
+            logMessage('Video paused');
+        });
+        
+        video.addEventListener('ended', () => {
+            logMessage('Video ended');
+        });
+        
+        video.addEventListener('error', (e) => {
+            status.textContent = 'Video error occurred';
+            status.className = 'error';
+            logMessage(`Video error: ${e.type}`, 'error');
+        });
+        
+        // Test functions
+        async function testPlay() {
+            try {
+                logMessage('Attempting to play video...');
+                await video.play();
+                logMessage('Play successful', 'success');
+            } catch (error) {
+                logMessage(`Play failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function testPause() {
+            try {
+                video.pause();
+                logMessage('Pause successful', 'success');
+            } catch (error) {
+                logMessage(`Pause failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function testReload() {
+            try {
+                video.load();
+                logMessage('Reload successful', 'success');
+            } catch (error) {
+                logMessage(`Reload failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function testErrorHandling() {
+            // Simulate removing video from DOM and trying to play
+            logMessage('Testing error handling...');
+            const originalVideo = video;
+            const parent = video.parentNode;
+            
+            // Remove video temporarily
+            parent.removeChild(video);
+            
+            // Try to play (should fail gracefully)
+            setTimeout(() => {
+                try {
+                    originalVideo.play();
+                } catch (error) {
+                    logMessage(`Expected error after DOM removal: ${error.message}`, 'error');
+                }
+                
+                // Restore video
+                parent.appendChild(originalVideo);
+                logMessage('Video restored to DOM', 'success');
+            }, 100);
+        }
+        
+        // Initialize
+        logMessage('Video test page loaded');
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+

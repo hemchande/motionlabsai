@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Video Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        video {
+            width: 100%;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+        .url-test {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Session Video Test</h1>
+        <p>Testing the exact video URLs used by the Session Dashboard</p>
+        
+        <div id="status" class="status info">Loading...</div>
+        
+        <div class="url-test">
+            <strong>Testing URLs:</strong><br>
+            <div id="urls"></div>
+        </div>
+        
+        <video id="video" controls preload="metadata" crossorigin="anonymous">
+            <source src="http://localhost:5004/downloadPerFrameVideo?video_filename=pdtyUo5UELk.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        
+        <div>
+            <button onclick="testAllUrls()">Test All URLs</button>
+            <button onclick="testVideo()">Test Current Video</button>
+        </div>
+        
+        <div id="debug" class="status info" style="margin-top: 20px;">
+            <strong>Debug Info:</strong><br>
+            <div id="debugContent">Waiting...</div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const status = document.getElementById('status');
+        const debugContent = document.getElementById('debugContent');
+        const urlsDiv = document.getElementById('urls');
+        
+        // URLs to test (same as SessionDashboard constructs)
+        const testUrls = [
+            {
+                name: 'pdtyUo5UELk.mp4 - Per Frame',
+                url: 'http://localhost:5004/downloadPerFrameVideo?video_filename=pdtyUo5UELk.mp4'
+            },
+            {
+                name: 'pdtyUo5UELk.mp4 - Enhanced Replay',
+                url: 'http://localhost:5004/downloadEnhancedReplay?video_filename=pdtyUo5UELk.mp4'
+            },
+            {
+                name: 'UgWHozR_LLA.mp4 - Per Frame',
+                url: 'http://localhost:5004/downloadPerFrameVideo?video_filename=UgWHozR_LLA.mp4'
+            },
+            {
+                name: 'MeLfAr3GY6w.mp4 - Per Frame',
+                url: 'http://localhost:5004/downloadPerFrameVideo?video_filename=MeLfAr3GY6w.mp4'
+            }
+        ];
+        
+        // Display URLs
+        urlsDiv.innerHTML = testUrls.map(u => 
+            `<div>${u.name}: ${u.url}</div>`
+        ).join('');
+        
+        function updateStatus(message, type = 'info') {
+            status.textContent = message;
+            status.className = `status ${type}`;
+        }
+        
+        function updateDebug(info) {
+            debugContent.innerHTML = info;
+        }
+        
+        // Video event listeners
+        video.addEventListener('loadstart', () => {
+            updateStatus('Video loading started...', 'info');
+            updateDebug('loadstart event fired');
+        });
+        
+        video.addEventListener('loadedmetadata', () => {
+            updateStatus(`✅ Video loaded! Duration: ${video.duration.toFixed(1)}s`, 'success');
+            updateDebug(`loadedmetadata: duration=${video.duration}, readyState=${video.readyState}, currentSrc=${video.currentSrc}`);
+        });
+        
+        video.addEventListener('canplay', () => {
+            updateStatus('✅ Video ready to play!', 'success');
+            updateDebug(`canplay: readyState=${video.readyState}, currentSrc=${video.currentSrc}`);
+        });
+        
+        video.addEventListener('error', (e) => {
+            updateStatus('❌ Video error occurred', 'error');
+            const videoEl = e.target;
+            let errorMessage = 'Unknown error';
+            
+            if (videoEl && videoEl.error) {
+                switch (videoEl.error.code) {
+                    case 1: errorMessage = 'MEDIA_ERR_ABORTED'; break;
+                    case 2: errorMessage = 'MEDIA_ERR_NETWORK'; break;
+                    case 3: errorMessage = 'MEDIA_ERR_DECODE'; break;
+                    case 4: errorMessage = 'MEDIA_ERR_SRC_NOT_SUPPORTED'; break;
+                }
+            }
+            
+            updateDebug(`error: ${errorMessage} (code: ${videoEl?.error?.code || 'unknown'})<br>currentSrc: ${videoEl?.currentSrc || 'none'}<br>networkState: ${videoEl?.networkState || 'unknown'}`);
+        });
+        
+        async function testAllUrls() {
+            updateStatus('Testing all URLs...', 'info');
+            let results = [];
+            
+            for (const testUrl of testUrls) {
+                try {
+                    const response = await fetch(testUrl.url, { method: 'HEAD' });
+                    const result = {
+                        name: testUrl.name,
+                        url: testUrl.url,
+                        status: response.status,
+                        statusText: response.statusText,
+                        contentType: response.headers.get('Content-Type'),
+                        contentLength: response.headers.get('Content-Length'),
+                        cors: response.headers.get('Access-Control-Allow-Origin')
+                    };
+                    results.push(result);
+                } catch (error) {
+                    results.push({
+                        name: testUrl.name,
+                        url: testUrl.url,
+                        error: error.message
+                    });
+                }
+            }
+            
+            updateStatus(`✅ Tested ${results.length} URLs`, 'success');
+            updateDebug(results.map(r => 
+                `<div style="margin-bottom: 10px; padding: 5px; border: 1px solid #ccc; border-radius: 3px;">
+                    <strong>${r.name}</strong><br>
+                    URL: ${r.url}<br>
+                    ${r.error ? `Error: ${r.error}` : 
+                    `Status: ${r.status} ${r.statusText}<br>
+                    Content-Type: ${r.contentType}<br>
+                    Content-Length: ${r.contentLength}<br>
+                    CORS: ${r.cors}`}
+                </div>`
+            ).join(''));
+        }
+        
+        function testVideo() {
+            updateStatus('Testing current video...', 'info');
+            try {
+                if (video.paused) {
+                    video.play().then(() => {
+                        updateStatus('✅ Video playing successfully!', 'success');
+                    }).catch(error => {
+                        updateStatus(`❌ Play failed: ${error.message}`, 'error');
+                    });
+                } else {
+                    video.pause();
+                    updateStatus('Video paused', 'info');
+                }
+            } catch (error) {
+                updateStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-test URLs on load
+        setTimeout(testAllUrls, 1000);
+    </script>
+</body>
+</html>
+

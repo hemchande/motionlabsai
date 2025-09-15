@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Video Analysis Fix Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .video-container {
+            position: relative;
+            margin: 20px 0;
+        }
+        video {
+            width: 100%;
+            border-radius: 4px;
+        }
+        .controls {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        button {
+            background: #3a3a3a;
+            border: 1px solid #555;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #4a4a4a;
+        }
+        .error {
+            color: #f87171;
+            background: #2a1a1a;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #4ade80;
+            background: #1a2a1a;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .loading {
+            color: #fbbf24;
+            background: #2a2a1a;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .video-info {
+            background: #3a3a3a;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .log {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Interactive Video Analysis Fix Test</h1>
+        <p>Testing the fixed interactive video analysis with proper error handling</p>
+        
+        <div id="status" class="loading">Initializing...</div>
+        
+        <div class="video-container">
+            <div id="videoError" style="display: none;" class="error">
+                <div>⚠️ Video Error</div>
+                <div id="errorMessage"></div>
+                <button onclick="retryVideo()">Retry</button>
+            </div>
+            
+            <div id="videoLoading" class="loading">
+                <div>Loading video...</div>
+            </div>
+            
+            <video 
+                id="testVideo" 
+                preload="metadata"
+                playsInline
+                muted
+                controls
+            >
+                <source src="http://localhost:5004/downloadPerFrameVideo?video_filename=pdtyUo5UELk.mp4" type="video/mp4">
+                <source src="http://localhost:5004/downloadEnhancedReplay?video_filename=pdtyUo5UELk.mp4" type="video/mp4">
+                <source src="http://localhost:5004/downloadVideo?video_filename=api_generated_pdtyUo5UELk.mp4" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        
+        <div class="controls">
+            <button onclick="testPlay()">Test Play</button>
+            <button onclick="testPause()">Test Pause</button>
+            <button onclick="testSeek()">Test Seek</button>
+            <button onclick="testAnalytics()">Test Analytics</button>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+        
+        <div class="video-info">
+            <h3>Video Information</h3>
+            <div id="videoInfo">Loading...</div>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        const video = document.getElementById('testVideo');
+        const status = document.getElementById('status');
+        const log = document.getElementById('log');
+        const videoError = document.getElementById('videoError');
+        const videoLoading = document.getElementById('videoLoading');
+        const errorMessage = document.getElementById('errorMessage');
+        const videoInfo = document.getElementById('videoInfo');
+        
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        function logMessage(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#f87171' : type === 'success' ? '#4ade80' : '#ffffff';
+            log.innerHTML += `<div style="color: ${color}; margin: 2px 0;">[${timestamp}] ${message}</div>`;
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            videoError.style.display = 'block';
+            videoLoading.style.display = 'none';
+            status.textContent = 'Video Error';
+            status.className = 'error';
+        }
+        
+        function showSuccess(message) {
+            videoError.style.display = 'none';
+            videoLoading.style.display = 'none';
+            status.textContent = message;
+            status.className = 'success';
+        }
+        
+        function showLoading(message) {
+            videoError.style.display = 'none';
+            videoLoading.style.display = 'block';
+            videoLoading.innerHTML = `<div>${message}</div>`;
+            status.textContent = message;
+            status.className = 'loading';
+        }
+        
+        function retryVideo() {
+            if (retryCount < maxRetries) {
+                retryCount++;
+                logMessage(`Retrying video load... (${retryCount}/${maxRetries})`, 'info');
+                showLoading(`Retrying... (${retryCount}/${maxRetries})`);
+                video.load();
+            } else {
+                logMessage('Max retries reached', 'error');
+                showError('Failed to load video after multiple attempts');
+            }
+        }
+        
+        // Video event handlers
+        video.addEventListener('loadstart', () => {
+            logMessage('Video load started');
+            showLoading('Loading video...');
+        });
+        
+        video.addEventListener('loadedmetadata', () => {
+            logMessage('Video metadata loaded', 'success');
+            showSuccess('Video loaded successfully!');
+            
+            // Update video info
+            videoInfo.innerHTML = `
+                <div><strong>Duration:</strong> ${formatTime(video.duration)}</div>
+                <div><strong>Video Width:</strong> ${video.videoWidth}px</div>
+                <div><strong>Video Height:</strong> ${video.videoHeight}px</div>
+                <div><strong>Ready State:</strong> ${video.readyState}</div>
+                <div><strong>Network State:</strong> ${video.networkState}</div>
+            `;
+        });
+        
+        video.addEventListener('canplay', () => {
+            logMessage('Video can play', 'success');
+        });
+        
+        video.addEventListener('canplaythrough', () => {
+            logMessage('Video can play through', 'success');
+        });
+        
+        video.addEventListener('play', () => {
+            logMessage('Video started playing', 'success');
+        });
+        
+        video.addEventListener('pause', () => {
+            logMessage('Video paused');
+        });
+        
+        video.addEventListener('ended', () => {
+            logMessage('Video ended');
+        });
+        
+        video.addEventListener('error', (e) => {
+            const error = video.error;
+            let errorMessage = 'Unknown video error';
+            
+            if (error) {
+                switch (error.code) {
+                    case 1: errorMessage = 'Video loading aborted'; break;
+                    case 2: errorMessage = 'Network error'; break;
+                    case 3: errorMessage = 'Video decoding error'; break;
+                    case 4: errorMessage = 'Video not supported'; break;
+                }
+            }
+            
+            logMessage(`Video error: ${errorMessage}`, 'error');
+            showError(errorMessage);
+        });
+        
+        video.addEventListener('stalled', () => {
+            logMessage('Video stalled', 'error');
+        });
+        
+        video.addEventListener('waiting', () => {
+            logMessage('Video waiting for data');
+        });
+        
+        // Test functions
+        async function testPlay() {
+            try {
+                logMessage('Attempting to play video...');
+                await video.play();
+                logMessage('Play successful', 'success');
+            } catch (error) {
+                logMessage(`Play failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function testPause() {
+            try {
+                video.pause();
+                logMessage('Pause successful', 'success');
+            } catch (error) {
+                logMessage(`Pause failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function testSeek() {
+            try {
+                const newTime = Math.min(video.duration, video.currentTime + 10);
+                video.currentTime = newTime;
+                logMessage(`Seek to ${formatTime(newTime)} successful`, 'success');
+            } catch (error) {
+                logMessage(`Seek failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testAnalytics() {
+            try {
+                logMessage('Testing analytics API...');
+                const response = await fetch('http://localhost:5004/getPerFrameStatistics?video_filename=pdtyUo5UELk.mp4');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    logMessage(`Analytics loaded: ${data.frame_data?.length || 0} frames`, 'success');
+                } else {
+                    const errorData = await response.json();
+                    logMessage(`Analytics error: ${errorData.error}`, 'error');
+                }
+            } catch (error) {
+                logMessage(`Analytics test failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearLog() {
+            log.innerHTML = '';
+        }
+        
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return '0:00';
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Initialize
+        logMessage('Interactive video analysis fix test page loaded');
+        logMessage('Testing video with multiple fallback sources');
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+

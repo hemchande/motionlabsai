@@ -1,0 +1,218 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* MotionLabs AI Color Palette */
+
+  /* Dark Theme (Current) */
+  :root.dark, :root {
+    /* Backgrounds */
+    --ml-bg: #12161C;
+    --ml-nav: #161B23;
+    --ml-card: #1B2230;
+    --ml-hover: #222B3A;
+    --ml-border: #2C3747;
+
+    /* Text */
+    --ml-text-hi: #EAF2FF;
+    --ml-text-md: #BAC6DA;
+    --ml-text-lo: #8F9DB3;
+
+    /* Cyan Colors */
+    --ml-cyan-primary: #1FD1E0;
+    --ml-cyan-hover: #44DBED;
+    --ml-cyan-active: #12BED8;
+    --ml-cyan-tint-1: #66E6F6;
+    --ml-cyan-tint-2: #A9F0FB;
+    --ml-cyan-tint-3: #D9FBFF;
+
+    /* White */
+    --ml-white: #FFFFFF;
+
+    /* Map to CSS variables for compatibility */
+    --background: 210 24% 7%;
+    --foreground: 217 100% 97%;
+    --card: 215 23% 13%;
+    --card-foreground: 217 100% 97%;
+    --popover: 215 23% 13%;
+    --popover-foreground: 217 100% 97%;
+    --primary: 185 89% 50%;
+    --primary-foreground: 210 24% 7%;
+    --secondary: 210 17% 18%;
+    --secondary-foreground: 217 100% 97%;
+    --muted: 210 17% 18%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 210 17% 18%;
+    --accent-foreground: 217 100% 97%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 217 100% 97%;
+    --border: 212 20% 25%;
+    --input: 212 20% 25%;
+    --ring: 185 89% 50%;
+    --chart-1: 185 89% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --radius: 0.75rem;
+  }
+
+  /* Light Theme */
+  :root.light {
+    /* Backgrounds */
+    --ml-bg: #FFFFFF;
+    --ml-nav: #FEFEFE;
+    --ml-card: #FFFFFF;
+    --ml-hover: #F0FDFF;
+    --ml-border: #E0F7FF;
+
+    /* Text */
+    --ml-text-hi: #0F172A;
+    --ml-text-md: #334155;
+    --ml-text-lo: #64748B;
+
+    /* Cyan Colors (same as dark theme) */
+    --ml-cyan-primary: #1FD1E0;
+    --ml-cyan-hover: #44DBED;
+    --ml-cyan-active: #12BED8;
+    --ml-cyan-tint-1: #66E6F6;
+    --ml-cyan-tint-2: #A9F0FB;
+    --ml-cyan-tint-3: #D9FBFF;
+
+    /* White */
+    --ml-white: #FFFFFF;
+
+    /* Map to CSS variables for compatibility */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 185 89% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 195 100% 98%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 195 100% 98%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 195 100% 98%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 195 100% 93%;
+    --input: 195 100% 96%;
+    --ring: 185 89% 50%;
+    --chart-1: 185 89% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    background-color: var(--ml-bg);
+    color: var(--ml-text-hi);
+  }
+}
+
+/* MotionLabs AI Utility Classes */
+@layer utilities {
+  /* Backgrounds */
+  .ml-bg {
+    background-color: var(--ml-bg);
+  }
+  .ml-nav {
+    background-color: var(--ml-nav);
+  }
+  .ml-card {
+    background-color: var(--ml-card);
+  }
+  .ml-hover {
+    background-color: var(--ml-hover);
+  }
+
+  /* Text Colors */
+  .ml-text-hi {
+    color: var(--ml-text-hi);
+  }
+  .ml-text-md {
+    color: var(--ml-text-md);
+  }
+  .ml-text-lo {
+    color: var(--ml-text-lo);
+  }
+
+  /* Cyan Colors */
+  .ml-cyan-primary {
+    color: var(--ml-cyan-primary);
+  }
+  .ml-cyan-bg {
+    background-color: var(--ml-cyan-primary);
+  }
+  .ml-cyan-hover {
+    background-color: var(--ml-cyan-hover);
+  }
+  .ml-cyan-active {
+    background-color: var(--ml-cyan-active);
+  }
+
+  /* Borders */
+  .ml-border {
+    border-color: var(--ml-border);
+  }
+
+  /* Gradients */
+  .ml-gradient-cyan {
+    background: linear-gradient(135deg, var(--ml-cyan-primary) 0%, var(--ml-cyan-tint-1) 50%, var(--ml-cyan-tint-3) 100%);
+  }
+
+  /* Upload Zone */
+  .ml-upload-zone {
+    border: 2px dashed var(--ml-cyan-hover);
+    background-color: transparent;
+  }
+  .ml-upload-zone:hover {
+    background-color: var(--ml-cyan-tint-3);
+  }
+}
+
+/* Custom slider styles for video player */
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider:focus {
+  outline: none;
+}
+
+.slider:focus::-webkit-slider-thumb {
+  background: #2563eb;
+}
+
+.slider:focus::-moz-range-thumb {
+  background: #2563eb;
+}

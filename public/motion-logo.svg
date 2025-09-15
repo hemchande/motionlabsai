@@ -1,0 +1,14 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="motionGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0891B2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- M Letter -->
+  <path d="M8 52V12h8l8 24 8-24h8v40h-6V22L26 46h-4L14 22v30H8z" fill="url(#motionGradient)"/>
+
+  <!-- Upward Arrow -->
+  <path d="M45 35l8-8 8 8M53 27v20" stroke="url(#motionGradient)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Video Loading Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .video-container { margin: 20px 0; }
+        .test-button { 
+            background: #007bff; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            margin: 5px; 
+            cursor: pointer; 
+        }
+        .test-button:hover { background: #0056b3; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Direct Video Loading Test</h1>
+    <p>Testing direct file path video loading to bypass backend API issues</p>
+
+    <div class="video-container">
+        <h3>Test Video Player</h3>
+        <video id="myVideo" width="640" height="360" controls preload="metadata">
+            Your browser does not support the video tag.
+        </video>
+        
+        <div id="status" class="status"></div>
+        
+        <div style="margin: 20px 0;">
+            <button class="test-button" onclick="testDirectPath()">Test Direct File Path</button>
+            <button class="test-button" onclick="testBackendAPI()">Test Backend API</button>
+            <button class="test-button" onclick="testLocalFile()">Test Local File</button>
+        </div>
+    </div>
+
+    <div class="video-container">
+        <h3>Available Video Files</h3>
+        <p>These are the actual video files that exist in the output_videos directory:</p>
+        <ul>
+            <li><strong>UgWHozR_LLA:</strong> api_generated_UgWHozR_LLA.mp4</li>
+            <li><strong>MeLfAr3GY6w:</strong> analyzed_MeLfAr3GY6w_1756264690.mp4</li>
+            <li><strong>pdtyUo5UELk:</strong> analyzed_overlayed_pdtyUo5UELk_new_1756821489.mp4</li>
+        </ul>
+    </div>
+
+    <script>
+        const videoElement = document.getElementById("myVideo");
+        const statusDiv = document.getElementById("status");
+
+        function updateStatus(message, isError = false) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${isError ? 'error' : 'success'}`;
+        }
+
+        function testDirectPath() {
+            updateStatus("Testing direct file path loading...");
+            
+            // Try to load video directly from the file system
+            // Note: This will only work if the file is accessible from the web server
+            const directPath = "/Users/eishahemchand/meshTest/gymnasticsapp/output_videos/api_generated_UgWHozR_LLA.mp4";
+            
+            videoElement.src = directPath;
+            videoElement.load();
+            
+            videoElement.onloadstart = () => updateStatus("Video loading started...");
+            videoElement.oncanplay = () => updateStatus("Video can play! Direct path works!");
+            videoElement.onerror = () => updateStatus("Direct path failed - file not accessible from web", true);
+        }
+
+        function testBackendAPI() {
+            updateStatus("Testing backend API loading...");
+            
+            const apiUrl = "http://localhost:5004/downloadVideo?video_filename=api_generated_UgWHozR_LLA.mp4";
+            videoElement.src = apiUrl;
+            videoElement.load();
+            
+            videoElement.onloadstart = () => updateStatus("Video loading started via API...");
+            videoElement.oncanplay = () => updateStatus("Backend API works!");
+            videoElement.onerror = () => updateStatus("Backend API failed", true);
+        }
+
+        function testLocalFile() {
+            updateStatus("Testing local file loading...");
+            
+            // Try relative path that might work if files are served statically
+            const localPath = "./videos/api_generated_UgWHozR_LLA.mp4";
+            videoElement.src = localPath;
+            videoElement.load();
+            
+            videoElement.onloadstart = () => updateStatus("Local file loading started...");
+            videoElement.oncanplay = () => updateStatus("Local file works!");
+            videoElement.onerror = () => updateStatus("Local file failed", true);
+        }
+
+        // Add event listeners for debugging
+        videoElement.addEventListener('loadstart', () => console.log('Video load started'));
+        videoElement.addEventListener('loadedmetadata', () => console.log('Video metadata loaded'));
+        videoElement.addEventListener('canplay', () => console.log('Video can play'));
+        videoElement.addEventListener('canplaythrough', () => console.log('Video can play through'));
+        videoElement.addEventListener('error', (e) => {
+            console.error('Video error:', e);
+            console.error('Video error details:', videoElement.error);
+        });
+    </script>
+</body>
+</html>
+
+
+

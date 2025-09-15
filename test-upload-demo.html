@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Route Demo - Video Overlay & Frame Stats</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px;
+        }
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .section h2 {
+            color: #1f2937;
+            margin-top: 0;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .demo-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .demo-card {
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .demo-card h3 {
+            color: #374151;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .icon {
+            width: 20px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+        }
+        .feature-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .feature-list li:before {
+            content: "✓";
+            color: #10b981;
+            font-weight: bold;
+        }
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+        .code-block {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .highlight {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        .video-demo {
+            background: #000;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: white;
+            margin: 20px 0;
+        }
+        .video-demo h3 {
+            margin-top: 0;
+            color: #fbbf24;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #5a67d8;
+        }
+        .btn-secondary {
+            background: #6b7280;
+        }
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        .warning {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            color: #92400e;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 Upload Route Demo</h1>
+            <p>Video Overlay & Frame-by-Frame Statistics in Session History</p>
+        </div>
+
+        <div class="content">
+            <!-- Overview Section -->
+            <div class="section">
+                <h2>🚀 System Overview</h2>
+                <p>This demonstration showcases the complete upload workflow, from video upload to interactive analysis display in the session history for both coaches and athletes.</p>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">6</div>
+                        <div class="stat-label">Sample Videos</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">2</div>
+                        <div class="stat-label">Analysis Types</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">4</div>
+                        <div class="stat-label">Athletes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">5</div>
+                        <div class="stat-label">Gymnastics Events</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Upload Process Section -->
+            <div class="section">
+                <h2>📤 Upload Process & Video Analysis</h2>
+                
+                <div class="demo-grid">
+                    <div class="demo-card">
+                        <h3><span class="icon">1</span>Video Upload</h3>
+                        <ul class="feature-list">
+                            <li>Drag & drop video files (MP4, MOV, AVI, WebM)</li>
+                            <li>File size validation (up to 500MB)</li>
+                            <li>Metadata input (athlete, event, session, notes)</li>
+                            <li>Real-time upload progress tracking</li>
+                            <li>Automatic video duration detection</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="demo-card">
+                        <h3><span class="icon">2</span>Analysis Processing</h3>
+                        <ul class="feature-list">
+                            <li>Standard video analysis (motion detection)</li>
+                            <li>Frame-by-frame analysis (pose estimation)</li>
+                            <li>ACL risk assessment</li>
+                            <li>Performance metrics calculation</li>
+                            <li>Real-time processing status updates</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="code-block">
+// Upload Center Component - Key Features
+const handleFiles = async (files: FileList) => {
+  // File validation
+  const maxSize = 500 * 1024 * 1024; // 500MB
+  const allowedTypes = ['video/mp4', 'video/mov', 'video/avi', 'video/webm'];
+  
+  // Create uploaded video object
+  const uploadedVideo: UploadedVideo = {
+    id: `video-${Date.now()}-${Math.random()}`,
+    name: file.name,
+    athlete: uploadMetadata.athlete,
+    event: uploadMetadata.event,
+    session: uploadMetadata.session,
+    motionIQ: Math.floor(Math.random() * 20) + 80,
+    analysisStatus: 'pending',
+    perFrameStatus: 'pending'
+  };
+  
+  // Start analysis jobs
+  await startAnalysis(video);
+  await startPerFrameAnalysis(video);
+};
+                </div>
+            </div>
+
+            <!-- Video Overlay Section -->
+            <div class="section">
+                <h2>🎥 Video Overlay & Interactive Analysis</h2>
+                
+                <div class="demo-grid">
+                    <div class="demo-card">
+                        <h3><span class="icon">🎬</span>Original Video</h3>
+                        <ul class="feature-list">
+                            <li>Raw training footage</li>
+                            <li>Multiple video formats supported</li>
+                            <li>Direct video playback</li>
+                            <li>Basic video controls</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="demo-card">
+                        <h3><span class="icon">✨</span>Processed Video (Overlay)</h3>
+                        <ul class="feature-list">
+                            <li>AI-generated pose overlays</li>
+                            <li>Landmark detection visualization</li>
+                            <li>Movement tracking indicators</li>
+                            <li>Enhanced replay with annotations</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="video-demo">
+                    <h3>🎬 Interactive Video Player</h3>
+                    <p>Enhanced video player with frame-by-frame navigation and real-time statistics</p>
+                    <p><strong>Features:</strong> Timeline markers, frame navigation, risk level indicators</p>
+                </div>
+
+                <div class="code-block">
+// Interactive Video Player - Key Features
+const InteractiveVideoPlayer = ({ videoUrl, videoName }) => {
+  // Frame data loading from API
+  const loadFrameData = async () => {
+    const response = await fetch(
+      `http://localhost:5004/getPerFrameStatistics?video_filename=${baseName}`
+    );
+    const data = await response.json();
+    setFrameData(data.frame_data);
+  };
+  
+  // Real-time frame synchronization
+  const handleTimeUpdate = () => {
+    const currentTime = videoRef.current.currentTime;
+    const closestFrame = findClosestFrame(currentTime);
+    setSelectedFrame(closestFrame);
+  };
+  
+  // Timeline with risk markers
+  {frameData.map((frame, index) => {
+    const aclRisk = frame.metrics?.acl_risk || 0;
+    const riskLevel = getRiskLevel(aclRisk);
+    const markerColor = getRiskColor(riskLevel);
+    
+    return (
+      <button
+        className={`timeline-marker ${markerColor}`}
+        onClick={() => seekToTime(frame.timestamp)}
+        title={`Frame ${frame.frame_number} - ACL Risk: ${(aclRisk * 100).toFixed(1)}%`}
+      />
+    );
+  })}
+};
+                </div>
+            </div>
+
+            <!-- Frame Statistics Section -->
+            <div class="section">
+                <h2>📊 Frame-by-Frame Statistics & Analytics</h2>
+                
+                <div class="demo-grid">
+                    <div class="demo-card">
+                        <h3><span class="icon">📈</span>Real-Time Metrics</h3>
+                        <ul class="feature-list">
+                            <li>ACL risk assessment per frame</li>
+                            <li>Elevation angle calculations</li>
+                            <li>Flight time measurements</li>
+                            <li>Landing quality scores</li>
+                            <li>Pose confidence levels</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="demo-card">
+                        <h3><span class="icon">🎯</span>Enhanced Analytics</h3>
+                        <ul class="feature-list">
+                            <li>Tumbling detection algorithms</li>
+                            <li>Flight phase classification</li>
+                            <li>Movement pattern analysis</li>
+                            <li>Performance trend tracking</li>
+                            <li>Risk factor distribution</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="code-block">
+// Enhanced Frame Statistics - Data Structure
+interface EnhancedFrameData {
+  frame_number: number;
+  timestamp: number;
+  tumbling_detected: boolean;
+  flight_phase: 'ground' | 'preparation' | 'takeoff' | 'flight' | 'landing';
+  height_from_ground: number;
+  elevation_angle: number;
+  acl_risk_factors: {
+    knee_angle_risk: number;
+    knee_valgus_risk: number;
+    landing_mechanics_risk: number;
+    overall_acl_risk: number;
+    risk_level: 'LOW' | 'MODERATE' | 'HIGH';
+  };
+  acl_recommendations: string[];
+}
+
+// Statistics Calculation
+const calculateEnhancedStats = (frames: EnhancedFrameData[]) => {
+  const tumblingFrames = frames.filter(f => f.tumbling_detected);
+  const highRiskFrames = frames.filter(f => f.acl_risk_factors.risk_level === 'HIGH');
+  
+  return {
+    tumbling_detection: {
+      total_tumbling_frames: tumblingFrames.length,
+      tumbling_percentage: (tumblingFrames.length / frames.length) * 100
+    },
+    acl_risk_analysis: {
+      average_overall_risk: frames.reduce((sum, f) => sum + f.acl_risk_factors.overall_acl_risk, 0) / frames.length,
+      high_risk_frames: highRiskFrames.length
+    }
+  };
+};
+                </div>
+            </div>
+
+            <!-- Session History Section -->
+            <div class="section">
+                <h2>📋 Session History Display (Coach vs Athlete Views)</h2>
+                
+                <div class="demo-grid">
+                    <div class="demo-card">
+                        <h3><span class="icon">👨‍💼</span>Coach Dashboard</h3>
+                        <ul class="feature-list">
+                            <li>Complete athlete roster overview</li>
+                            <li>All session history access</li>
+                            <li>Performance analytics across athletes</li>
+                            <li>Risk assessment summaries</li>
+                            <li>Team-wide statistics</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="demo-card">
+                        <h3><span class="icon">🏃‍♀️</span>Athlete Dashboard</h3>
+                        <ul class="feature-list">
+                            <li>Personal session history only</li>
+                            <li>Individual performance metrics</li>
+                            <li>Personal progress tracking</li>
+                            <li>Coach feedback access</li>
+                            <li>Personal improvement areas</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="code-block">
+// Role-Based Dashboard Rendering
+const MainDashboard = ({ userRole, user }) => {
+  const renderMainContent = () => {
+    switch (activeView) {
+      case "dashboard":
+        return userRole === "coach" ? (
+          <CoachDashboard user={user} />
+        ) : (
+          <AthleteDashboard user={user} />
+        );
+      // ... other views
+    }
+  };
+  
+  return (
+    <div className="flex h-screen">
+      <Sidebar user={user} />
+      <div className="flex-1 overflow-auto">
+        {renderMainContent()}
+      </div>
+    </div>
+  );
+};
+
+// Coach Dashboard - Full Access
+const CoachDashboard = ({ user }) => (
+  <div>
+    <h1>Coach Dashboard</h1>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <StatCard title="Total Athletes" value={athletes.length} />
+      <StatCard title="Total Sessions" value={sessions.length} />
+      <StatCard title="Avg Motion IQ" value={averageMotionIQ} />
+      <StatCard title="High Risk Sessions" value={highRiskCount} />
+    </div>
+    <SessionDashboard /> {/* Full access to all sessions */}
+  </div>
+);
+
+// Athlete Dashboard - Limited Access
+const AthleteDashboard = ({ user }) => (
+  <div>
+    <h1>Athlete Dashboard</h1>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <StatCard title="My Sessions" value={mySessions.length} />
+      <StatCard title="My Motion IQ" value={myMotionIQ} />
+      <StatCard title="My ACL Risk" value={myACLRisk} />
+      <StatCard title="Improvement" value={improvementScore} />
+    </div>
+    <MySessions sessions={mySessions} /> {/* Only personal sessions */}
+  </div>
+);
+                </div>
+            </div>
+
+            <!-- API Integration Section -->
+            <div class="section">
+                <h2>🔌 Backend API Integration</h2>
+                
+                <div class="demo-grid">
+                    <div class="demo-card">
+                        <h3><span class="icon">🐍</span>Python Backend</h3>
+                        <ul class="feature-list">
+                            <li>Flask-based API server</li>
+                            <li>Video processing pipeline</li>
+                            <li>Pose estimation algorithms</li>
+                            <li>Frame-by-frame analysis</li>
+                            <li>JSON data export</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="demo-card">
+                        <h3><span class="icon">🌐</span>API Endpoints</h3>
+                        <ul class="feature-list">
+                            <li>POST /analyzeVideo - Standard analysis</li>
+                            <li>POST /analyzeVideoPerFrame - Frame analysis</li>
+                            <li>GET /getPerFrameStatistics - Frame data</li>
+                            <li>GET /downloadPerFrameVideo - Processed video</li>
+                            <li>GET /health - Server status</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="code-block">
+# Python Backend - Key Endpoints
+@app.route('/analyzeVideo', methods=['POST'])
+def analyze_video():
+    video_filename = request.json.get('video_filename')
+    # Start video analysis job
+    job_id = start_analysis_job(video_filename)
+    return jsonify({'job_id': job_id, 'status': 'processing'})
+
+@app.route('/getPerFrameStatistics', methods=['GET'])
+def get_per_frame_statistics():
+    video_filename = request.args.get('video_filename')
+    # Load frame-by-frame analysis data
+    frame_data = load_frame_statistics(video_filename)
+    return jsonify({
+        'frame_data': frame_data,
+        'total_frames': len(frame_data),
+        'analysis_summary': calculate_summary_stats(frame_data)
+    })
+
+@app.route('/downloadPerFrameVideo', methods=['GET'])
+def download_per_frame_video():
+    video_filename = request.args.get('video_filename')
+    # Return processed video with overlays
+    return send_file(f'processed_videos/{video_filename}.mp4')
+                </div>
+            </div>
+
+            <!-- Live Demo Section -->
+            <div class="section">
+                <h2>🎯 Live Demo Instructions</h2>
+                
+                <div class="success">
+                    <h3>✅ Ready to Test!</h3>
+                    <p>Both servers are running and ready for demonstration:</p>
+                    <ul>
+                        <li><strong>Frontend:</strong> <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></li>
+                        <li><strong>Backend:</strong> <a href="http://localhost:5004/health" target="_blank">http://localhost:5004/health</a></li>
+                    </ul>
+                </div>
+
+                <div class="demo-grid">
+                    <div class="demo-card">
+                        <h3><span class="icon">1️⃣</span>Login as Coach</h3>
+                        <ul class="feature-list">
+                            <li>Use demo credentials: coach@motionlabs.com / password123</li>
+                            <li>Navigate to "Upload & Analysis" tab</li>
+                            <li>Upload a video file</li>
+                            <li>Start analysis jobs</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="demo-card">
+                        <h3><span class="icon">2️⃣</span>View Session History</h3>
+                        <ul class="feature-list">
+                            <li>Go to "Session History" tab</li>
+                            <li>Click "View Processed" on any completed video</li>
+                            <li>See interactive video player with overlays</li>
+                            <li>Navigate frame-by-frame with statistics</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="demo-grid">
+                    <div class="demo-card">
+                        <h3><span class="icon">3️⃣</span>Login as Athlete</h3>
+                        <ul class="feature-list">
+                            <li>Use demo credentials: athlete@motionlabs.com / password123</li>
+                            <li>View personal dashboard</li>
+                            <li>Access only your own sessions</li>
+                            <li>See personal performance metrics</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="demo-card">
+                        <h3><span class="icon">4️⃣</span>Test Video Analysis</h3>
+                        <ul class="feature-list">
+                            <li>Upload a new video as coach</li>
+                            <li>Monitor analysis progress</li>
+                            <li>View processed video with overlays</li>
+                            <li>Analyze frame-by-frame statistics</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="warning">
+                    <h3>⚠️ Important Notes</h3>
+                    <ul>
+                        <li>Make sure both servers are running (frontend: 3000, backend: 5004)</li>
+                        <li>Video analysis takes time - be patient during processing</li>
+                        <li>Some videos may already have analysis data available</li>
+                        <li>Check browser console for any error messages</li>
+                    </ul>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <a href="http://localhost:3000" class="btn" target="_blank">🚀 Launch Frontend App</a>
+                    <a href="http://localhost:5004/health" class="btn btn-secondary" target="_blank">🔍 Check Backend Status</a>
+                </div>
+            </div>
+
+            <!-- Technical Details Section -->
+            <div class="section">
+                <h2>🔧 Technical Implementation Details</h2>
+                
+                <div class="demo-grid">
+                    <div class="demo-card">
+                        <h3><span class="icon">⚛️</span>React Components</h3>
+                        <ul class="feature-list">
+                            <li>UploadCenter.tsx - File upload & management</li>
+                            <li>SessionDashboard.tsx - Session history display</li>
+                            <li>InteractiveVideoPlayer.tsx - Video playback & analysis</li>
+                            <li>EnhancedFrameStatistics.tsx - Frame data visualization</li>
+                            <li>CoachDashboard.tsx & AthleteDashboard.tsx - Role-based views</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="demo-card">
+                        <h3><span class="icon">🎨</span>UI Framework</h3>
+                        <ul class="feature-list">
+                            <li>Shadcn UI components</li>
+                            <li>Tailwind CSS styling</li>
+                            <li>Framer Motion animations</li>
+                            <li>Responsive grid layouts</li>
+                            <li>Dark/light theme support</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="code-block">
+// Key Component Architecture
+src/
+├── components/
+│   ├── UploadCenter.tsx          # Video upload & analysis management
+│   ├── SessionDashboard.tsx      # Session history for coaches
+│   ├── InteractiveVideoPlayer.tsx # Enhanced video player with overlays
+│   ├── EnhancedFrameStatistics.tsx # Frame-by-frame statistics display
+│   ├── CoachDashboard.tsx        # Coach-specific dashboard
+│   └── AthleteDashboard.tsx      # Athlete-specific dashboard
+├── contexts/
+│   ├── AuthContext.tsx           # User authentication & role management
+│   ├── ProcessingContext.tsx     # Global processing state
+│   └── InvitationContext.tsx     # Team invitation management
+└── lib/
+    └── api.ts                    # Backend API integration functions
+
+// State Management Flow
+1. User uploads video → UploadCenter component
+2. Video processed → Backend API analysis
+3. Results stored → ProcessingContext updates
+4. Session history updated → SessionDashboard displays
+5. Video playback → InteractiveVideoPlayer with frame data
+6. Statistics display → EnhancedFrameStatistics component
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add some interactivity to the demo
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click handlers for demo buttons
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    if (this.href.includes('localhost')) {
+                        console.log('Opening:', this.href);
+                    }
+                });
+            });
+
+            // Add some animation to stats
+            const statNumbers = document.querySelectorAll('.stat-number');
+            statNumbers.forEach(stat => {
+                const finalValue = parseInt(stat.textContent);
+                let currentValue = 0;
+                const increment = finalValue / 20;
+                
+                const timer = setInterval(() => {
+                    currentValue += increment;
+                    if (currentValue >= finalValue) {
+                        stat.textContent = finalValue;
+                        clearInterval(timer);
+                    } else {
+                        stat.textContent = Math.floor(currentValue);
+                    }
+                }, 50);
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+

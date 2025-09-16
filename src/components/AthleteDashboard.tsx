@@ -189,7 +189,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
         const response = await gymnasticsAPI.getSessions()
         if (response.success && response.sessions) {
           // Transform backend sessions to frontend format
-          const transformedSessions: AthleteSession[] = response.sessions.map((session: any) => ({
+          const transformedSessions: AthleteSession[] = response.sessions.map((session: Record<string, any>) => ({
             id: session._id || session.id,
             date: session.date || new Date().toISOString().split('T')[0],
             event: session.event || 'Unknown Event',
@@ -223,103 +223,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
   }, [])
 
   // Mock data removed - now fetching from backend
-    {
-      id: "pdty-vault-test",
-      date: "2025-09-13",
-      event: "Vault",
-      duration: "0:04",
-      motionIQ: 85,
-      aclRisk: 8,
-      precision: 88,
-      power: 82,
-      status: "completed",
-      notes: "Test vault analysis with live frame-by-frame statistics and ACL risk assessment",
-      coachNotes: "Good vault technique with low ACL risk. Focus on maintaining form throughout the movement.",
-      highlights: ["Low ACL risk", "Good form", "Smooth execution"],
-      areasForImprovement: ["Consistency", "Power generation"],
-      hasProcessedVideo: true,
-      processedVideoUrl: "http://localhost:5004/downloadVideo?video_filename=h264_analyzed_overlayed_pdtyUo5UELk_new_1757727038.mp4",
-      analyticsFile: "api_generated_pdtyUo5UELk.json"
-    },
-    {
-      id: "mya-fx-floor",
-      date: "2025-09-12",
-      event: "Floor Exercise",
-      duration: "2:27",
-      motionIQ: 89,
-      aclRisk: 12,
-      precision: 93,
-      power: 87,
-      status: "completed",
-      notes: "Excellent floor exercise routine with strong tumbling passes and solid landing mechanics",
-      coachNotes: "Outstanding routine! Great amplitude on tumbling passes. Focus on maintaining form in final pass.",
-      highlights: ["Strong tumbling passes", "Good landing mechanics", "Excellent form throughout"],
-      areasForImprovement: ["Final pass form", "Consistency in landings"],
-      hasProcessedVideo: true,
-      processedVideoUrl: "http://localhost:5004/downloadVideo?video_filename=h264_analyzed_MYa%20FX%20%28Mar%209%2C%202025%29_20250903_212015_20250911_144715_20250912_210519.mp4",
-      analyticsFile: "api_generated_MYa FX (Mar 9, 2025)_20250903_212015_20250911_144715_20250912_210519.json"
-    },
-    {
-      id: "2",
-      date: "2024-01-14",
-      event: "Bars",
-      duration: "3:15",
-      motionIQ: 88,
-      aclRisk: 12,
-      precision: 87,
-      power: 85,
-      status: "completed",
-      notes: "Improved handstand position, work on release timing",
-      coachNotes: "Great improvement on handstand. Focus on release timing for better flow.",
-      highlights: ["Improved handstand", "Better release timing", "Clean transitions"],
-      areasForImprovement: ["Release timing", "Flow between elements"],
-      hasProcessedVideo: true,
-      processedVideoUrl: "http://localhost:5004/downloadVideo?video_filename=h264_api_generated_UgWHozR_LLA.mp4",
-      analyticsFile: "api_generated_UgWHozR_LLA.json"
-    },
-    {
-      id: "4",
-      date: "2024-01-16",
-      event: "Floor",
-      duration: "4:15",
-      motionIQ: 0,
-      aclRisk: 0,
-      precision: 0,
-      power: 0,
-      status: "pending",
-      videoUrl: "/videos/pdtyUo5UELk.mp4",
-      notes: "New floor routine upload - ready for analysis",
-      hasProcessedVideo: false
-    },
-    {
-      id: "5",
-      date: "2024-01-16",
-      event: "Beam",
-      duration: "3:45",
-      motionIQ: 0,
-      aclRisk: 0,
-      precision: 0,
-      power: 0,
-      status: "pending",
-      videoUrl: "/videos/UgWHozR_LLA.mp4",
-      notes: "Beam routine ready for analysis",
-      hasProcessedVideo: false
-    },
-    {
-      id: "6",
-      date: "2024-01-16",
-      event: "Vault",
-      duration: "2:30",
-      motionIQ: 0,
-      aclRisk: 0,
-      precision: 0,
-      power: 0,
-      status: "processing",
-      videoUrl: "/videos/FWSpWksgk60.mp4",
-      notes: "Currently analyzing vault technique",
-      hasProcessedVideo: false
-    }
-  ])
+  // Note: Sessions are now fetched from the backend API
 
   // Monitor processing jobs and update sessions
   useEffect(() => {

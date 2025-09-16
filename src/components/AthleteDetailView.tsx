@@ -95,7 +95,7 @@ export default function AthleteDetailView({ athlete, onBack, onViewVideos }: Ath
       highlights: ["Strong run", "Good block position", "Clean entry"],
       areasForImprovement: ["Landing position", "Chest up on landing"],
       hasProcessedVideo: true,
-      processedVideoUrl: "http://localhost:5004/downloadVideo?video_filename=h264_api_generated_overlayed_pdtyUo5UELk_new.mp4",
+      processedVideoUrl: "http://localhost:5004/getVideo?video_filename=h264_api_generated_overlayed_pdtyUo5UELk_new.mp4",
       analyticsFile: "api_generated_pdtyUo5UELk.json"
     },
     {
@@ -113,7 +113,7 @@ export default function AthleteDetailView({ athlete, onBack, onViewVideos }: Ath
       highlights: ["Better handstand", "Improved release timing"],
       areasForImprovement: ["Release timing", "Body position"],
       hasProcessedVideo: true,
-      processedVideoUrl: "http://localhost:5004/downloadVideo?video_filename=h264_api_generated_UgWHozR_LLA.mp4",
+      processedVideoUrl: "http://localhost:5004/getVideo?video_filename=h264_api_generated_UgWHozR_LLA.mp4",
       analyticsFile: "UgWHozR_LLA_analytics.json"
     },
     {
@@ -131,7 +131,7 @@ export default function AthleteDetailView({ athlete, onBack, onViewVideos }: Ath
       highlights: ["Strong tumbling", "Good power"],
       areasForImprovement: ["Dance elements", "Presentation"],
       hasProcessedVideo: true,
-      processedVideoUrl: "http://localhost:5004/downloadVideo?video_filename=h264_analyzed_floor_routine.mp4",
+      processedVideoUrl: "http://localhost:5004/getVideo?video_filename=h264_analyzed_floor_routine.mp4",
       analyticsFile: "floor_routine_analytics.json"
     }
   ])

@@ -177,8 +177,8 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       console.log(`Processing video: ${video.processed_filename}, analytics: ${analyticsFile}`);
       console.log(`Base name: ${baseName}, hasAnalytics: ${hasAnalytics}`);
       
-      // Always use the regular downloadVideo endpoint for videos
-      const videoUrl = `http://localhost:5004/downloadVideo?video_filename=${video.processed_filename}`;
+      // Use the new getVideo endpoint for frontend display
+      const videoUrl = `http://localhost:5004/getVideo?video_filename=${video.processed_filename}`;
       console.log(`Video URL: ${videoUrl}`);
       
       const session = {
@@ -241,7 +241,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       },
       notes: 'Excellent execution, minor landing adjustment needed',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/downloadVideo?video_filename=h264_analyzed_overlayed_pdtyUo5UELk_new_1756821489.mp4',
+      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=h264_analyzed_overlayed_pdtyUo5UELk_new_1756821489.mp4',
       analyticsFile: 'api_generated_pdtyUo5UELk.json'
     },
     {
@@ -267,7 +267,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       },
       notes: 'Good form, focus on landing stability',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/downloadVideo?video_filename=h264_api_generated_UgWHozR_LLA.mp4',
+      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=h264_api_generated_UgWHozR_LLA.mp4',
       analyticsFile: 'api_generated_UgWHozR_LLA.json'
     },
     {
@@ -293,7 +293,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       },
       notes: 'Outstanding technique, minor timing adjustments',
       hasProcessedVideo: true,
-              processedVideoUrl: 'http://localhost:5004/downloadVideo?video_filename=analyzed_MeLfAr3GY6w_1756264690.mp4',
+              processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=analyzed_MeLfAr3GY6w_1756264690.mp4',
       analyticsFile: 'api_generated_MeLfAr3GY6w.json'
     },
     {
@@ -319,7 +319,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       },
       notes: 'High power, needs landing refinement',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/downloadVideo?video_filename=analyzed_FWSpWksgk60_1756825611.mp4'
+      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=analyzed_FWSpWksgk60_1756825611.mp4'
     },
     {
       id: '5',
@@ -344,7 +344,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       },
       notes: 'Solid performance, room for improvement',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/downloadVideo?video_filename=api_generated_3-gNgU9Z_jU.mp4',
+      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=api_generated_3-gNgU9Z_jU.mp4',
       analyticsFile: 'api_generated_3-gNgU9Z_jU.json'
     },
     {
@@ -370,7 +370,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       },
       notes: 'Excellent all-around performance',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/downloadVideo?video_filename=api_generated_Yzhpyecs-ws.mp4'
+      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=api_generated_Yzhpyecs-ws.mp4'
     }
   ];
 
@@ -575,15 +575,15 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
         const data = await response.json();
         if (data.success && data.video_info.recommended_filename) {
           // Use the recommended filename (H.264 if available)
-          return `http://localhost:5004/downloadVideo?video_filename=${data.video_info.recommended_filename}`;
+          return `http://localhost:5004/getVideo?video_filename=${data.video_info.recommended_filename}`;
         }
       }
       // Fallback to original video
-      return `http://localhost:5004/downloadVideo?video_filename=${videoFilename}`;
+      return `http://localhost:5004/getVideo?video_filename=${videoFilename}`;
     } catch (error) {
       console.error('Error getting best video URL:', error);
       // Fallback to original video
-      return `http://localhost:5004/downloadVideo?video_filename=${videoFilename}`;
+      return `http://localhost:5004/getVideo?video_filename=${videoFilename}`;
     }
   };
 
@@ -740,7 +740,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
         console.log('Extracted base name:', baseName);
         
         // Test the per-frame video endpoint
-        const videoResponse = await fetch(`http://localhost:5004/downloadVideo?video_filename=${baseName}`);
+        const videoResponse = await fetch(`http://localhost:5004/getVideo?video_filename=${baseName}`);
         console.log('Video endpoint response:', videoResponse.status, videoResponse.statusText);
         
         // Test the analytics endpoint

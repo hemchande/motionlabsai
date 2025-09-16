@@ -287,9 +287,9 @@ export default function EnhancedVideoReplay({
             playsInline
             muted
           >
-            <source src={`http://localhost:5004/downloadVideo?video_filename=${videoFilename}`} type="video/mp4" />
+            <source src={`http://localhost:5004/getVideo?video_filename=${videoFilename}`} type="video/mp4" />
             <source src={`http://localhost:5004/downloadEnhancedReplay?video_filename=${videoFilename}`} type="video/mp4" />
-            <source src={`http://localhost:5004/downloadVideo?video_filename=${videoFilename}`} type="video/mp4" />
+            <source src={`http://localhost:5004/getVideo?video_filename=${videoFilename}`} type="video/mp4" />
             Your browser does not support the video tag.
           </video>
 

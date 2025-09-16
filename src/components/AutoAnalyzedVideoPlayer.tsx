@@ -130,6 +130,7 @@ interface AutoAnalyzedVideoPlayerProps {
   videoUrl?: string
   videoName?: string
   analyticsBaseName?: string
+  processedVideoFilename?: string  // New prop for processed video filename
   sessionId?: string  // New prop for GridFS-based sessions
   onClose: () => void
   onVideoAnalyzed?: (metrics: VideoMetrics) => void
@@ -139,6 +140,7 @@ export default function AutoAnalyzedVideoPlayer({
   videoUrl, 
   videoName, 
   analyticsBaseName,
+  processedVideoFilename,
   sessionId,
   onClose, 
   onVideoAnalyzed 
@@ -147,7 +149,8 @@ export default function AutoAnalyzedVideoPlayer({
   console.log('AutoAnalyzedVideoPlayer props:', {
     videoUrl,
     videoName,
-    analyticsBaseName
+    analyticsBaseName,
+    processedVideoFilename
   });
 
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -205,6 +208,48 @@ export default function AutoAnalyzedVideoPlayer({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Video time update handler
+  const handleTimeUpdate = () => {
+    const video = videoRef.current
+    if (!video) return
+    
+    setCurrentTime(video.currentTime)
+    
+    // Update real-time metrics based on current frame
+    const currentFrame = frameData.find(frame => 
+      Math.abs(frame.timestamp - video.currentTime) < 0.1
+    )
+    
+    // Debug logging
+    if (video.currentTime % 1 < 0.1) { // Log every second
+      console.log('Video time:', video.currentTime, 'Frame data length:', frameData.length)
+      if (frameData.length > 0) {
+        console.log('First frame timestamp:', frameData[0].timestamp, 'Last frame timestamp:', frameData[frameData.length - 1].timestamp)
+      }
+      if (currentFrame) {
+        console.log('Found current frame:', currentFrame.frame_number, 'at time:', currentFrame.timestamp)
+      } else {
+        console.log('No current frame found for time:', video.currentTime)
+      }
+    }
+    
+    if (currentFrame) {
+      // Update current frame metrics for top-left display
+      setSelectedFrame(currentFrame)
+      
+      const aclRisk = currentFrame.overall_acl_risk || currentFrame.metrics?.acl_risk || 0
+      const newMetrics: VideoMetrics = {
+        motionIQ: Math.max(0, 100 - aclRisk * 0.8),
+        aclRisk: aclRisk,
+        precision: Math.max(0, 100 - aclRisk * 0.6),
+        power: Math.max(0, 100 - aclRisk * 0.4),
+        timestamp: video.currentTime
+      }
+      setRealTimeMetrics(newMetrics)
+      onVideoAnalyzed?.(newMetrics)
+    }
+  }
+
   // Load frame data from JSON - same approach as InteractiveVideoPlayer
   useEffect(() => {
     const loadFrameData = async () => {
@@ -214,10 +259,14 @@ export default function AutoAnalyzedVideoPlayer({
         // Extract the base video name from the filename
         let baseName: string;
         
-        // If analyticsBaseName is provided, use it directly
-        if (analyticsBaseName) {
+        // For per-frame statistics, use the processed video filename if available
+        if (processedVideoFilename) {
+          baseName = processedVideoFilename;
+          console.log('Using processed video filename for per-frame stats:', baseName);
+        } else if (analyticsBaseName) {
+          // Fallback to analyticsBaseName (this is the analytics filename, not ideal)
           baseName = analyticsBaseName;
-          console.log('Using provided analyticsBaseName:', baseName);
+          console.log('Using provided analyticsBaseName (fallback):', baseName);
         } else if (videoName) {
           // Fallback to extracting from videoName
           baseName = videoName
@@ -241,7 +290,32 @@ export default function AutoAnalyzedVideoPlayer({
         // Try to find the JSON file using the gymnastics API server
         let response;
         try {
-          response = await fetch(`http://localhost:5004/getPerFrameStatistics?video_filename=${baseName}`);
+          // First, get available sessions from the API
+          const sessionsResponse = await fetch('http://localhost:5004/getSessions');
+          const sessionsData = await sessionsResponse.json();
+          
+          if (!sessionsData.success || !sessionsData.sessions || sessionsData.sessions.length === 0) {
+            throw new Error('No sessions available');
+          }
+          
+          // Find the most recent completed session with analytics
+          const completedSessions = sessionsData.sessions.filter((session: any) => 
+            session.status === 'completed' && 
+            session.processed_video_filename && 
+            session.analytics_filename
+          );
+          
+          if (completedSessions.length === 0) {
+            throw new Error('No completed sessions with analytics found');
+          }
+          
+          // Sort by creation date (most recent first) and use the latest
+          completedSessions.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+          const latestSession = completedSessions[0];
+          console.log('Using session:', latestSession);
+          
+          // Load analytics using the session's processed video filename
+          response = await fetch(`http://localhost:5004/getPerFrameStatistics?video_filename=${latestSession.processed_video_filename}`);
           console.log('Analytics response status:', response.status, response.statusText);
         } catch (error) {
           console.log('API server not available, using mock data:', error);
@@ -447,44 +521,6 @@ export default function AutoAnalyzedVideoPlayer({
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(video.currentTime)
-      
-      // Update real-time metrics based on current frame
-      const currentFrame = frameData.find(frame => 
-        Math.abs(frame.timestamp - video.currentTime) < 0.1
-      )
-      
-      // Debug logging
-      if (video.currentTime % 1 < 0.1) { // Log every second
-        console.log('Video time:', video.currentTime, 'Frame data length:', frameData.length)
-        if (frameData.length > 0) {
-          console.log('First frame timestamp:', frameData[0].timestamp, 'Last frame timestamp:', frameData[frameData.length - 1].timestamp)
-        }
-        if (currentFrame) {
-          console.log('Found current frame:', currentFrame.frame_number, 'at time:', currentFrame.timestamp)
-        } else {
-          console.log('No current frame found for time:', video.currentTime)
-        }
-      }
-      
-      if (currentFrame) {
-        // Update current frame metrics for top-left display
-        setSelectedFrame(currentFrame)
-        
-        const aclRisk = currentFrame.overall_acl_risk || currentFrame.metrics?.acl_risk || 0
-        const newMetrics: VideoMetrics = {
-          motionIQ: Math.max(0, 100 - aclRisk * 0.8),
-          aclRisk: aclRisk,
-          precision: Math.max(0, 100 - aclRisk * 0.6),
-          power: Math.max(0, 100 - aclRisk * 0.4),
-          timestamp: video.currentTime
-        }
-        setRealTimeMetrics(newMetrics)
-        onVideoAnalyzed?.(newMetrics)
-      }
-    }
 
     const handleLoadedMetadata = () => {
       setDuration(video.duration)
@@ -908,9 +944,7 @@ export default function AutoAnalyzedVideoPlayer({
                   console.log('Video paused');
                   setIsPlaying(false);
                 }}
-                onTimeUpdate={() => {
-                  console.log('Video time update:', videoRef.current?.currentTime);
-                }}
+                onTimeUpdate={handleTimeUpdate}
                 style={{ minHeight: '300px' }}
                 />
                   {/* Fullscreen Button Overlay */}

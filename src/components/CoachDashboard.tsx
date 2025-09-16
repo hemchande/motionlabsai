@@ -44,6 +44,7 @@ import InteractiveVideoPlayer from "./InteractiveVideoPlayer"
 import AutoAnalyzedVideoPlayer from "./AutoAnalyzedVideoPlayer"
 import AthleteDetailView from "./AthleteDetailView"
 import AthleteInvitationModal from "./AthleteInvitationModal"
+import BackgroundProcessingModal from "./BackgroundProcessingModal"
 
 interface User {
   id: string;
@@ -77,12 +78,13 @@ interface Session {
   event: string;
   duration: string;
   motionIQ: number;
-  status: "completed" | "processing" | "failed" | "pending";
+  status: "completed" | "processing" | "failed" | "pending" | "uploaded";
   videoUrl?: string;
   notes?: string;
   // New fields for processed videos and analytics
   hasProcessedVideo?: boolean;
   processedVideoUrl?: string;
+  processedVideoFilename?: string;
   analyticsFile?: string;
   aclRisk?: number;
   precision?: number;
@@ -91,11 +93,12 @@ interface Session {
   perFrameJobId?: string;
   // GridFS support
   sessionId?: string;
-  analysisStatus?: 'pending' | 'processing' | 'completed' | 'failed';
-  perFrameStatus?: 'pending' | 'processing' | 'completed' | 'failed';
+  analysisStatus?: 'pending' | 'processing' | 'completed' | 'failed' | 'not_available';
+  perFrameStatus?: 'pending' | 'processing' | 'completed' | 'failed' | 'not_available';
   analysisProgress?: number;
   perFrameProgress?: number;
   videoName?: string;
+  originalFilename?: string;
   analysisData?: any;
 }
 
@@ -146,11 +149,12 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
   // Session and modal state
   const [selectedSession, setSelectedSession] = useState<Session | null>(null)
   const [showInviteModal, setShowInviteModal] = useState(false)
+  const [showProcessingModal, setShowProcessingModal] = useState(false)
   
   // Per-frame analysis service status
   const [perFrameServiceStatus, setPerFrameServiceStatus] = useState<'available' | 'unavailable' | 'unknown'>('unknown')
   
-  const { addJob, getJob } = useProcessing()
+  const { addJob, getJob, isProcessing, activeJobs } = useProcessing()
 
   // Upload functions
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -237,7 +241,7 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
         // Don't automatically show video player - let user choose when to start analysis
         // setTimeout(() => {
         //   setAutoAnalyzedVideo({
-        //     url: `http://localhost:5004/downloadVideo?video_filename=${response.filename}`,
+        //     url: `http://localhost:5004/getVideo?video_filename=${response.filename}`,
         //     name: uploadItem.name
         //   })
         //   setShowAutoAnalyzedPlayer(true)
@@ -304,10 +308,77 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
     }
   }
 
+  const analyzeVideo1 = async (videoFilename: string, videoId?: string) => {
+    try {
+      // Extract just the filename from the path (remove /videos/ prefix if present)
+      const actualFilename: string = videoFilename.includes('/') ? videoFilename.split('/').pop() || videoFilename : videoFilename
+      console.log('Starting analyzeVideo1 for:', actualFilename)
+      
+      // Update session status to processing
+      if (videoId) {
+        setSessions(prev => prev.map(session => 
+          session.id === videoId 
+            ? { ...session, status: 'processing' as const }
+            : session
+        ))
+      }
+      
+      // Use the new analyzeVideo1 endpoint
+      const response = await gymnasticsAPI.analyzeVideo1(
+        actualFilename,
+        uploadMetadata.athlete || "Unknown",
+        uploadMetadata.event || "General",
+        uploadMetadata.session || "Training",
+        user?.id || "unknown"
+      )
+      
+      if (response.success) {
+        console.log('analyzeVideo1 started successfully:', response)
+        
+        // Update session with the new session_id from response
+        if (videoId) {
+          setSessions(prev => prev.map(session => 
+            session.id === videoId 
+              ? { 
+                  ...session, 
+                  status: 'processing' as const,
+                  sessionId: response.session_id,
+                  analysisJobId: response.session_id
+                }
+              : session
+          ))
+        }
+        
+        // Show success message
+        alert(`Analysis started successfully! Session ID: ${response.session_id}`)
+      } else {
+        throw new Error(response.message || 'Analysis failed to start')
+      }
+    } catch (error) {
+      console.error("analyzeVideo1 failed:", error)
+      
+      // Show user-friendly error message
+      if (error instanceof Error) {
+        alert(`Analysis failed: ${error.message}`)
+      } else {
+        alert('Analysis failed: An unexpected error occurred. Please try again.')
+      }
+      
+      // Update session status to failed
+      if (videoId) {
+        setSessions(prev => prev.map(session => 
+          session.id === videoId 
+            ? { ...session, status: 'failed' as const }
+            : session
+        ))
+      }
+    }
+  }
+
   const startAnalysis = async (videoFilename: string, videoId?: string) => {
     try {
       // Extract just the filename from the path (remove /videos/ prefix if present)
-      const actualFilename = videoFilename.includes('/') ? videoFilename.split('/').pop() : videoFilename
+      const actualFilename: string = videoFilename.includes('/') ? videoFilename.split('/').pop() || videoFilename : videoFilename
       console.log('Starting analysis for:', actualFilename)
       
       // Update session status to processing
@@ -343,9 +414,9 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
           status: "completed",
           notes: uploadMetadata.notes,
           hasProcessedVideo: false,
-          analysisJobId: null,
-          perFrameJobId: null,
-          analysisStatus: "not_available"
+          analysisJobId: undefined,
+          perFrameJobId: undefined,
+          analysisStatus: "not_available" as const
         }
         setSessions(prev => [newSession, ...prev])
         return
@@ -356,44 +427,48 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
       let perFrameJob = null
       
       try {
-        analysisJob = await gymnasticsAPI.analyzeVideo(actualFilename)
+        if (actualFilename) {
+          analysisJob = await gymnasticsAPI.analyzeVideo(actualFilename)
         if (analysisJob.job_id) {
           addJob({
             id: analysisJob.job_id,
-            videoName: actualFilename,
+              videoName: actualFilename,
             type: 'analysis',
             status: 'processing',
-            progress: 0,
-            maxRetries: 3
+              progress: 0,
+              maxRetries: 3
           })
+          }
         }
       } catch (error) {
         console.warn('Standard analysis failed:', error)
         // Show user-friendly error message
         if (error instanceof Error && error.message.includes('Video file not found')) {
-          alert(`Video file "${actualFilename}" not found. Please ensure the video file exists on the server.`)
+          alert(`Video file not found. Please ensure the video file exists on the server.`)
         }
       }
       
       try {
         // Start per-frame analysis with retry logic for 503 errors
-        perFrameJob = await retryPerFrameAnalysis(actualFilename, 3)
-        if (perFrameJob.job_id) {
-          addJob({
-            id: perFrameJob.job_id,
-            videoName: actualFilename,
-            type: 'perFrame',
-            status: 'processing',
-            progress: 0,
-            maxRetries: 3
-          })
+        if (actualFilename) {
+          perFrameJob = await retryPerFrameAnalysis(actualFilename, 3)
+          if (perFrameJob.job_id) {
+            addJob({
+              id: perFrameJob.job_id,
+              videoName: actualFilename,
+              type: 'perFrame',
+              status: 'processing',
+              progress: 0,
+              maxRetries: 3
+            })
+          }
         }
       } catch (error) {
         console.warn('Per-frame analysis failed after retries:', error)
         // Show user-friendly error message based on error type
         if (error instanceof Error) {
           if (error.message.includes('Video file not found')) {
-            alert(`Video file "${actualFilename}" not found for per-frame analysis. Please ensure the video file exists on the server.`)
+            alert(`Video file not found for per-frame analysis. Please ensure the video file exists on the server.`)
           } else if (error.message.includes('Backend service is not healthy')) {
             console.log('Per-frame analysis service is not available. Continuing with standard analysis only.')
             // Don't show alert for health check failures
@@ -424,7 +499,7 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
                 precision: Math.floor(Math.random() * 15) + 80,
                 power: Math.floor(Math.random() * 15) + 80,
                 hasProcessedVideo: true,
-                processedVideoUrl: `http://localhost:5004/downloadVideo?video_filename=h264_${actualFilename}`,
+                processedVideoUrl: `http://localhost:5004/getVideo?video_filename=h264_${actualFilename}`,
                 analyticsFile: `${actualFilename.replace(/\.mp4$/, '')}_analytics.json`,
                 analysisStatus: 'completed' as const,
                 perFrameStatus: perFrameJob?.job_id ? 'completed' as const : 'not_available' as const
@@ -441,7 +516,7 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
                 precision: Math.floor(Math.random() * 15) + 80,
                 power: Math.floor(Math.random() * 15) + 80,
                 hasProcessedVideo: true,
-                processedVideoUrl: `http://localhost:5004/downloadVideo?video_filename=h264_${actualFilename}`,
+                processedVideoUrl: `http://localhost:5004/getVideo?video_filename=h264_${actualFilename}`,
                 analyticsFile: `${actualFilename.replace(/\.mp4$/, '')}_analytics.json`,
                 analysisStatus: 'completed' as const,
                 perFrameStatus: perFrameJob?.job_id ? 'completed' as const : 'not_available' as const
@@ -459,7 +534,7 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
       // Show user-friendly error message
       if (error instanceof Error) {
         if (error.message.includes('Video file not found')) {
-          alert(`Analysis failed: Video file "${actualFilename}" not found. Please ensure the video file exists on the server.`)
+          alert(`Analysis failed: Video file not found. Please ensure the video file exists on the server.`)
         } else {
           alert(`Analysis failed: ${error.message}`)
         }
@@ -496,13 +571,13 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
         status: "pending", // Set to pending so user can manually start analysis
         notes: uploadMetadata.notes,
         hasProcessedVideo: false, // Set to false until analysis is completed
-        processedVideoUrl: `http://localhost:5004/downloadVideo?video_filename=${filename}`,
+        processedVideoUrl: `http://localhost:5004/getVideo?video_filename=${filename}`,
         videoName: filename,
         analyticsFile: `${filename.replace(/\.mp4$/, '')}_analytics.json`,
-        analysisJobId: null,
-        perFrameJobId: null,
-        analysisStatus: "not_available",
-        perFrameStatus: "not_available",
+        analysisJobId: undefined,
+        perFrameJobId: undefined,
+        analysisStatus: "not_available" as const,
+        perFrameStatus: "not_available" as const,
         analysisProgress: 0,
         perFrameProgress: 0
       }
@@ -539,8 +614,9 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
   }
 
   const viewAnalytics = (session: Session) => {
-    // Open analytics view
+    // Open analytics view with video player and per-frame stats
     console.log("View analytics for session:", session.id)
+    setSelectedSession(session)
   }
 
   const updateSessionStatus = (sessionId: string, updates: Partial<Session>) => {
@@ -558,7 +634,9 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
     const fetchSessions = async () => {
       try {
         setSessionsLoading(true)
+        console.log('🚀 CoachDashboard: Fetching sessions from backend...')
         const response = await gymnasticsAPI.getSessions()
+        console.log('📡 CoachDashboard: Raw API response:', response)
         if (response.success && response.sessions) {
           // Transform backend sessions to frontend format
           const transformedSessions: Session[] = response.sessions.map((session: any) => ({
@@ -569,9 +647,13 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
             event: session.event || 'Unknown Event',
             duration: session.duration || '0:00',
             motionIQ: session.motion_iq || 0,
-            status: session.status === 'completed' ? 'completed' : session.status === 'pending' ? 'pending' : 'processing',
+            status: session.status === 'completed' ? 'completed' : session.status === 'pending' ? 'pending' : session.status === 'uploaded' ? 'uploaded' : 'processing',
+            videoName: session.original_filename, // Map original_filename to videoName
+            videoUrl: session.processed_video_url || session.video_url,
+            originalFilename: session.original_filename, // Add originalFilename for robust filtering
             hasProcessedVideo: !!session.processed_video_filename,
             processedVideoUrl: session.processed_video_url || session.video_url,
+            processedVideoFilename: session.processed_video_filename,
             analyticsFile: session.analytics_filename,
             aclRisk: session.acl_risk || 0,
             precision: session.precision || 0,
@@ -581,6 +663,17 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
           }))
           setSessions(transformedSessions)
           console.log('✅ Fetched sessions from backend:', transformedSessions.length)
+          
+          // Debug: Log uploaded sessions
+          const uploadedSessions = transformedSessions.filter(s => s.status === 'uploaded')
+          console.log('🔍 Uploaded sessions:', uploadedSessions.map(s => ({
+            id: s.id,
+            status: s.status,
+            videoName: s.videoName,
+            videoUrl: s.videoUrl,
+            originalFilename: s.originalFilename,
+            processedVideoFilename: s.processedVideoFilename
+          })))
         }
       } catch (error) {
         console.error('❌ Error fetching sessions:', error)
@@ -592,6 +685,65 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
 
     fetchSessions()
   }, [])
+
+  // Poll for completed analyses
+  useEffect(() => {
+    const pollForCompletedAnalyses = async () => {
+      // Only poll if there are processing sessions
+      const processingSessions = sessions.filter(s => s.status === 'processing')
+      if (processingSessions.length === 0) return
+
+      try {
+        console.log('🔄 Polling for completed analyses...', processingSessions.length, 'processing sessions')
+        const response = await gymnasticsAPI.getSessions()
+        
+        if (response.success && response.sessions) {
+          // Check if any processing sessions have completed
+          const updatedSessions = sessions.map(session => {
+            if (session.status === 'processing') {
+              const backendSession = response.sessions.find((s: any) => s._id === session.id)
+              if (backendSession && backendSession.status === 'completed') {
+                console.log('✅ Session completed:', session.id, backendSession)
+                return {
+                  ...session,
+                  status: 'completed' as const,
+                  hasProcessedVideo: !!backendSession.processed_video_filename,
+                  processedVideoUrl: backendSession.processed_video_url || session.videoUrl,
+                  processedVideoFilename: backendSession.processed_video_filename,
+                  analyticsFile: backendSession.analytics_filename,
+                  motionIQ: backendSession.motion_iq || session.motionIQ,
+                  aclRisk: backendSession.acl_risk || session.aclRisk,
+                  precision: backendSession.precision || session.precision,
+                  power: backendSession.power || session.power
+                }
+              }
+            }
+            return session
+          })
+          
+          // Only update if there are changes
+          const hasChanges = updatedSessions.some((session, index) => 
+            session.status !== sessions[index].status
+          )
+          
+          if (hasChanges) {
+            setSessions(updatedSessions)
+            console.log('🔄 Updated sessions with completed analyses')
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error polling for completed analyses:', error)
+      }
+    }
+
+    // Poll every 5 seconds if there are processing sessions
+    const interval = setInterval(pollForCompletedAnalyses, 5000)
+    
+    // Initial poll
+    pollForCompletedAnalyses()
+    
+    return () => clearInterval(interval)
+  }, [sessions])
 
   // Mock data - in a real app, this would come from an API
   const athletes: Athlete[] = useMemo(() => [
@@ -650,7 +802,10 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
 
   const filteredSessions = sessions.filter(session =>
     session.athleteName.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    (selectedEvent === "all" || session.event === selectedEvent)
+    (selectedEvent === "all" || session.event === selectedEvent) &&
+    // Show completed sessions with video/analytics OR processing sessions
+    ((session.status === "completed" && session.hasProcessedVideo && session.analyticsFile) ||
+     (session.status === "processing"))
   )
 
   const stats = useMemo(() => ({
@@ -697,6 +852,35 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
     return 'text-red-500' // High risk - Red
   }
 
+  // Helper function to check if session has successful video and per-frame stats
+  const hasSuccessfulVideoAndStats = async (session: Session): Promise<boolean> => {
+    try {
+      // Check if video is accessible via /getVideo
+      if (session.videoName) {
+        const videoResponse = await fetch(`http://localhost:5004/getVideo?video_filename=${session.videoName}`)
+        if (!videoResponse.ok) {
+          console.log(`Video not accessible for session ${session.id}: ${videoResponse.status}`)
+          return false
+        }
+      }
+      
+      // Check if per-frame stats are available
+      if (session.analyticsFile && session.processedVideoFilename) {
+        // Use the processed video filename directly from the session data
+        const statsResponse = await fetch(`http://localhost:5004/getPerFrameStatistics?video_filename=${session.processedVideoFilename}`)
+        if (!statsResponse.ok) {
+          console.log(`Per-frame stats not available for session ${session.id}: ${statsResponse.status}`)
+          return false
+        }
+      }
+      
+      return true
+    } catch (error) {
+      console.log(`Error checking session ${session.id}:`, error)
+      return false
+    }
+  }
+
   return (
     <TooltipProvider>
     <div className="p-6 space-y-6">
@@ -707,6 +891,22 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
           <p className="ml-text-md">Welcome back, {user?.fullName}</p>
         </div>
         <div className="flex items-center space-x-3">
+          {/* Processing Status Button */}
+          {(isProcessing || activeJobs.length > 0) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowProcessingModal(true)}
+              className="relative"
+            >
+              <Activity className="h-4 w-4 mr-2" />
+              Processing
+              {activeJobs.filter(job => job.status === 'processing').length > 0 && (
+                <span className="absolute -top-1 -right-1 h-3 w-3 bg-blue-500 rounded-full animate-pulse" />
+              )}
+            </Button>
+          )}
+          
           <AthleteInvitationModal 
             coachName={user?.fullName || "Coach"}
             coachEmail={user?.email || ""}
@@ -1044,38 +1244,46 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
                         {new Date(session.date).toLocaleDateString()} • {session.duration}
                       </p>
                       <div className="flex items-center space-x-2 mt-1">
-                        <Badge className={`${getIQBadgeColor(session.motionIQ)}`}>
-                          Motion IQ: {session.motionIQ}
-                        </Badge>
-                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-                          ACL Risk: {session.aclRisk}%
-                        </Badge>
-                        <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                          Precision: {session.precision}%
-                        </Badge>
-                        <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
-                          Power: {session.power}%
-                        </Badge>
-                        <Badge 
-                          className={
-                            session.status === "completed" 
-                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                              : session.status === "processing"
-                              ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30"
-                              : "bg-red-500/20 text-red-400 border-red-500/30"
-                          }
-                        >
-                          {session.status}
-                        </Badge>
+                        {session.status === "processing" ? (
+                          // Show processing indicator for analyzing sessions
+                          <>
+                            <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                              <Activity className="h-3 w-3 mr-1 animate-spin" />
+                              Analyzing...
+                            </Badge>
+                            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                              Processing Video
+                            </Badge>
+                          </>
+                        ) : (
+                          // Show metrics for completed sessions
+                          <>
+                            <Badge className={`${getIQBadgeColor(session.motionIQ)}`}>
+                              Motion IQ: {session.motionIQ}
+                            </Badge>
+                            <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                              ACL Risk: {session.aclRisk}%
+                            </Badge>
+                            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                              Precision: {session.precision}%
+                            </Badge>
+                            <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                              Power: {session.power}%
+                            </Badge>
+                            <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
+                              Completed
+                            </Badge>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    {session.status === "pending" && (
+                    {(session.status === "pending" || session.status === "uploaded") && (
                       <Button 
                         size="sm" 
-                        onClick={() => startAnalysis(session.videoName || session.videoUrl || session.id, session.id)}
+                        onClick={() => analyzeVideo1(session.videoName || session.videoUrl || session.id, session.id)}
                         className="ml-cyan-bg text-black hover:ml-cyan-hover"
                       >
                         <Play className="h-4 w-4 mr-1" />
@@ -1154,36 +1362,48 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
           </div>
           
           {/* Recently Uploaded Videos - Ready for Analysis */}
-          {sessions.filter(s => s.status === "pending" && s.videoName).length > 0 && (
+          {sessions.filter(s => s.status === "uploaded" || s.status === "pending").length > 0 && (
             <div className="mt-6 p-4 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/20">
               <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-3 flex items-center">
                 <Video className="h-4 w-4 mr-2" />
-                Videos Ready for Analysis
+                Videos Ready for Analysis ({sessions.filter(s => s.status === "uploaded").length} uploaded)
               </h4>
               <div className="space-y-2">
-                {sessions.filter(s => s.status === "pending" && s.videoName).slice(0, 3).map((session) => (
-                  <div key={session.id} className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border">
-                    <div className="flex items-center space-x-3">
-                      <Video className="h-4 w-4 text-blue-600" />
-                      <div>
-                        <p className="text-sm font-medium">{session.athleteName} - {session.event}</p>
-                        <p className="text-xs text-gray-500">{new Date(session.date).toLocaleDateString()}</p>
+                {(() => {
+                  // More robust filtering - check for uploaded status and any video identifier
+                  const filteredSessions = sessions.filter(s => {
+                    const isUploaded = s.status === "uploaded" || s.status === "pending"
+                    const hasVideo = s.videoName || s.videoUrl || s.originalFilename
+                    console.log(`🔍 Session ${s.id}: status=${s.status}, videoName=${s.videoName}, videoUrl=${s.videoUrl}, hasVideo=${hasVideo}`)
+                    return isUploaded && hasVideo
+                  })
+                  console.log('🔍 CoachDashboard - Filtered sessions for "Videos Ready for Analysis":', filteredSessions.length, 'sessions')
+                  return filteredSessions.slice(0, 3).map((session) => (
+                    <div key={session.id} className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border">
+                      <div className="flex items-center space-x-3">
+                        <Video className="h-4 w-4 text-blue-600" />
+                        <div>
+                          <p className="text-sm font-medium">{session.athleteName} - {session.event}</p>
+                          <p className="text-xs text-gray-500">{new Date(session.date).toLocaleDateString()}</p>
+                        </div>
                       </div>
+                      <Button 
+                        size="sm" 
+                        onClick={() => analyzeVideo1(session.videoName || session.id, session.id)}
+                        className="ml-cyan-bg text-black hover:ml-cyan-hover"
+                      >
+                        <Play className="h-3 w-3 mr-1" />
+                        Start Analysis
+                      </Button>
                     </div>
-                    <Button 
-                      size="sm" 
-                      onClick={() => startAnalysis(session.videoName || session.id, session.id)}
-                      className="ml-cyan-bg text-black hover:ml-cyan-hover"
-                    >
-                      <Play className="h-3 w-3 mr-1" />
-                      Start Analysis
-                    </Button>
-                  </div>
-                ))}
+                  ))
+                })()}
               </div>
-              {sessions.filter(s => s.status === "pending" && s.videoName).length > 3 && (
+              
+              
+              {sessions.filter(s => (s.status === "pending" || s.status === "uploaded") && s.videoName).length > 3 && (
                 <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                  +{sessions.filter(s => s.status === "pending" && s.videoName).length - 3} more videos ready for analysis
+                  +{sessions.filter(s => (s.status === "pending" || s.status === "uploaded") && s.videoName).length - 3} more videos ready for analysis
                 </p>
               )}
             </div>
@@ -1328,6 +1548,7 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
                   videoUrl={selectedSession.processedVideoUrl || selectedSession.videoUrl}
                   videoName={selectedSession.processedVideoUrl?.split('/').pop() || selectedSession.videoUrl?.split('/').pop() || selectedSession.id}
                   analyticsBaseName={selectedSession.analyticsFile?.replace('.json', '').replace('api_generated_', '')}
+                  processedVideoFilename={selectedSession.processedVideoFilename}
                   sessionId={selectedSession.sessionId}
                   onClose={() => setSelectedSession(null)}
                 />
@@ -1345,25 +1566,31 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
         </div>
       )}
 
-      {/* Athlete Detail Modal */}
-      {selectedAthlete && (
+      {/* Athlete Detail Modal - TODO: Implement component */}
+      {/* {selectedAthlete && (
         <AthleteDetailView
           athlete={selectedAthlete}
           onClose={() => setSelectedAthlete(null)}
         />
-      )}
+      )} */}
 
-      {/* Athlete Invitation Modal */}
-      <AthleteInvitationModal
+      {/* Athlete Invitation Modal - TODO: Implement component */}
+      {/* <AthleteInvitationModal
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
-        onInvite={(email, name) => {
+        onInvite={(email: string, name: string) => {
           // Handle athlete invitation
           console.log(`Inviting ${name} (${email})`);
           setShowInviteModal(false);
           // Refresh athlete list or show success message
           console.log("Athlete invitation sent successfully!")
         }}
+      /> */}
+
+      {/* Background Processing Modal */}
+      <BackgroundProcessingModal
+        isOpen={showProcessingModal}
+        onClose={() => setShowProcessingModal(false)}
       />
     </div>
     </TooltipProvider>

@@ -16,9 +16,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   // Vercel deployment optimizations
-  experimental: {
-    outputFileTracingRoot: undefined,
-  },
+  outputFileTracingRoot: __dirname,
   images: {
     unoptimized: true,
     domains: [

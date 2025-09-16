@@ -224,6 +224,31 @@ class GymnasticsAPI {
     });
   }
 
+  // Analyze video from GridFS (new endpoint for large videos)
+  async analyzeVideo1(videoFilename: string, athleteName?: string, event?: string, sessionName?: string, userId?: string): Promise<{ 
+    success: boolean; 
+    message: string; 
+    session_id: string; 
+    video_id: string; 
+    analytics_id?: string; 
+    output_video: string; 
+    analytics_file?: string;
+    download_url: string;
+    analytics_url?: string;
+    timestamp: string;
+  }> {
+    return this.request('/analyzeVideo1', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        video_filename: videoFilename,
+        athlete_name: athleteName || 'Unknown Athlete',
+        event: event || 'Floor Exercise',
+        session_name: sessionName || `${athleteName || 'Unknown Athlete'} - ${event || 'Floor Exercise'}`,
+        user_id: userId || 'demo_user'
+      }),
+    });
+  }
+
   // Analyze video per frame (advanced analysis)
   async analyzeVideoPerFrame(videoFilename: string): Promise<PerFrameJobStatus> {
     return this.request<PerFrameJobStatus>('/analyzeVideoPerFrame', {
@@ -269,6 +294,12 @@ class GymnasticsAPI {
       throw new Error(`Failed to download video: ${response.statusText}`);
     }
     return response.blob();
+  }
+
+  // Get video for frontend display (new endpoint)
+  async getVideo(videoFilename: string): Promise<string> {
+    // Return the URL directly for frontend video display
+    return `${this.baseURL}/getVideo?video_filename=${encodeURIComponent(videoFilename)}`;
   }
 
   // Download per-frame video (overlayed)
@@ -340,15 +371,4 @@ class GymnasticsAPI {
 // Export singleton instance
 export const gymnasticsAPI = new GymnasticsAPI();
 
-// Export types for use in components
-export type {
-  HealthStatus,
-  VideoInfo,
-  ProcessedVideosResponse,
-  JobStatus,
-  PerFrameJobStatus,
-  PerFrameStatistics,
-  ACLRiskFactors,
-  ACLRiskAnalysis,
-  SummaryStatistics,
-};
+// Types are already exported above, no need to re-export

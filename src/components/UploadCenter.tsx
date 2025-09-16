@@ -266,30 +266,38 @@ export default function UploadCenter({ onVideoUpload, uploadedVideos }: UploadCe
   const startAnalysis = async (video: UploadedVideo) => {
     try {
       console.log(`🚀 Starting analysis for video: ${video.name}`)
-      const response = await gymnasticsAPI.analyzeVideo(video.name)
+      // Use analyzeVideo1 for better handling of large videos from GridFS
+      const response = await gymnasticsAPI.analyzeVideo1(
+        video.name, 
+        video.athlete, 
+        video.event, 
+        video.session
+      )
       console.log(`📊 Analysis response:`, response)
       
-      if (response.success && response.job_id) {
-        console.log(`✅ Analysis started successfully, Job ID: ${response.job_id}`)
+      if (response.success && response.session_id) {
+        console.log(`✅ Analysis completed successfully, Session ID: ${response.session_id}`)
         const updatedVideo = {
           ...video,
-          analysisJobId: response.job_id,
-          analysisStatus: 'processing' as const,
-          analysisProgress: 0
+          analysisJobId: response.session_id,
+          analysisStatus: 'completed' as const,
+          analysisProgress: 100,
+          downloadUrl: response.download_url,
+          analyticsUrl: response.analytics_url
         }
         onVideoUpload(updatedVideo)
         
         // Add to global processing context
         addJob({
-          id: response.job_id,
+          id: response.session_id,
           videoName: video.name,
           type: 'analysis',
-          status: 'processing',
-          progress: 0,
+          status: 'completed',
+          progress: 100,
           maxRetries: 3
         })
         
-        console.log(`✅ Analysis started for ${video.name}, Job ID: ${response.job_id}`)
+        console.log(`✅ Analysis completed for ${video.name}, Session ID: ${response.session_id}`)
       } else {
         console.error(`❌ Analysis failed:`, response)
         throw new Error(response.message || 'Analysis failed to start')

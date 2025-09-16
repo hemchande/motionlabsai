@@ -17,6 +17,7 @@ export interface UseGymnasticsAPIActions {
   getVideoList: () => Promise<void>;
   getProcessedVideos: () => Promise<void>;
   analyzeVideo: (videoFilename: string) => Promise<void>;
+  analyzeVideo1: (videoFilename: string, athleteName?: string, event?: string, sessionName?: string, userId?: string) => Promise<void>;
   analyzeVideoPerFrame: (videoFilename: string) => Promise<string | null>;
   pollJobStatus: (jobId: string) => Promise<void>;
   getACLRiskAnalysis: (videoFilename: string) => Promise<void>;
@@ -94,6 +95,20 @@ export function useGymnasticsAPI(): UseGymnasticsAPIState & UseGymnasticsAPIActi
       await getProcessedVideos();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to analyze video');
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, setError, getProcessedVideos]);
+
+  const analyzeVideo1 = useCallback(async (videoFilename: string, athleteName?: string, event?: string, sessionName?: string, userId?: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      await gymnasticsAPI.analyzeVideo1(videoFilename, athleteName, event, sessionName, userId);
+      // Refresh processed videos after analysis
+      await getProcessedVideos();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to analyze video with GridFS');
     } finally {
       setLoading(false);
     }
@@ -192,6 +207,7 @@ export function useGymnasticsAPI(): UseGymnasticsAPIState & UseGymnasticsAPIActi
     getVideoList,
     getProcessedVideos,
     analyzeVideo,
+    analyzeVideo1,
     analyzeVideoPerFrame,
     pollJobStatus,
     getACLRiskAnalysis,

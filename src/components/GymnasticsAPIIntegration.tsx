@@ -41,6 +41,7 @@ export function GymnasticsAPIIntegration() {
     getVideoList,
     getProcessedVideos,
     analyzeVideo,
+    analyzeVideo1,
     analyzeVideoPerFrame,
     pollJobStatus,
     getACLRiskAnalysis,
@@ -65,7 +66,8 @@ export function GymnasticsAPIIntegration() {
   }, [checkHealth, getVideoList, getProcessedVideos, getSummaryStatistics]);
 
   const handleAnalyzeVideo = async (videoFilename: string) => {
-    await analyzeVideo(videoFilename);
+    // Use analyzeVideo1 for better handling of large videos from GridFS
+    await analyzeVideo1(videoFilename, 'Test Athlete', 'Floor Exercise', 'Test Session');
   };
 
   const handleAnalyzeVideoPerFrame = async (videoFilename: string) => {

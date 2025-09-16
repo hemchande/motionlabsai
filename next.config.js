@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // output: 'export', // Commented out to enable API routes
-  distDir: 'out',
+  // distDir: 'out', // Removed for Vercel compatibility
   allowedDevOrigins: ["*.preview.same-app.com"],
   typescript: {
     // !! WARN !!
@@ -14,6 +14,10 @@ const nextConfig = {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
+  },
+  // Vercel deployment optimizations
+  experimental: {
+    outputFileTracingRoot: undefined,
   },
   images: {
     unoptimized: true,

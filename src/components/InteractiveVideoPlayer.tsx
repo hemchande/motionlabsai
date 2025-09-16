@@ -973,7 +973,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
                     variant="outline" 
                     onClick={() => {
                       // Test with the exact URL that works in test-direct-video.html
-                      const testUrl = "http://localhost:5004/downloadVideo?video_filename=api_generated_UgWHozR_LLA.mp4";
+                      const testUrl = "http://localhost:5004/getVideo?video_filename=api_generated_UgWHozR_LLA.mp4";
                       console.log('Testing with known working URL:', testUrl);
                       
                       if (videoRef.current) {

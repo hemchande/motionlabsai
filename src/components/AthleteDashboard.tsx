@@ -38,7 +38,7 @@ import {
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { motion } from "framer-motion"
-import { gymnasticsAPI } from "@/lib/api"
+import { gymnasticsAPI, API_BASE_URL } from "@/lib/api"
 import { useProcessing } from "@/contexts/ProcessingContext"
 import InteractiveVideoPlayer from "./InteractiveVideoPlayer"
 import AutoAnalyzedVideoPlayer from "./AutoAnalyzedVideoPlayer"
@@ -430,7 +430,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
     try {
       // Check if video is accessible via /getVideo
       if (session.videoUrl) {
-        const videoResponse = await fetch(`http://localhost:5004/getVideo?video_filename=${session.videoUrl}`)
+        const videoResponse = await fetch(`${API_BASE_URL}/getVideo?video_filename=${session.videoUrl}`)
         if (!videoResponse.ok) {
           console.log(`Video not accessible for session ${session.id}: ${videoResponse.status}`)
           return false
@@ -440,7 +440,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
       // Check if per-frame stats are available
       if (session.analyticsFile && session.processedVideoFilename) {
         // Use the processed video filename directly from the session data
-        const statsResponse = await fetch(`http://localhost:5004/getPerFrameStatistics?video_filename=${session.processedVideoFilename}`)
+        const statsResponse = await fetch(`${API_BASE_URL}/getPerFrameStatistics?video_filename=${session.processedVideoFilename}`)
         if (!statsResponse.ok) {
           console.log(`Per-frame stats not available for session ${session.id}: ${statsResponse.status}`)
           return false
@@ -552,7 +552,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
         status: "pending", // Set to pending so user can manually start analysis
         notes: uploadMetadata.notes,
         hasProcessedVideo: false, // Set to false until analysis is completed
-        processedVideoUrl: `http://localhost:5004/getVideo?video_filename=${filename}`,
+        processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=${filename}`,
         videoUrl: filename,
         analyticsFile: `${filename.replace(/\.mp4$/, '')}_analytics.json`
       }
@@ -725,7 +725,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                 precision: Math.floor(Math.random() * 15) + 80,
                 power: Math.floor(Math.random() * 15) + 80,
                 hasProcessedVideo: true,
-                processedVideoUrl: `http://localhost:5004/getVideo?video_filename=h264_${actualFilename}`,
+                processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_${actualFilename}`,
                 analyticsFile: `${actualFilename.replace(/\.mp4$/, '')}_analytics.json`
               }
             }
@@ -740,7 +740,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                 precision: Math.floor(Math.random() * 15) + 80,
                 power: Math.floor(Math.random() * 15) + 80,
                 hasProcessedVideo: true,
-                processedVideoUrl: `http://localhost:5004/getVideo?video_filename=h264_${actualFilename}`,
+                processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_${actualFilename}`,
                 analyticsFile: `${actualFilename.replace(/\.mp4$/, '')}_analytics.json`
               }
             }

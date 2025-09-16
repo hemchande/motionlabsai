@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from 'react'
+import { API_BASE_URL } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -285,13 +286,13 @@ export default function AutoAnalyzedVideoPlayer({
         
         console.log('Loading frame data for:', baseName);
         
-        console.log('Analytics URL:', `http://localhost:5004/getPerFrameStatistics?video_filename=${baseName}`);
+        console.log('Analytics URL:', `${API_BASE_URL}/getPerFrameStatistics?video_filename=${baseName}`);
         
         // Try to find the JSON file using the gymnastics API server
         let response;
         try {
           // First, get available sessions from the API
-          const sessionsResponse = await fetch('http://localhost:5004/getSessions');
+          const sessionsResponse = await fetch(`${API_BASE_URL}/getSessions`);
           const sessionsData = await sessionsResponse.json();
           
           if (!sessionsData.success || !sessionsData.sessions || sessionsData.sessions.length === 0) {
@@ -315,7 +316,7 @@ export default function AutoAnalyzedVideoPlayer({
           console.log('Using session:', latestSession);
           
           // Load analytics using the session's processed video filename
-          response = await fetch(`http://localhost:5004/getPerFrameStatistics?video_filename=${latestSession.processed_video_filename}`);
+          response = await fetch(`${API_BASE_URL}/getPerFrameStatistics?video_filename=${latestSession.processed_video_filename}`);
           console.log('Analytics response status:', response.status, response.statusText);
         } catch (error) {
           console.log('API server not available, using mock data:', error);

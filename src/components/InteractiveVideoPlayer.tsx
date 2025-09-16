@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { X, Play, Pause, SkipBack, SkipForward, Clock, BarChart3, Activity, TrendingUp, Maximize, Minimize } from 'lucide-react';
 import { EnhancedFrameStatistics } from './EnhancedFrameStatistics';
+import { API_BASE_URL } from '@/lib/api';
 
 interface FrameData {
   frame_number: number;
@@ -113,7 +114,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
   
   // Compute the actual video URL to use
   const actualVideoUrl = sessionId 
-    ? `http://localhost:5004/getVideoFromSession/${sessionId}`
+    ? `${API_BASE_URL}/getVideoFromSession/${sessionId}`
     : videoUrl;
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -249,8 +250,8 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
         
         // Determine the analytics URL to use
         const analyticsUrl = sessionId 
-          ? `http://localhost:5004/getAnalyticsFromSession/${sessionId}`
-          : `http://localhost:5004/getPerFrameStatistics?video_filename=${baseName}`;
+          ? `${API_BASE_URL}/getAnalyticsFromSession/${sessionId}`
+          : `${API_BASE_URL}/getPerFrameStatistics?video_filename=${baseName}`;
         
         console.log('Analytics URL:', analyticsUrl);
         
@@ -265,14 +266,14 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
           const altBaseName1 = baseName.replace(/^api_generated_/, '');
           if (altBaseName1 !== baseName) {
             console.log('Trying alternative base name 1:', altBaseName1);
-            response = await fetch(`http://localhost:5004/getPerFrameStatistics?video_filename=${altBaseName1}`);
+            response = await fetch(`${API_BASE_URL}/getPerFrameStatistics?video_filename=${altBaseName1}`);
           }
           
           // If still fails, try the original videoName without any processing
           if (!response.ok) {
             const originalBaseName = videoName.replace(/\.mp4$/, '').replace(/\s*\([^)]*\)$/, '');
             console.log('Trying original base name:', originalBaseName);
-            response = await fetch(`http://localhost:5004/getPerFrameStatistics?video_filename=${originalBaseName}`);
+            response = await fetch(`${API_BASE_URL}/getPerFrameStatistics?video_filename=${originalBaseName}`);
           }
           
           // If still fails, try with the full analytics filename (for per-frame analysis)
@@ -281,7 +282,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
             // The videoName should contain the full analytics filename without .json
             const fullAnalyticsName = videoName.replace(/\s*\([^)]*\)$/, '');
             console.log('Full analytics name:', fullAnalyticsName);
-            response = await fetch(`http://localhost:5004/getPerFrameStatistics?video_filename=${fullAnalyticsName}`);
+            response = await fetch(`${API_BASE_URL}/getPerFrameStatistics?video_filename=${fullAnalyticsName}`);
           }
           
           // If still fails, try with the api_generated prefix (for MayaFX and similar videos)
@@ -289,14 +290,14 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
             console.log('Trying with api_generated prefix...');
             const apiGeneratedName = `api_generated_${baseName}`;
             console.log('API generated name:', apiGeneratedName);
-            response = await fetch(`http://localhost:5004/getPerFrameStatistics?video_filename=${apiGeneratedName}`);
+            response = await fetch(`${API_BASE_URL}/getPerFrameStatistics?video_filename=${apiGeneratedName}`);
           }
           
           // If still fails, try with the video filename directly (for cases where analytics filename matches video filename)
           if (!response.ok) {
             console.log('Trying with video filename directly...');
             console.log('Video filename:', videoName);
-            response = await fetch(`http://localhost:5004/getPerFrameStatistics?video_filename=${videoName}`);
+            response = await fetch(`${API_BASE_URL}/getPerFrameStatistics?video_filename=${videoName}`);
           }
         }
         
@@ -973,7 +974,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
                     variant="outline" 
                     onClick={() => {
                       // Test with the exact URL that works in test-direct-video.html
-                      const testUrl = "http://localhost:5004/getVideo?video_filename=api_generated_UgWHozR_LLA.mp4";
+                      const testUrl = `${API_BASE_URL}/getVideo?video_filename=api_generated_UgWHozR_LLA.mp4`;
                       console.log('Testing with known working URL:', testUrl);
                       
                       if (videoRef.current) {

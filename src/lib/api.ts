@@ -1,5 +1,5 @@
 // API client for Gymnastics Analytics Backend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5004';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5004';
 
 export interface HealthStatus {
   status: string;

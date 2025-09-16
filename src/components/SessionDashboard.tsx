@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import InteractiveVideoPlayer from './InteractiveVideoPlayer';
 import AutoAnalyzedVideoPlayer from './AutoAnalyzedVideoPlayer';
-import { gymnasticsAPI } from '@/lib/api';
+import { gymnasticsAPI, API_BASE_URL } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface SessionData {
@@ -125,7 +125,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
         setLoading(true);
         
         // Fetch real sessions from backend
-        const response = await fetch('http://localhost:5004/getSessions');
+        const response = await fetch(`${API_BASE_URL}/getSessions`);
         const data = await response.json();
         
         if (data.success && data.sessions) {
@@ -160,7 +160,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
         },
             notes: `Analyzed session with ${session.analytics_filename ? 'analytics' : 'pending'}`,
         hasProcessedVideo: true,
-            processedVideoUrl: `http://localhost:5004/getVideo?video_filename=${session.processed_video_filename}`,
+            processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=${session.processed_video_filename}`,
             analyticsFile: session.analytics_filename
           }));
           
@@ -172,7 +172,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
             completedAnalyses: realSessions.length,
             averageMotionIQ: realSessions.reduce((sum: number, s: any) => sum + (s.motionIQ || 0), 0) / realSessions.length || 0,
             averageACLRisk: realSessions.reduce((sum: number, s: any) => sum + (s.aclRisk || 0), 0) / realSessions.length || 0,
-            riskDistribution: {
+    riskDistribution: {
               low: realSessions.filter((s: any) => s.riskLevel === 'LOW').length,
               moderate: realSessions.filter((s: any) => s.riskLevel === 'MODERATE').length,
               high: realSessions.filter((s: any) => s.riskLevel === 'HIGH').length
@@ -287,20 +287,20 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
   const getBestVideoUrl = async (videoFilename: string): Promise<string | null> => {
     try {
       // Get video info to find the best available format
-      const response = await fetch(`http://localhost:5004/getVideoInfo?video_filename=${videoFilename}`);
+      const response = await fetch(`${API_BASE_URL}/getVideoInfo?video_filename=${videoFilename}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.video_info.recommended_filename) {
           // Use the recommended filename (H.264 if available)
-          return `http://localhost:5004/getVideo?video_filename=${data.video_info.recommended_filename}`;
+          return `${API_BASE_URL}/getVideo?video_filename=${data.video_info.recommended_filename}`;
         }
       }
       // Fallback to original video
-      return `http://localhost:5004/getVideo?video_filename=${videoFilename}`;
+      return `${API_BASE_URL}/getVideo?video_filename=${videoFilename}`;
     } catch (error) {
       console.error('Error getting best video URL:', error);
       // Fallback to original video
-      return `http://localhost:5004/getVideo?video_filename=${videoFilename}`;
+      return `${API_BASE_URL}/getVideo?video_filename=${videoFilename}`;
     }
   };
 
@@ -322,7 +322,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       console.log('Original video name:', session.videoName);
       console.log('Extracted base name for analytics:', baseName);
       
-      const analyticsUrl = `http://localhost:5004/getPerFrameStatistics?video_filename=${baseName}`;
+      const analyticsUrl = `${API_BASE_URL}/getPerFrameStatistics?video_filename=${baseName}`;
       console.log('Loading analytics:', analyticsUrl);
       
       const response = await fetch(analyticsUrl);

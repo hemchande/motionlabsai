@@ -152,14 +152,19 @@ export interface SummaryStatistics {
 }
 
 class GymnasticsAPI {
-  private baseURL: string;
+  private _baseURL: string;
 
   constructor(baseURL: string = API_BASE_URL) {
-    this.baseURL = baseURL;
+    this._baseURL = baseURL;
+  }
+
+  // Public getter for baseURL
+  get baseURL(): string {
+    return this._baseURL;
   }
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-    const url = `${this.baseURL}${endpoint}`;
+    const url = `${this._baseURL}${endpoint}`;
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
@@ -192,7 +197,7 @@ class GymnasticsAPI {
     const formData = new FormData();
     formData.append('video', videoFile);
     
-    const response = await fetch(`${this.baseURL}/uploadVideo`, {
+    const response = await fetch(`${this._baseURL}/uploadVideo`, {
       method: 'POST',
       body: formData,
     });
@@ -316,7 +321,7 @@ class GymnasticsAPI {
 
   // Download processed video
   async downloadVideo(videoFilename: string): Promise<Blob> {
-    const response = await fetch(`${this.baseURL}/downloadVideo?video_filename=${videoFilename}`);
+    const response = await fetch(`${this._baseURL}/downloadVideo?video_filename=${videoFilename}`);
     if (!response.ok) {
       throw new Error(`Failed to download video: ${response.statusText}`);
     }
@@ -326,12 +331,12 @@ class GymnasticsAPI {
   // Get video for frontend display (new endpoint)
   async getVideo(videoFilename: string): Promise<string> {
     // Return the URL directly for frontend video display
-    return `${this.baseURL}/getVideo?video_filename=${encodeURIComponent(videoFilename)}`;
+    return `${this._baseURL}/getVideo?video_filename=${encodeURIComponent(videoFilename)}`;
   }
 
   // Download per-frame video (overlayed)
   async downloadPerFrameVideo(videoFilename: string): Promise<Blob> {
-    const response = await fetch(`${this.baseURL}/downloadPerFrameVideo?video_filename=${videoFilename}`);
+    const response = await fetch(`${this._baseURL}/downloadPerFrameVideo?video_filename=${videoFilename}`);
     if (!response.ok) {
       throw new Error(`Failed to download per-frame video: ${response.statusText}`);
     }
@@ -378,7 +383,7 @@ class GymnasticsAPI {
 
   // Get all sessions
   async getSessions(): Promise<{ success: boolean; sessions: any[] }> {
-    const response = await fetch(`${this.baseURL}/getSessions`);
+    const response = await fetch(`${this._baseURL}/getSessions`);
     if (!response.ok) {
       throw new Error(`Failed to get sessions: ${response.status}`);
     }
@@ -387,7 +392,7 @@ class GymnasticsAPI {
 
   // Get sessions by user ID
   async getSessionsByUser(userId: string): Promise<{ success: boolean; sessions: any[] }> {
-    const response = await fetch(`${this.baseURL}/getSessionsByUser/${userId}`);
+    const response = await fetch(`${this._baseURL}/getSessionsByUser/${userId}`);
     if (!response.ok) {
       throw new Error(`Failed to get sessions for user: ${response.status}`);
     }

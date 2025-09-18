@@ -499,7 +499,7 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
                 precision: Math.floor(Math.random() * 15) + 80,
                 power: Math.floor(Math.random() * 15) + 80,
                 hasProcessedVideo: true,
-                processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_${actualFilename}`,
+                processedVideoUrl: gymnasticsAPI.getVideo(`h264_${actualFilename}`),
                 analyticsFile: `${actualFilename.replace(/\.mp4$/, '')}_analytics.json`,
                 analysisStatus: 'completed' as const,
                 perFrameStatus: perFrameJob?.job_id ? 'completed' as const : 'not_available' as const
@@ -516,7 +516,7 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
                 precision: Math.floor(Math.random() * 15) + 80,
                 power: Math.floor(Math.random() * 15) + 80,
                 hasProcessedVideo: true,
-                processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_${actualFilename}`,
+                processedVideoUrl: gymnasticsAPI.getVideo(`h264_${actualFilename}`),
                 analyticsFile: `${actualFilename.replace(/\.mp4$/, '')}_analytics.json`,
                 analysisStatus: 'completed' as const,
                 perFrameStatus: perFrameJob?.job_id ? 'completed' as const : 'not_available' as const
@@ -571,7 +571,7 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
         status: "pending", // Set to pending so user can manually start analysis
         notes: uploadMetadata.notes,
         hasProcessedVideo: false, // Set to false until analysis is completed
-        processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=${filename}`,
+        processedVideoUrl: gymnasticsAPI.getVideo(filename),
         videoName: filename,
         analyticsFile: `${filename.replace(/\.mp4$/, '')}_analytics.json`,
         analysisJobId: undefined,
@@ -863,7 +863,7 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
     try {
       // Check if video is accessible via /getVideo
       if (session.videoName) {
-        const videoResponse = await fetch(`${API_BASE_URL}/getVideo?video_filename=${session.videoName}`)
+        const videoResponse = await fetch(gymnasticsAPI.getVideo(session.videoName))
         if (!videoResponse.ok) {
           console.log(`Video not accessible for session ${session.id}: ${videoResponse.status}`)
           return false
@@ -873,7 +873,7 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
       // Check if per-frame stats are available
       if (session.analyticsFile && session.processedVideoFilename) {
         // Use the processed video filename directly from the session data
-        const statsResponse = await fetch(`${API_BASE_URL}/getPerFrameStatistics?video_filename=${session.processedVideoFilename}`)
+        const statsResponse = await fetch(`${gymnasticsAPI.baseURL}/getPerFrameStatistics?video_filename=${session.processedVideoFilename}`)
         if (!statsResponse.ok) {
           console.log(`Per-frame stats not available for session ${session.id}: ${statsResponse.status}`)
           return false

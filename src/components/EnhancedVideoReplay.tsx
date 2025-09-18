@@ -288,9 +288,9 @@ export default function EnhancedVideoReplay({
             playsInline
             muted
           >
-            <source src={`${API_BASE_URL}/getVideo?video_filename=${videoFilename}`} type="video/mp4" />
-            <source src={`${API_BASE_URL}/downloadEnhancedReplay?video_filename=${videoFilename}`} type="video/mp4" />
-            <source src={`${API_BASE_URL}/getVideo?video_filename=${videoFilename}`} type="video/mp4" />
+            <source src={gymnasticsAPI.getVideo(videoFilename)} type="video/mp4" />
+            <source src={`${gymnasticsAPI.baseURL}/downloadEnhancedReplay?video_filename=${videoFilename}`} type="video/mp4" />
+            <source src={gymnasticsAPI.getVideo(videoFilename)} type="video/mp4" />
             Your browser does not support the video tag.
           </video>
 

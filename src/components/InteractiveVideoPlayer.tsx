@@ -971,7 +971,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
                     variant="outline" 
                     onClick={() => {
                       // Test with the exact URL that works in test-direct-video.html
-                      const testUrl = `${API_BASE_URL}/getVideo?video_filename=api_generated_UgWHozR_LLA.mp4`;
+                      const testUrl = gymnasticsAPI.getVideo('api_generated_UgWHozR_LLA.mp4');
                       console.log('Testing with known working URL:', testUrl);
                       
                       if (videoRef.current) {

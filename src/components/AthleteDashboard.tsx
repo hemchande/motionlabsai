@@ -325,7 +325,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                 aclRisk: Math.floor(Math.random() * 15) + 5,   // 5-20
                 precision: Math.floor(Math.random() * 15) + 80, // 80-95
                 power: Math.floor(Math.random() * 15) + 80,     // 80-95
-                processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_analyzed_${session.event.toLowerCase()}_${Date.now()}.mp4`,
+                processedVideoUrl: gymnasticsAPI.getVideo(`h264_analyzed_${session.event.toLowerCase()}_${Date.now()}.mp4`),
                 analyticsFile: `analyzed_${session.event.toLowerCase()}_${Date.now()}.json`
               })
             }
@@ -436,7 +436,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
     try {
       // Check if video is accessible via /getVideo
       if (session.videoUrl) {
-        const videoResponse = await fetch(`${API_BASE_URL}/getVideo?video_filename=${session.videoUrl}`)
+        const videoResponse = await fetch(gymnasticsAPI.getVideo(session.videoUrl))
         if (!videoResponse.ok) {
           console.log(`Video not accessible for session ${session.id}: ${videoResponse.status}`)
           return false
@@ -558,7 +558,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
         status: "pending", // Set to pending so user can manually start analysis
         notes: uploadMetadata.notes,
         hasProcessedVideo: false, // Set to false until analysis is completed
-        processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=${filename}`,
+        processedVideoUrl: gymnasticsAPI.getVideo(filename),
         videoUrl: filename,
         analyticsFile: `${filename.replace(/\.mp4$/, '')}_analytics.json`
       }
@@ -731,7 +731,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                 precision: Math.floor(Math.random() * 15) + 80,
                 power: Math.floor(Math.random() * 15) + 80,
                 hasProcessedVideo: true,
-                processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_${actualFilename}`,
+                processedVideoUrl: gymnasticsAPI.getVideo(`h264_${actualFilename}`),
                 analyticsFile: `${actualFilename.replace(/\.mp4$/, '')}_analytics.json`
               }
             }
@@ -746,7 +746,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                 precision: Math.floor(Math.random() * 15) + 80,
                 power: Math.floor(Math.random() * 15) + 80,
                 hasProcessedVideo: true,
-                processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_${actualFilename}`,
+                processedVideoUrl: gymnasticsAPI.getVideo(`h264_${actualFilename}`),
                 analyticsFile: `${actualFilename.replace(/\.mp4$/, '')}_analytics.json`
               }
             }

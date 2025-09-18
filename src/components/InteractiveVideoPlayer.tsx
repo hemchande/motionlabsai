@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { X, Play, Pause, SkipBack, SkipForward, Clock, BarChart3, Activity, TrendingUp, Maximize, Minimize } from 'lucide-react';
 import { EnhancedFrameStatistics } from './EnhancedFrameStatistics';
 import { API_BASE_URL } from '@/lib/api';
+import { extractVideoBaseName } from '@/lib/utils';
 
 interface FrameData {
   frame_number: number;
@@ -229,12 +230,8 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
           baseName = analyticsBaseName;
           console.log('Using provided analyticsBaseName:', baseName);
         } else {
-          // Fallback to extracting from videoName
-          baseName = videoName
-            .replace(/\.mp4$/, '') // Remove .mp4 extension
-            .replace(/^overlayed_/, '') // Remove 'overlayed_' prefix
-            .replace(/^api_generated_overlayed_/, '') // Remove 'api_generated_overlayed_' prefix
-            .replace(/\s*\([^)]*\)$/, ''); // Remove any text in parentheses at the end
+          // Fallback to extracting from videoName using utility function
+          baseName = extractVideoBaseName(videoName);
           
           // For per-frame analysis videos, we need to remove the api_generated_ prefix
           // because the backend expects just the base name

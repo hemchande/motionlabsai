@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Workflow Test - Upload → Analyze → View</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { 
+            background-color: #d4edda; 
+            border-color: #c3e6cb; 
+            color: #155724;
+        }
+        .error { 
+            background-color: #f8d7da; 
+            border-color: #f5c6cb; 
+            color: #721c24;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        video {
+            width: 100%;
+            max-width: 600px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .btn-success { background-color: #28a745; }
+        .btn-success:hover { background-color: #218838; }
+        .btn-warning { background-color: #ffc107; color: #212529; }
+        .btn-warning:hover { background-color: #e0a800; }
+        .btn-danger { background-color: #dc3545; }
+        .btn-danger:hover { background-color: #c82333; }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #28a745);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .file-input {
+            margin: 10px 0;
+            padding: 10px;
+            border: 2px dashed #007bff;
+            border-radius: 6px;
+            text-align: center;
+            background-color: #f8f9ff;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .stat-card {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+        .video-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        .video-item {
+            flex: 1;
+            min-width: 300px;
+        }
+        .json-viewer {
+            background-color: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .workflow-step {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+        }
+        .step-number {
+            background-color: #007bff;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+        .step-completed {
+            background-color: #28a745;
+        }
+        .step-error {
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎬 Video Workflow Test Suite</h1>
+        <p>Complete End-to-End Testing: Upload → Analyze → View Results</p>
+    </div>
+
+    <!-- Workflow Progress -->
+    <div class="test-section">
+        <h2>📋 Workflow Progress</h2>
+        <div class="workflow-step">
+            <div class="step-number" id="step1">1</div>
+            <div>Upload Video File</div>
+        </div>
+        <div class="workflow-step">
+            <div class="step-number" id="step2">2</div>
+            <div>Analyze Video with MediaPipe</div>
+        </div>
+        <div class="workflow-step">
+            <div class="step-number" id="step3">3</div>
+            <div>Get Processed Video</div>
+        </div>
+        <div class="workflow-step">
+            <div class="step-number" id="step4">4</div>
+            <div>Get Analytics Data</div>
+        </div>
+    </div>
+
+    <!-- Step 1: Upload Video -->
+    <div class="test-section">
+        <h2>📤 Step 1: Upload Video</h2>
+        <div class="file-input">
+            <input type="file" id="videoFile" accept="video/*" />
+            <p>Select a video file to upload and analyze</p>
+            <p><strong>Recommended:</strong> Use a small video file (&lt; 20 MB) for testing</p>
+        </div>
+        <button onclick="uploadVideo()" id="uploadBtn">Upload Video</button>
+        <button onclick="useExistingVideo()" class="btn-success">Use Existing Video (Skip Upload)</button>
+        <div id="uploadResult"></div>
+    </div>
+
+    <!-- Step 2: Analyze Video -->
+    <div class="test-section">
+        <h2>🔬 Step 2: Analyze Video</h2>
+        <button onclick="analyzeVideo()" id="analyzeBtn" disabled>Analyze Video with MediaPipe</button>
+        <div class="progress-bar">
+            <div class="progress-fill" id="analysisProgress"></div>
+        </div>
+        <div id="analysisResult"></div>
+    </div>
+
+    <!-- Step 3: View Processed Video -->
+    <div class="test-section">
+        <h2>🎥 Step 3: Processed Video</h2>
+        <button onclick="loadProcessedVideo()" id="loadVideoBtn" disabled>Load Processed Video</button>
+        <div class="video-container">
+            <div class="video-item">
+                <h4>Original Video</h4>
+                <video id="originalVideo" controls style="display: none;">
+                    <source src="" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div class="video-item">
+                <h4>Processed Video (with Pose Detection)</h4>
+                <video id="processedVideo" controls style="display: none;">
+                    <source src="" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        </div>
+        <div id="videoResult"></div>
+    </div>
+
+    <!-- Step 4: Analytics Data -->
+    <div class="test-section">
+        <h2>📊 Step 4: Analytics & Statistics</h2>
+        <button onclick="loadAnalytics()" id="loadAnalyticsBtn" disabled>Load Analytics Data</button>
+        <button onclick="loadPerFrameStats()" id="loadStatsBtn" disabled>Load Per-Frame Statistics</button>
+        
+        <div id="analyticsResult"></div>
+        
+        <div class="stats-grid" id="statsGrid" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-value" id="totalFrames">-</div>
+                <div class="stat-label">Total Frames</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="fps">-</div>
+                <div class="stat-label">FPS</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="motionIQ">-</div>
+                <div class="stat-label">Motion IQ</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="aclRisk">-</div>
+                <div class="stat-label">ACL Risk</div>
+            </div>
+        </div>
+        
+        <div id="analyticsData" style="display: none;">
+            <h4>Raw Analytics Data:</h4>
+            <div class="json-viewer" id="analyticsJson"></div>
+        </div>
+    </div>
+
+    <!-- Console Log -->
+    <div class="test-section">
+        <h2>📝 Console Log</h2>
+        <div id="consoleLog" class="log"></div>
+        <button onclick="clearLog()" class="btn-warning">Clear Log</button>
+        <button onclick="exportLog()" class="btn-success">Export Log</button>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5004';
+        const logElement = document.getElementById('consoleLog');
+        
+        // State management
+        let uploadedVideoData = null;
+        let analysisData = null;
+        let processedVideoUrl = null;
+        let analyticsData = null;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            logElement.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+        
+        function clearLog() {
+            logElement.textContent = '';
+        }
+        
+        function exportLog() {
+            const logContent = logElement.textContent;
+            const blob = new Blob([logContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `video-workflow-test-${new Date().toISOString().slice(0,19)}.log`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function updateStep(stepNumber, status) {
+            const stepElement = document.getElementById(`step${stepNumber}`);
+            if (status === 'completed') {
+                stepElement.classList.add('step-completed');
+            } else if (status === 'error') {
+                stepElement.classList.add('step-error');
+            }
+        }
+        
+        function updateProgress(percentage) {
+            document.getElementById('analysisProgress').style.width = `${percentage}%`;
+        }
+        
+        // Step 1: Upload Video
+        async function uploadVideo() {
+            const fileInput = document.getElementById('videoFile');
+            const file = fileInput.files[0];
+            const resultDiv = document.getElementById('uploadResult');
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            if (!file) {
+                resultDiv.innerHTML = '<div class="error"><h3>❌ No file selected</h3><p>Please select a video file first.</p></div>';
+                return;
+            }
+            
+            // Check file size (limit to 50MB for testing)
+            const maxSize = 50 * 1024 * 1024; // 50MB
+            if (file.size > maxSize) {
+                resultDiv.innerHTML = `
+                    <div class="warning">
+                        <h3>⚠️ File Too Large</h3>
+                        <p>File size: ${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        <p>Maximum recommended size: 50 MB</p>
+                        <p>Large files may cause timeouts. Consider using a smaller test file.</p>
+                    </div>
+                `;
+                log(`File too large: ${(file.size / 1024 / 1024).toFixed(2)} MB (max: 50 MB)`, 'warning');
+                return;
+            }
+            
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+            resultDiv.innerHTML = '<p>Uploading video...</p>';
+            
+            try {
+                log(`Starting upload: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+                
+                const formData = new FormData();
+                formData.append('video', file);
+                
+                // Create AbortController for timeout handling
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+                
+                const response = await fetch(`${API_BASE}/uploadVideo`, {
+                    method: 'POST',
+                    body: formData,
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Upload failed: ${response.status} ${response.statusText}`);
+                }
+                
+                const result = await response.json();
+                uploadedVideoData = result;
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Upload Successful!</h3>
+                        <p><strong>Filename:</strong> ${result.filename}</p>
+                        <p><strong>Size:</strong> ${result.size_mb.toFixed(2)} MB</p>
+                        <p><strong>Message:</strong> ${result.message}</p>
+                    </div>
+                `;
+                
+                document.getElementById('analyzeBtn').disabled = false;
+                updateStep(1, 'completed');
+                log(`Upload successful: ${result.filename}`, 'success');
+                
+            } catch (error) {
+                let errorMessage = error.message;
+                if (error.name === 'AbortError') {
+                    errorMessage = 'Upload timeout - file may be too large or server is slow';
+                } else if (error.message.includes('Load failed')) {
+                    errorMessage = 'Network error - check server connection and file size';
+                }
+                
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Upload Failed</h3>
+                        <p>${errorMessage}</p>
+                        <p><strong>Troubleshooting:</strong></p>
+                        <ul>
+                            <li>Try a smaller video file (&lt; 20 MB)</li>
+                            <li>Check server is running on ${API_BASE}</li>
+                            <li>Verify network connection</li>
+                        </ul>
+                    </div>
+                `;
+                log(`Upload failed: ${errorMessage}`, 'error');
+                updateStep(1, 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload Video';
+            }
+        }
+        
+        // Use existing video (skip upload)
+        async function useExistingVideo() {
+            const resultDiv = document.getElementById('uploadResult');
+            
+            try {
+                log('Using existing video from server...');
+                
+                // Get list of available videos
+                const response = await fetch(`${API_BASE}/getSessions`);
+                if (!response.ok) {
+                    throw new Error(`Failed to get sessions: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const sessions = data.sessions || [];
+                
+                if (sessions.length === 0) {
+                    throw new Error('No existing videos found on server');
+                }
+                
+                // Find a session with a video
+                const sessionWithVideo = sessions.find(s => s.gridfs_video_id);
+                if (!sessionWithVideo) {
+                    throw new Error('No videos found in sessions');
+                }
+                
+                // Simulate uploaded video data
+                uploadedVideoData = {
+                    filename: sessionWithVideo.processed_video_filename || sessionWithVideo.original_filename,
+                    size_mb: sessionWithVideo.video_size ? (sessionWithVideo.video_size / 1024 / 1024).toFixed(2) : 'Unknown',
+                    message: 'Using existing video from server'
+                };
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Using Existing Video!</h3>
+                        <p><strong>Filename:</strong> ${uploadedVideoData.filename}</p>
+                        <p><strong>Size:</strong> ${uploadedVideoData.size_mb} MB</p>
+                        <p><strong>Source:</strong> Existing video from server</p>
+                    </div>
+                `;
+                
+                document.getElementById('analyzeBtn').disabled = false;
+                updateStep(1, 'completed');
+                log(`Using existing video: ${uploadedVideoData.filename}`, 'success');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Failed to Use Existing Video</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                log(`Failed to use existing video: ${error.message}`, 'error');
+                updateStep(1, 'error');
+            }
+        }
+        
+        // Step 2: Analyze Video
+        async function analyzeVideo() {
+            if (!uploadedVideoData) {
+                log('No video uploaded yet', 'error');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('analysisResult');
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = 'Analyzing...';
+            resultDiv.innerHTML = '<p>Starting video analysis...</p>';
+            updateProgress(10);
+            
+            try {
+                log(`Starting analysis for: ${uploadedVideoData.filename}`);
+                
+                const response = await fetch(`${API_BASE}/analyzeVideo1`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        video_filename: uploadedVideoData.filename,
+                        athlete_name: 'Test Athlete',
+                        event: 'Floor Exercise',
+                        session_name: 'Test Session',
+                        user_id: 'test_user',
+                        date: new Date().toISOString().split('T')[0]
+                    })
+                });
+                
+                updateProgress(50);
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Analysis failed: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                analysisData = result;
+                processedVideoUrl = result.download_url;
+                
+                updateProgress(100);
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Analysis Complete!</h3>
+                        <p><strong>Session ID:</strong> ${result.session_id}</p>
+                        <p><strong>Video ID:</strong> ${result.video_id}</p>
+                        <p><strong>Analytics ID:</strong> ${result.analytics_id || 'N/A'}</p>
+                        <p><strong>Output Video:</strong> ${result.output_video}</p>
+                        <p><strong>Analytics File:</strong> ${result.analytics_file || 'N/A'}</p>
+                    </div>
+                `;
+                
+                document.getElementById('loadVideoBtn').disabled = false;
+                document.getElementById('loadAnalyticsBtn').disabled = false;
+                document.getElementById('loadStatsBtn').disabled = false;
+                updateStep(2, 'completed');
+                log(`Analysis complete: ${result.output_video}`, 'success');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Analysis Failed</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                log(`Analysis failed: ${error.message}`, 'error');
+                updateStep(2, 'error');
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = 'Analyze Video with MediaPipe';
+                updateProgress(0);
+            }
+        }
+        
+        // Step 3: Load Processed Video
+        async function loadProcessedVideo() {
+            if (!processedVideoUrl) {
+                log('No processed video URL available', 'error');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('videoResult');
+            const originalVideo = document.getElementById('originalVideo');
+            const processedVideo = document.getElementById('processedVideo');
+            
+            try {
+                log('Loading processed video...');
+                
+                // Load original video (if available)
+                if (uploadedVideoData) {
+                    const originalUrl = `${API_BASE}/getVideo?video_filename=${encodeURIComponent(uploadedVideoData.filename)}`;
+                    originalVideo.src = originalUrl;
+                    originalVideo.style.display = 'block';
+                    originalVideo.addEventListener('loadedmetadata', () => {
+                        log(`Original video loaded: ${originalVideo.duration.toFixed(2)}s`);
+                    });
+                }
+                
+                // Load processed video
+                processedVideo.src = processedVideoUrl;
+                processedVideo.style.display = 'block';
+                
+                processedVideo.addEventListener('loadedmetadata', () => {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Videos Loaded Successfully!</h3>
+                            <p><strong>Processed Video Duration:</strong> ${processedVideo.duration.toFixed(2)} seconds</p>
+                            <p><strong>Video Size:</strong> ${processedVideo.videoWidth}x${processedVideo.videoHeight}</p>
+                        </div>
+                    `;
+                    updateStep(3, 'completed');
+                    log(`Processed video loaded: ${processedVideo.duration.toFixed(2)}s, ${processedVideo.videoWidth}x${processedVideo.videoHeight}`, 'success');
+                });
+                
+                processedVideo.addEventListener('error', (e) => {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Video Load Error</h3>
+                            <p>Error loading processed video</p>
+                        </div>
+                    `;
+                    log(`Video load error: ${e}`, 'error');
+                    updateStep(3, 'error');
+                });
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error Loading Videos</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                log(`Error loading videos: ${error.message}`, 'error');
+                updateStep(3, 'error');
+            }
+        }
+        
+        // Step 4: Load Analytics
+        async function loadAnalytics() {
+            if (!analysisData || !analysisData.analytics_id) {
+                log('No analytics data available', 'error');
+                return;
+            }
+            
+            const resultDiv = document.getElementById('analyticsResult');
+            
+            try {
+                log('Loading analytics data...');
+                
+                const response = await fetch(`${API_BASE}/getAnalytics/${analysisData.analytics_id}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Analytics fetch failed: ${response.status}`);
+                }
+                
+                const analytics = await response.json();
+                analyticsData = analytics;
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Analytics Loaded!</h3>
+                        <p><strong>Total Frames:</strong> ${analytics.length || 'N/A'}</p>
+                        <p><strong>Data Type:</strong> ${Array.isArray(analytics) ? 'Array' : typeof analytics}</p>
+                    </div>
+                `;
+                
+                // Display raw analytics data
+                document.getElementById('analyticsData').style.display = 'block';
+                document.getElementById('analyticsJson').textContent = JSON.stringify(analytics, null, 2);
+                
+                updateStep(4, 'completed');
+                log(`Analytics loaded: ${analytics.length || 'N/A'} frames`, 'success');
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Analytics Load Failed</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                log(`Analytics load failed: ${error.message}`, 'error');
+                updateStep(4, 'error');
+            }
+        }
+        
+        // Load Per-Frame Statistics
+        async function loadPerFrameStats() {
+            if (!analysisData) {
+                log('No analysis data available', 'error');
+                return;
+            }
+            
+            try {
+                log('Loading per-frame statistics...');
+                
+                const response = await fetch(`${API_BASE}/getPerFrameStatistics?video_filename=${analysisData.output_video}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Stats fetch failed: ${response.status}`);
+                }
+                
+                const stats = await response.json();
+                
+                // Update stats display
+                document.getElementById('statsGrid').style.display = 'grid';
+                document.getElementById('totalFrames').textContent = stats.total_frames || '-';
+                document.getElementById('fps').textContent = stats.fps ? stats.fps.toFixed(2) : '-';
+                document.getElementById('motionIQ').textContent = stats.enhanced_statistics?.tumbling_quality?.average_quality ? 
+                    stats.enhanced_statistics.tumbling_quality.average_quality.toFixed(1) : '-';
+                document.getElementById('aclRisk').textContent = stats.enhanced_statistics?.acl_risk_analysis?.average_overall_risk ? 
+                    stats.enhanced_statistics.acl_risk_analysis.average_overall_risk.toFixed(1) : '-';
+                
+                log(`Per-frame stats loaded: ${stats.total_frames} frames, ${stats.fps} FPS`, 'success');
+                
+            } catch (error) {
+                log(`Per-frame stats failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Initialize
+        log('Video workflow test suite initialized');
+        log('Backend API: http://localhost:5004');
+        log('Frontend: http://localhost:3001');
+        log('Ready to test complete video processing workflow!');
+    </script>
+</body>
+</html>

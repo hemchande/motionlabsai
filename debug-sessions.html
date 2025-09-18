@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Sessions</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .session { border: 1px solid #ccc; margin: 10px 0; padding: 10px; }
+        .uploaded { background-color: #fff3cd; }
+        .completed { background-color: #d4edda; }
+        .processing { background-color: #cce5ff; }
+        button { margin: 5px; padding: 5px 10px; }
+        .start-analysis { background-color: #28a745; color: white; }
+        .reopen { background-color: #007bff; color: white; }
+        .analyzing { background-color: #ffc107; color: black; }
+    </style>
+</head>
+<body>
+    <h1>Debug Sessions - Start Analysis Button Test</h1>
+    <button onclick="loadSessions()">Load Sessions</button>
+    <button onclick="clearSessions()">Clear</button>
+    <div id="sessions"></div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5004';
+        
+        async function loadSessions() {
+            try {
+                console.log('🚀 Loading sessions...');
+                const response = await fetch(`${API_BASE_URL}/getSessions`);
+                const data = await response.json();
+                
+                console.log('📡 Raw API response:', data);
+                
+                if (data.success && data.sessions) {
+                    displaySessions(data.sessions);
+                } else {
+                    console.error('❌ Failed to load sessions:', data);
+                }
+            } catch (error) {
+                console.error('❌ Error loading sessions:', error);
+            }
+        }
+        
+        function displaySessions(sessions) {
+            const container = document.getElementById('sessions');
+            container.innerHTML = '';
+            
+            sessions.forEach(session => {
+                console.log(`📊 Session ${session._id}:`, {
+                    status: session.status,
+                    processing_status: session.processing_status,
+                    gridfs_analytics_id: session.gridfs_analytics_id,
+                    analytics_filename: session.analytics_filename,
+                    original_filename: session.original_filename,
+                    processed_video_filename: session.processed_video_filename
+                });
+                
+                // Map backend status to frontend analysisStatus
+                const analysisStatus = session.status === 'completed' ? 'completed' : 
+                                     session.status === 'processing' ? 'processing' : 
+                                     session.status === 'uploaded' ? 'pending' : 'pending';
+                
+                console.log(`📊 Session ${session._id}: backend status="${session.status}" -> frontend analysisStatus="${analysisStatus}"`);
+                
+                const sessionDiv = document.createElement('div');
+                sessionDiv.className = `session ${session.status}`;
+                
+                const hasAnalytics = !!session.gridfs_analytics_id;
+                const shouldShowStartAnalysis = analysisStatus === 'pending';
+                
+                sessionDiv.innerHTML = `
+                    <h3>${session.athlete_name || 'Unknown Athlete'} - ${session.event || 'Unknown Event'}</h3>
+                    <p><strong>Original Filename:</strong> ${session.original_filename}</p>
+                    <p><strong>Processed Filename:</strong> ${session.processed_video_filename}</p>
+                    <p><strong>Backend Status:</strong> ${session.status}</p>
+                    <p><strong>Processing Status:</strong> ${session.processing_status}</p>
+                    <p><strong>Frontend Analysis Status:</strong> ${analysisStatus}</p>
+                    <p><strong>Has Analytics:</strong> ${hasAnalytics}</p>
+                    <p><strong>Should Show Start Analysis:</strong> ${shouldShowStartAnalysis}</p>
+                    <p><strong>Analytics ID:</strong> ${session.gridfs_analytics_id || 'None'}</p>
+                    <p><strong>Notes:</strong> ${session.notes || 'None'}</p>
+                    <div>
+                        ${shouldShowStartAnalysis ? 
+                            `<button class="start-analysis" onclick="startAnalysis('${session.original_filename}', '${session.athlete_name}', '${session.event}')">Start Analysis</button>` :
+                            analysisStatus === 'processing' ?
+                            `<button class="analyzing" disabled>Analyzing...</button>` :
+                            `<button class="reopen" onclick="viewSession('${session._id}')">Reopen</button>`
+                        }
+                    </div>
+                `;
+                
+                container.appendChild(sessionDiv);
+            });
+        }
+        
+        async function startAnalysis(videoFilename, athleteName, event) {
+            try {
+                console.log('🚀 Starting analysis for:', videoFilename);
+                
+                const response = await fetch(`${API_BASE_URL}/analyzevideo2`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        video_filename: videoFilename,
+                        athlete_name: athleteName,
+                        event: event,
+                        session_name: `${athleteName} - ${event}`,
+                        user_id: 'demo_user',
+                        date: new Date().toISOString().split('T')[0]
+                    })
+                });
+                
+                const result = await response.json();
+                console.log('📊 Analysis result:', result);
+                
+                if (result.success) {
+                    alert(`Analysis started successfully! Session ID: ${result.session_id}`);
+                    loadSessions(); // Reload sessions
+                } else {
+                    alert(`Failed to start analysis: ${result.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('❌ Error starting analysis:', error);
+                alert(`Error starting analysis: ${error.message}`);
+            }
+        }
+        
+        function viewSession(sessionId) {
+            console.log('👁️ Viewing session:', sessionId);
+            alert(`Viewing session: ${sessionId}`);
+        }
+        
+        function clearSessions() {
+            document.getElementById('sessions').innerHTML = '';
+        }
+        
+        // Load sessions on page load
+        window.onload = loadSessions;
+    </script>
+</body>
+</html>

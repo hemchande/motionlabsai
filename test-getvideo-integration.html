@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test getVideo Endpoint Integration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        video {
+            width: 100%;
+            max-width: 600px;
+            margin: 10px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎥 getVideo Endpoint Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Basic Endpoint Access</h2>
+        <button onclick="testBasicAccess()">Test Basic Access</button>
+        <div id="basicResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: Video Display</h2>
+        <button onclick="testVideoDisplay()">Load Test Video</button>
+        <video id="testVideo" controls style="display: none;">
+            <source src="" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <div id="videoResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Multiple Videos</h2>
+        <button onclick="testMultipleVideos()">Test Multiple Videos</button>
+        <div id="multipleResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Console Log</h2>
+        <div id="consoleLog" class="log"></div>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5004';
+        const logElement = document.getElementById('consoleLog');
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            logElement.textContent = '';
+        }
+        
+        async function testBasicAccess() {
+            const resultDiv = document.getElementById('basicResult');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                log('Testing basic endpoint access...');
+                const response = await fetch(`${API_BASE}/getVideo?video_filename=h264_Mya%20Wiley%20VT%20(Feb%2028,%202025)_20250913_150948.mp4`, {
+                    method: 'HEAD'
+                });
+                
+                if (response.ok) {
+                    const contentLength = response.headers.get('Content-Length');
+                    const contentType = response.headers.get('Content-Type');
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Success!</h3>
+                            <p><strong>Status:</strong> ${response.status} ${response.statusText}</p>
+                            <p><strong>Content-Type:</strong> ${contentType}</p>
+                            <p><strong>Content-Length:</strong> ${(contentLength / 1024 / 1024).toFixed(2)} MB</p>
+                            <p><strong>Content-Disposition:</strong> ${contentDisposition}</p>
+                        </div>
+                    `;
+                    log(`✅ Basic access test passed: ${response.status} ${response.statusText}`);
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                log(`❌ Basic access test failed: ${error.message}`);
+            }
+        }
+        
+        async function testVideoDisplay() {
+            const resultDiv = document.getElementById('videoResult');
+            const videoElement = document.getElementById('testVideo');
+            
+            resultDiv.innerHTML = '<p>Loading video...</p>';
+            
+            try {
+                log('Testing video display...');
+                const videoUrl = `${API_BASE}/getVideo?video_filename=h264_Mya%20Wiley%20VT%20(Feb%2028,%202025)_20250913_150948.mp4`;
+                
+                videoElement.src = videoUrl;
+                videoElement.style.display = 'block';
+                
+                videoElement.addEventListener('loadedmetadata', () => {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>✅ Video Loaded Successfully!</h3>
+                            <p><strong>Duration:</strong> ${videoElement.duration.toFixed(2)} seconds</p>
+                            <p><strong>Video Size:</strong> ${videoElement.videoWidth}x${videoElement.videoHeight}</p>
+                            <p><strong>URL:</strong> ${videoUrl}</p>
+                        </div>
+                    `;
+                    log(`✅ Video display test passed: ${videoElement.duration.toFixed(2)}s, ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+                });
+                
+                videoElement.addEventListener('error', (e) => {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Video Load Error</h3>
+                            <p>Error code: ${videoElement.error?.code}</p>
+                            <p>Error message: ${videoElement.error?.message}</p>
+                        </div>
+                    `;
+                    log(`❌ Video display test failed: ${videoElement.error?.message}`);
+                });
+                
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>❌ Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+                log(`❌ Video display test failed: ${error.message}`);
+            }
+        }
+        
+        async function testMultipleVideos() {
+            const resultDiv = document.getElementById('multipleResult');
+            resultDiv.innerHTML = '<p>Testing multiple videos...</p>';
+            
+            const testVideos = [
+                'h264_Mya%20Wiley%20VT%20(Feb%2028,%202025)_20250913_150948.mp4',
+                'h264_analyzed_h264_analyzed_h264_analyzed_overlayed_pdtyUo5UELk_new_1757727038_1757823230_1757987581.mp4'
+            ];
+            
+            let results = [];
+            
+            for (const videoFilename of testVideos) {
+                try {
+                    log(`Testing video: ${videoFilename}`);
+                    const response = await fetch(`${API_BASE}/getVideo?video_filename=${videoFilename}`, {
+                        method: 'HEAD'
+                    });
+                    
+                    if (response.ok) {
+                        const contentLength = response.headers.get('Content-Length');
+                        results.push(`✅ ${videoFilename}: ${(contentLength / 1024 / 1024).toFixed(2)} MB`);
+                        log(`✅ ${videoFilename}: ${response.status} ${response.statusText}`);
+                    } else {
+                        results.push(`❌ ${videoFilename}: ${response.status} ${response.statusText}`);
+                        log(`❌ ${videoFilename}: ${response.status} ${response.statusText}`);
+                    }
+                } catch (error) {
+                    results.push(`❌ ${videoFilename}: ${error.message}`);
+                    log(`❌ ${videoFilename}: ${error.message}`);
+                }
+            }
+            
+            resultDiv.innerHTML = `
+                <div class="${results.every(r => r.startsWith('✅')) ? 'success' : 'error'}">
+                    <h3>Multiple Videos Test Results</h3>
+                    ${results.map(result => `<p>${result}</p>`).join('')}
+                </div>
+            `;
+        }
+        
+        // Initialize
+        log('getVideo endpoint integration test initialized');
+        log('Frontend running on: http://localhost:3000');
+        log('Backend API running on: http://localhost:5004');
+    </script>
+</body>
+</html>
+
+

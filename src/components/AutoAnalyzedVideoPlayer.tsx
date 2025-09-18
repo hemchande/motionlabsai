@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { API_BASE_URL } from '@/lib/api'
+import { extractVideoBaseName } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -262,19 +263,16 @@ export default function AutoAnalyzedVideoPlayer({
         
         // For per-frame statistics, use the processed video filename if available
         if (processedVideoFilename) {
-          baseName = processedVideoFilename;
-          console.log('Using processed video filename for per-frame stats:', baseName);
+          baseName = extractVideoBaseName(processedVideoFilename);
+          console.log('Using processed video filename for per-frame stats:', processedVideoFilename);
+          console.log('Extracted base name:', baseName);
         } else if (analyticsBaseName) {
           // Fallback to analyticsBaseName (this is the analytics filename, not ideal)
           baseName = analyticsBaseName;
           console.log('Using provided analyticsBaseName (fallback):', baseName);
         } else if (videoName) {
-          // Fallback to extracting from videoName
-          baseName = videoName
-            .replace(/\.mp4$/, '') // Remove .mp4 extension
-            .replace(/^overlayed_/, '') // Remove 'overlayed_' prefix
-            .replace(/^api_generated_overlayed_/, '') // Remove 'api_generated_overlayed_' prefix
-            .replace(/\s*\([^)]*\)$/, ''); // Remove any text in parentheses at the end
+          // Fallback to extracting from videoName using utility function
+          baseName = extractVideoBaseName(videoName);
           
           // Keep the api_generated_ prefix for analytics files that have it
           // Don't remove it as the analytics files use this prefix

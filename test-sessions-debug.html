@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Sessions Debug</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .session { border: 1px solid #ccc; margin: 10px 0; padding: 10px; }
+        .uploaded { background-color: #fff3cd; }
+        .completed { background-color: #d4edda; }
+        .processing { background-color: #cce5ff; }
+        button { margin: 5px; padding: 5px 10px; }
+        .start-analysis { background-color: #28a745; color: white; }
+        .reopen { background-color: #007bff; color: white; }
+        .analyzing { background-color: #ffc107; color: black; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .success { background-color: #d4edda; color: #155724; }
+    </style>
+</head>
+<body>
+    <h1>Test Sessions Debug - Start Analysis Button Test</h1>
+    <div id="status"></div>
+    <button onclick="testAPI()">Test API Connection</button>
+    <button onclick="loadSessions()">Load Sessions</button>
+    <button onclick="clearResults()">Clear</button>
+    <div id="results"></div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5004';
+        
+        function log(message, type = 'info') {
+            const status = document.getElementById('status');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            status.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        async function testAPI() {
+            try {
+                log('🚀 Testing API connection...');
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+                log(`✅ API Health: ${JSON.stringify(data)}`, 'success');
+            } catch (error) {
+                log(`❌ API Connection Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function loadSessions() {
+            try {
+                log('🚀 Loading sessions...');
+                const response = await fetch(`${API_BASE_URL}/getSessions`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                log(`📡 Raw API response received`, 'success');
+                
+                if (data.success && data.sessions) {
+                    log(`✅ Found ${data.sessions.length} sessions`, 'success');
+                    displaySessions(data.sessions);
+                } else {
+                    log(`❌ Invalid response format: ${JSON.stringify(data)}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error loading sessions: ${error.message}`, 'error');
+            }
+        }
+        
+        function displaySessions(sessions) {
+            const container = document.getElementById('results');
+            container.innerHTML = '';
+            
+            let uploadedCount = 0;
+            let completedCount = 0;
+            let processingCount = 0;
+            
+            sessions.forEach(session => {
+                // Count by status
+                if (session.status === 'uploaded') uploadedCount++;
+                else if (session.status === 'completed') completedCount++;
+                else if (session.status === 'processing') processingCount++;
+                
+                // Map backend status to frontend analysisStatus
+                const analysisStatus = session.status === 'completed' ? 'completed' : 
+                                     session.status === 'processing' ? 'processing' : 
+                                     session.status === 'uploaded' ? 'pending' : 'pending';
+                
+                const hasAnalytics = !!session.gridfs_analytics_id;
+                const shouldShowStartAnalysis = analysisStatus === 'pending';
+                
+                log(`📊 Session ${session._id}: status="${session.status}" -> analysisStatus="${analysisStatus}", hasAnalytics=${hasAnalytics}, shouldShowStartAnalysis=${shouldShowStartAnalysis}`);
+                
+                const sessionDiv = document.createElement('div');
+                sessionDiv.className = `session ${session.status}`;
+                
+                sessionDiv.innerHTML = `
+                    <h3>${session.athlete_name || 'Unknown Athlete'} - ${session.event || 'Unknown Event'}</h3>
+                    <p><strong>ID:</strong> ${session._id}</p>
+                    <p><strong>Original Filename:</strong> ${session.original_filename}</p>
+                    <p><strong>Processed Filename:</strong> ${session.processed_video_filename}</p>
+                    <p><strong>Backend Status:</strong> ${session.status}</p>
+                    <p><strong>Processing Status:</strong> ${session.processing_status}</p>
+                    <p><strong>Frontend Analysis Status:</strong> ${analysisStatus}</p>
+                    <p><strong>Has Analytics:</strong> ${hasAnalytics}</p>
+                    <p><strong>Should Show Start Analysis:</strong> ${shouldShowStartAnalysis}</p>
+                    <p><strong>Analytics ID:</strong> ${session.gridfs_analytics_id || 'None'}</p>
+                    <p><strong>Notes:</strong> ${session.notes || 'None'}</p>
+                    <div>
+                        ${shouldShowStartAnalysis ? 
+                            `<button class="start-analysis" onclick="startAnalysis('${session.original_filename}', '${session.athlete_name}', '${session.event}')">Start Analysis</button>` :
+                            analysisStatus === 'processing' ?
+                            `<button class="analyzing" disabled>Analyzing...</button>` :
+                            `<button class="reopen" onclick="viewSession('${session._id}')">Reopen</button>`
+                        }
+                    </div>
+                `;
+                
+                container.appendChild(sessionDiv);
+            });
+            
+            log(`📊 Summary: ${uploadedCount} uploaded, ${completedCount} completed, ${processingCount} processing`, 'success');
+        }
+        
+        async function startAnalysis(videoFilename, athleteName, event) {
+            try {
+                log(`🚀 Starting analysis for: ${videoFilename}`);
+                
+                const response = await fetch(`${API_BASE_URL}/analyzevideo2`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        video_filename: videoFilename,
+                        athlete_name: athleteName,
+                        event: event,
+                        session_name: `${athleteName} - ${event}`,
+                        user_id: 'demo_user',
+                        date: new Date().toISOString().split('T')[0]
+                    })
+                });
+                
+                const result = await response.json();
+                log(`📊 Analysis result: ${JSON.stringify(result)}`, 'success');
+                
+                if (result.success) {
+                    alert(`Analysis started successfully! Session ID: ${result.session_id}`);
+                    loadSessions(); // Reload sessions
+                } else {
+                    alert(`Failed to start analysis: ${result.error || 'Unknown error'}`);
+                }
+            } catch (error) {
+                log(`❌ Error starting analysis: ${error.message}`, 'error');
+                alert(`Error starting analysis: ${error.message}`);
+            }
+        }
+        
+        function viewSession(sessionId) {
+            log(`👁️ Viewing session: ${sessionId}`);
+            alert(`Viewing session: ${sessionId}`);
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('status').innerHTML = '';
+        }
+        
+        // Test API on page load
+        window.onload = testAPI;
+    </script>
+</body>
+</html>

@@ -185,6 +185,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
   // Sessions state
   const [sessions, setSessions] = useState<AthleteSession[]>([])
   const [sessionsLoading, setSessionsLoading] = useState(true)
+  const [sessionsError, setSessionsError] = useState<string | null>(null)
 
   // Fetch sessions from backend
   useEffect(() => {
@@ -205,7 +206,11 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
             aclRisk: session.acl_risk || 0,
             precision: session.precision || 0,
             power: session.power || 0,
-            status: session.status === 'completed' ? 'completed' : session.status === 'pending' ? 'pending' : session.status === 'uploaded' ? 'uploaded' : 'processing',
+            status: (() => {
+              const status = session.status === 'completed' ? 'completed' : session.status === 'pending' ? 'pending' : session.status === 'uploaded' ? 'uploaded' : 'processing';
+              console.log(`📊 AthleteDashboard Session ${session._id}: backend status="${session.status}" -> frontend status="${status}"`);
+              return status;
+            })(),
             videoUrl: session.processed_video_url || session.video_url,
             originalFilename: session.original_filename, // Add originalFilename for robust filtering
             notes: session.notes || '',
@@ -232,6 +237,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
         }
       } catch (error) {
         console.error('❌ Error fetching athlete sessions:', error)
+        setSessionsError(`Failed to load sessions: ${error instanceof Error ? error.message : String(error)}`)
         // Keep empty array on error
       } finally {
         setSessionsLoading(false)
@@ -572,7 +578,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
     try {
       // Extract just the filename from the path (remove /videos/ prefix if present)
       const actualFilename = filename.includes('/') ? filename.split('/').pop() : filename
-      console.log('Starting analyzeVideo1 for:', actualFilename)
+      console.log('Starting analyzeVideo2 (enhanced analytics) for:', actualFilename)
       
       // Update session status to processing
       setSessions(prev => prev.map(session => 
@@ -581,8 +587,8 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
           : session
       ))
       
-      // Use the new analyzeVideo1 endpoint
-      const response = await gymnasticsAPI.analyzeVideo1(
+      // Use the enhanced analyzeVideo2 endpoint
+      const response = await gymnasticsAPI.analyzeVideo2(
         actualFilename,
         uploadMetadata.athlete || user?.fullName || "Unknown",
         uploadMetadata.event || "General",
@@ -591,7 +597,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
       )
       
       if (response.success) {
-        console.log('analyzeVideo1 started successfully:', response)
+        console.log('analyzeVideo2 (enhanced analytics) started successfully:', response)
         
         // Update session with the new session_id from response
         setSessions(prev => prev.map(session => 
@@ -1019,6 +1025,14 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
               </div>
             </CardHeader>
             <CardContent>
+              {sessionsError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-center">
+                    <AlertTriangle className="h-4 w-4 text-red-600 mr-2" />
+                    <span className="text-black">{sessionsError}</span>
+                  </div>
+                </div>
+              )}
               <div className="space-y-4 w-full">
                 {filteredSessions.map((session) => (
                   <motion.div
@@ -1069,7 +1083,10 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                         {(session.status === "pending" || session.status === "uploaded") && (
                           <Button 
                             size="sm" 
-                            onClick={() => analyzeVideo1(session.videoUrl || session.id, session.id)}
+                            onClick={() => {
+                              console.log('🚀 AthleteDashboard Start Analysis clicked for session:', session.id, session.status);
+                              analyzeVideo1(session.videoUrl || session.id, session.id);
+                            }}
                             className="ml-cyan-bg text-black hover:ml-cyan-hover"
                           >
                             <Play className="h-4 w-4 mr-1" />
@@ -1344,7 +1361,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                   return isUploaded && hasVideo
                 })
                 console.log('🔍 AthleteDashboard - Filtered sessions for "Uploaded videos":', filteredSessions.length, 'sessions')
-                return filteredSessions.slice(0, 3).map((session) => (
+                return filteredSessions.map((session) => (
                   <div key={session.id} className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border">
                     <div className="flex items-center space-x-3">
                       <Video className="h-4 w-4 text-blue-600" />

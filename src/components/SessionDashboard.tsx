@@ -37,7 +37,8 @@ import {
 } from 'lucide-react';
 import InteractiveVideoPlayer from './InteractiveVideoPlayer';
 import AutoAnalyzedVideoPlayer from './AutoAnalyzedVideoPlayer';
-import { gymnasticsAPI, API_BASE_URL } from '@/lib/api';
+import { gymnasticsAPI } from '@/lib/api';
+import { extractVideoBaseName } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface SessionData {
@@ -101,8 +102,304 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [dateRange, setDateRange] = useState('all');
 
+  // State for processed videos from backend
+  const [processedVideos, setProcessedVideos] = useState<any[]>([]);
+  const [processedVideosLoading, setProcessedVideosLoading] = useState(true);
 
+  // Fetch processed videos from backend
+  useEffect(() => {
+    const fetchProcessedVideos = async () => {
+      try {
+        setProcessedVideosLoading(true);
+        const response = await gymnasticsAPI.getProcessedVideos();
+        if (response.success) {
+          setProcessedVideos(response.processed_videos || []);
+        }
+      } catch (error) {
+        console.error('Error fetching processed videos:', error);
+      } finally {
+        setProcessedVideosLoading(false);
+      }
+    };
 
+    fetchProcessedVideos();
+  }, []);
+
+  // Dynamic mapping function to find analytics files based on video ID
+  const findAnalyticsFileForVideo = (videoName: string): string | undefined => {
+    // Extract the base video ID from the filename
+    let videoId = videoName
+      .replace(/\.mp4$/, '') // Remove .mp4 extension
+      .replace(/^api_generated_/, '') // Remove api_generated_ prefix
+      .replace(/^analyzed_/, '') // Remove analyzed_ prefix
+      .replace(/^overlayed_/, '') // Remove overlayed_ prefix
+      .replace(/^enhanced_replay_/, '') // Remove enhanced_replay_ prefix
+      .replace(/^acl_risk_overlay_/, '') // Remove acl_risk_overlay_ prefix
+      .replace(/^fixed_overlayed_analytics_/, '') // Remove fixed_overlayed_analytics_ prefix
+      .replace(/^downloaded_overlayed_/, '') // Remove downloaded_overlayed_ prefix
+      .replace(/_\d+$/, ''); // Remove timestamp suffix like _1756828395
+    
+    console.log(`Looking for analytics for video: ${videoName} -> extracted ID: ${videoId}`);
+    
+    // Use the processed videos data to find matching analytics files
+    // This is more reliable than a hardcoded list
+    const matchingVideo = processedVideos.find(video => {
+      const processedFilename = video.processed_filename || '';
+      const originalFilename = video.original_filename || '';
+      
+      // Check if this video matches our target
+      return processedFilename === videoName || 
+             originalFilename === videoId ||
+             processedFilename.includes(videoId) ||
+             originalFilename.includes(videoId);
+    });
+    
+    if (matchingVideo && matchingVideo.analytics_file) {
+      console.log(`Found analytics file for ${videoId}: ${matchingVideo.analytics_file}`);
+      return matchingVideo.analytics_file;
+    }
+    
+    console.log(`No analytics file found for ${videoId}`);
+    return undefined;
+  };
+
+  // Convert processed videos to session data format
+  const convertProcessedVideosToSessions = (): SessionData[] => {
+    console.log('=== convertProcessedVideosToSessions called ===');
+    console.log('processedVideos:', processedVideos);
+    
+    const sessions = processedVideos.map((video, index) => {
+      const baseName = video.original_filename || video.processed_filename?.replace(/\.mp4$/, '');
+      
+      // Use our simple mapping function to find analytics
+      const analyticsFile = findAnalyticsFileForVideo(video.processed_filename || '');
+      const hasAnalytics = !!analyticsFile;
+      
+      console.log(`Processing video: ${video.processed_filename}, analytics: ${analyticsFile}`);
+      console.log(`Base name: ${baseName}, hasAnalytics: ${hasAnalytics}`);
+      
+      // Use the new getVideo endpoint for frontend display
+      const videoUrl = `http://localhost:5004/getVideo?video_filename=${video.processed_filename}`;
+      console.log(`Video URL: ${videoUrl}`);
+      
+      const session = {
+        id: `processed-${index}`,
+        videoName: video.processed_filename || `${baseName}.mp4`,
+        athlete: 'Athlete', // Default value
+        event: 'Gymnastics', // Default value
+        sessionType: 'Analysis',
+        date: new Date().toISOString().split('T')[0], // Today's date
+        duration: 'N/A',
+        fileSize: video.file_size_mb || 0,
+        analysisStatus: hasAnalytics ? ('completed' as const) : ('pending' as const),
+        perFrameStatus: hasAnalytics ? ('completed' as const) : ('pending' as const),
+        motionIQ: 85, // Default value
+        aclRisk: 20, // Default value
+        riskLevel: 'LOW' as const,
+        metrics: {
+          averageElevationAngle: 0,
+          averageFlightTime: 0,
+          averageLandingQuality: 0,
+          totalFrames: 0,
+          framesProcessed: 0
+        },
+        notes: `Processed video with ${hasAnalytics ? 'analytics' : 'pending'}`,
+        hasProcessedVideo: true,
+        processedVideoUrl: videoUrl,
+        analyticsFile: analyticsFile
+      };
+      
+      console.log(`Created session:`, session);
+      return session;
+    });
+    
+    console.log('Final sessions:', sessions);
+    return sessions;
+  };
+
+  // Mock data for demonstration - using actual distinct videos from output_videos
+  const mockSessions: SessionData[] = [
+    {
+      id: '1',
+      videoName: 'pdtyUo5UELk.mp4',
+      athlete: 'Simone Biles',
+      event: 'Floor Exercise',
+      sessionType: 'Competition',
+      date: '2025-08-25',
+      duration: '2:34',
+      fileSize: 207,
+      analysisStatus: 'completed',
+      perFrameStatus: 'completed',
+      motionIQ: 95,
+      aclRisk: 12,
+      riskLevel: 'LOW',
+      metrics: {
+        averageElevationAngle: 45.2,
+        averageFlightTime: 0.8,
+        averageLandingQuality: 92.5,
+        totalFrames: 4500,
+        framesProcessed: 4500
+      },
+      notes: 'Excellent execution, minor landing adjustment needed',
+      hasProcessedVideo: true,
+      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=h264_analyzed_overlayed_pdtyUo5UELk_new_1756821489.mp4',
+      analyticsFile: 'api_generated_pdtyUo5UELk.json'
+    },
+    {
+      id: '2',
+      videoName: 'UgWHozR_LLA.mp4',
+      athlete: 'Katelyn Ohashi',
+      event: 'Balance Beam',
+      sessionType: 'Training',
+      date: '2025-08-24',
+      duration: '1:45',
+      fileSize: 45000,
+      analysisStatus: 'completed',
+      perFrameStatus: 'completed',
+      motionIQ: 88,
+      aclRisk: 28,
+      riskLevel: 'MODERATE',
+      metrics: {
+        averageElevationAngle: 38.7,
+        averageFlightTime: 0.6,
+        averageLandingQuality: 85.2,
+        totalFrames: 3200,
+        framesProcessed: 3200
+      },
+      notes: 'Good form, focus on landing stability',
+      hasProcessedVideo: true,
+      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=h264_api_generated_UgWHozR_LLA.mp4',
+      analyticsFile: 'api_generated_UgWHozR_LLA.json'
+    },
+    {
+      id: '3',
+      videoName: 'MeLfAr3GY6w.mp4',
+      athlete: 'Nadia Comaneci',
+      event: 'Uneven Bars',
+      sessionType: 'Evaluation',
+      date: '2025-08-23',
+      duration: '3:12',
+      fileSize: 9100,
+      analysisStatus: 'completed',
+      perFrameStatus: 'completed',
+      motionIQ: 92,
+      aclRisk: 18,
+      riskLevel: 'LOW',
+      metrics: {
+        averageElevationAngle: 42.1,
+        averageFlightTime: 0.9,
+        averageLandingQuality: 89.7,
+        totalFrames: 5800,
+        framesProcessed: 3200
+      },
+      notes: 'Outstanding technique, minor timing adjustments',
+      hasProcessedVideo: true,
+              processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=analyzed_MeLfAr3GY6w_1756264690.mp4',
+      analyticsFile: 'api_generated_MeLfAr3GY6w.json'
+    },
+    {
+      id: '4',
+      videoName: 'FWSpWksgk60.mp4',
+      athlete: 'Simone Biles',
+      event: 'Vault',
+      sessionType: 'Training',
+      date: '2025-08-22',
+      duration: '1:23',
+      fileSize: 35000,
+      analysisStatus: 'completed',
+      perFrameStatus: 'pending',
+      motionIQ: 89,
+      aclRisk: 35,
+      riskLevel: 'MODERATE',
+      metrics: {
+        averageElevationAngle: 52.3,
+        averageFlightTime: 1.1,
+        averageLandingQuality: 78.4,
+        totalFrames: 2400,
+        framesProcessed: 0
+      },
+      notes: 'High power, needs landing refinement',
+      hasProcessedVideo: true,
+      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=analyzed_FWSpWksgk60_1756825611.mp4'
+    },
+    {
+      id: '5',
+      videoName: '3-gNgU9Z_jU.mp4',
+      athlete: 'Katelyn Ohashi',
+      event: 'Floor Exercise',
+      sessionType: 'Competition',
+      date: '2025-08-21',
+      duration: '2:56',
+      fileSize: 27000,
+      analysisStatus: 'completed',
+      perFrameStatus: 'completed',
+      motionIQ: 87,
+      aclRisk: 22,
+      riskLevel: 'LOW',
+      metrics: {
+        averageElevationAngle: 41.8,
+        averageFlightTime: 0.7,
+        averageLandingQuality: 86.9,
+        totalFrames: 4800,
+        framesProcessed: 4800
+      },
+      notes: 'Solid performance, room for improvement',
+      hasProcessedVideo: true,
+      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=api_generated_3-gNgU9Z_jU.mp4',
+      analyticsFile: 'api_generated_3-gNgU9Z_jU.json'
+    },
+    {
+      id: '6',
+      videoName: 'Yzhpyecs-ws.mp4',
+      athlete: 'Gabby Douglas',
+      event: 'All-Around',
+      sessionType: 'Training',
+      date: '2025-08-20',
+      duration: '4:15',
+      fileSize: 154000,
+      analysisStatus: 'completed',
+      perFrameStatus: 'pending',
+      motionIQ: 91,
+      aclRisk: 19,
+      riskLevel: 'LOW',
+      metrics: {
+        averageElevationAngle: 43.5,
+        averageFlightTime: 0.9,
+        averageLandingQuality: 88.7,
+        totalFrames: 7200,
+        framesProcessed: 0
+      },
+      notes: 'Excellent all-around performance',
+      hasProcessedVideo: true,
+      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=api_generated_Yzhpyecs-ws.mp4'
+    }
+  ];
+
+  const mockStats: SessionStats = {
+    totalSessions: 6,
+    completedAnalyses: 6,
+    averageMotionIQ: 90.3,
+    averageACLRisk: 22.3,
+    riskDistribution: {
+      low: 4,
+      moderate: 2,
+      high: 0
+    },
+    eventBreakdown: {
+      'Floor Exercise': 2,
+      'Balance Beam': 1,
+      'Uneven Bars': 1,
+      'Vault': 1,
+      'All-Around': 1
+    },
+    athleteBreakdown: {
+      'Simone Biles': 2,
+      'Katelyn Ohashi': 2,
+      'Nadia Comaneci': 1,
+      'Gabby Douglas': 1
+    },
+    recentActivity: mockSessions.slice(0, 3)
+  };
 
   // Helper function to get IQ color based on score
   const getIQColor = (score: number) => {
@@ -123,87 +420,90 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
     const loadSessions = async () => {
       try {
         setLoading(true);
+        console.log('🚀 SessionDashboard: Fetching sessions from backend...');
         
         // Fetch real sessions from backend
-        const response = await fetch(`${API_BASE_URL}/getSessions`);
-        const data = await response.json();
+        const response = await gymnasticsAPI.getSessions();
+        console.log('📡 SessionDashboard: Raw API response:', response);
         
-        if (data.success && data.sessions) {
-          // Filter to only show analyzed videos (completed sessions with analytics)
-          const analyzedSessions = data.sessions.filter((session: any) => 
-            session.status === 'completed' && 
-            session.processed_video_filename && 
-            session.analytics_filename
-          );
-          
-          // Convert backend sessions to frontend format
-          const realSessions = analyzedSessions.map((session: any, index: number) => ({
-            id: session._id || `session-${index}`,
-            videoName: session.original_filename || session.video_filename || 'Unknown Video',
+        if (response.success && response.sessions) {
+          // Transform backend sessions to frontend format
+          const transformedSessions: SessionData[] = response.sessions.map((session: any) => ({
+            id: session._id || session.id,
+            videoName: session.processed_video_filename || session.original_filename || 'Unknown Video',
             athlete: session.athlete_name || 'Unknown Athlete',
             event: session.event || 'Unknown Event',
-        sessionType: 'Analysis',
-            date: session.created_at || new Date().toISOString().split('T')[0],
-        duration: 'N/A',
-            fileSize: 0,
-            analysisStatus: 'completed' as const,
-            perFrameStatus: 'completed' as const,
-        motionIQ: 85, // Default value
-        aclRisk: 20, // Default value
-        riskLevel: 'LOW' as const,
-        metrics: {
-          averageElevationAngle: 0,
-          averageFlightTime: 0,
-          averageLandingQuality: 0,
-          totalFrames: 0,
-          framesProcessed: 0
-        },
-            notes: `Analyzed session with ${session.analytics_filename ? 'analytics' : 'pending'}`,
-        hasProcessedVideo: true,
-            processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=${session.processed_video_filename}`,
+            sessionType: 'Analysis',
+            date: session.date || new Date().toISOString().split('T')[0],
+            duration: session.duration || '0:00',
+            fileSize: session.video_size ? Math.round(session.video_size / (1024 * 1024)) : 0, // Convert bytes to MB
+            analysisStatus: (() => {
+              const status = session.status === 'completed' ? 'completed' : 
+                           session.status === 'processing' ? 'processing' : 
+                           session.status === 'uploaded' ? 'pending' : 'pending';
+              console.log(`📊 Session ${session._id}: backend status="${session.status}" -> frontend analysisStatus="${status}"`);
+              return status;
+            })(),
+            perFrameStatus: session.analytics_filename ? 'completed' : 'pending',
+            motionIQ: session.motion_iq || 0,
+            aclRisk: session.acl_risk || 0,
+            riskLevel: (session.acl_risk > 70 ? 'HIGH' : session.acl_risk > 40 ? 'MODERATE' : 'LOW') as const,
+            metrics: {
+              averageElevationAngle: 0,
+              averageFlightTime: 0,
+              averageLandingQuality: 0,
+              totalFrames: session.total_frames || 0,
+              framesProcessed: session.total_frames || 0
+            },
+            notes: session.notes || '',
+            hasProcessedVideo: !!session.processed_video_filename,
+            processedVideoUrl: session.processed_video_url || session.video_url,
             analyticsFile: session.analytics_filename
           }));
           
-          setSessions(realSessions);
+          console.log('✅ SessionDashboard: Transformed sessions:', transformedSessions);
+          setSessions(transformedSessions);
           
-          // Calculate real statistics
-          const realStats = {
-            totalSessions: realSessions.length,
-            completedAnalyses: realSessions.length,
-            averageMotionIQ: realSessions.reduce((sum: number, s: any) => sum + (s.motionIQ || 0), 0) / realSessions.length || 0,
-            averageACLRisk: realSessions.reduce((sum: number, s: any) => sum + (s.aclRisk || 0), 0) / realSessions.length || 0,
-    riskDistribution: {
-              low: realSessions.filter((s: any) => s.riskLevel === 'LOW').length,
-              moderate: realSessions.filter((s: any) => s.riskLevel === 'MODERATE').length,
-              high: realSessions.filter((s: any) => s.riskLevel === 'HIGH').length
-            },
-            eventBreakdown: realSessions.reduce((acc: any, s: any) => {
-              acc[s.event] = (acc[s.event] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>),
-            athleteBreakdown: realSessions.reduce((acc: any, s: any) => {
-              acc[s.athlete] = (acc[s.athlete] || 0) + 1;
-              return acc;
-            }, {} as Record<string, number>),
-            recentActivity: realSessions.slice(0, 3)
-          };
+          // Calculate stats
+          const totalSessions = transformedSessions.length;
+          const completedSessions = transformedSessions.filter(s => s.analysisStatus === 'completed').length;
+          const avgMotionIQ = totalSessions > 0 ? transformedSessions.reduce((sum, s) => sum + (s.motionIQ || 0), 0) / totalSessions : 0;
+          const avgACLRisk = totalSessions > 0 ? transformedSessions.reduce((sum, s) => sum + (s.aclRisk || 0), 0) / totalSessions : 0;
           
-          setStats(realStats);
-          console.log('📋 Loaded real sessions from backend:', realSessions.length);
+          setStats({
+            totalSessions,
+            completedSessions,
+            avgMotionIQ: Math.round(avgMotionIQ),
+            avgACLRisk: Math.round(avgACLRisk)
+          });
         } else {
-          console.error('Failed to load sessions from backend:', data);
-          setError('Failed to load session data from backend');
+          console.warn('⚠️ SessionDashboard: No sessions found in response');
+          setSessions([]);
+          setStats({
+            totalSessions: 0,
+            completedSessions: 0,
+            avgMotionIQ: 0,
+            avgACLRisk: 0
+          });
         }
       } catch (err) {
-        setError('Failed to load session data');
-        console.error('Error loading sessions:', err);
+        console.error('❌ SessionDashboard: Error loading sessions:', err);
+        setError(`Failed to load session data: ${err instanceof Error ? err.message : String(err)}`);
+        // Don't fall back to mock data - show error instead
+        setSessions([]);
+        setStats({
+          totalSessions: 0,
+          completedSessions: 0,
+          avgMotionIQ: 0,
+          avgACLRisk: 0
+        });
       } finally {
         setLoading(false);
       }
     };
 
     loadSessions();
-  }, []); // Remove processedVideos dependency since we're using real backend data
+  }, []); // Load once on mount
 
   const filteredSessions = sessions.filter(session => {
     const matchesSearch = session.videoName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -252,9 +552,58 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
   const [videoData, setVideoData] = useState<{url: string, name: string, analyticsBaseName?: string} | null>(null);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [analyzingVideos, setAnalyzingVideos] = useState<Set<string>>(new Set());
 
 
 
+  const findProcessedVideo = (originalName: string, type: 'standard' | 'perframe') => {
+    console.log('Looking for video:', originalName, 'type:', type);
+    console.log('Available videos:', processedVideos);
+    
+    // Remove .mp4 extension for comparison
+    const cleanName = originalName.replace('.mp4', '');
+    
+    // First, try exact match on original_filename
+    let matchingVideos = processedVideos.filter(v => {
+      return v.original_filename === cleanName && v.file_size_mb > 0.1;
+    });
+    
+    // If no exact match, try partial match
+    if (matchingVideos.length === 0) {
+      matchingVideos = processedVideos.filter(v => {
+        const filename = v.processed_filename || v.original_filename || '';
+        return filename.includes(cleanName) && v.file_size_mb > 0.1;
+      });
+    }
+    
+    // If still no match, try case-insensitive match
+    if (matchingVideos.length === 0) {
+      matchingVideos = processedVideos.filter(v => {
+        const filename = v.processed_filename || v.original_filename || '';
+        return filename.toLowerCase().includes(cleanName.toLowerCase()) && v.file_size_mb > 0.1;
+      });
+    }
+    
+    console.log('Matching videos found:', matchingVideos);
+
+    if (type === 'standard') {
+      // For standard analysis, prefer api_generated videos, then any other
+      const apiGenerated = matchingVideos.find(v => v.analysis_type === 'api_generated');
+      if (apiGenerated) return apiGenerated;
+      
+      // Return the first valid video
+      return matchingVideos[0];
+    } else {
+      // For per-frame analysis, look for enhanced_replay or api_generated
+      const enhancedReplay = matchingVideos.find(v => v.analysis_type === 'enhanced_replay');
+      if (enhancedReplay) return enhancedReplay;
+      
+      const apiGenerated = matchingVideos.find(v => v.analysis_type === 'api_generated');
+      if (apiGenerated) return apiGenerated;
+      
+      return null;
+    }
+  };
 
   const viewSession = async (session: SessionData) => {
     try {
@@ -287,42 +636,96 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
   const getBestVideoUrl = async (videoFilename: string): Promise<string | null> => {
     try {
       // Get video info to find the best available format
-      const response = await fetch(`${API_BASE_URL}/getVideoInfo?video_filename=${videoFilename}`);
+      const response = await fetch(`http://localhost:5004/getVideoInfo?video_filename=${videoFilename}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.video_info.recommended_filename) {
           // Use the recommended filename (H.264 if available)
-          return `${API_BASE_URL}/getVideo?video_filename=${data.video_info.recommended_filename}`;
+          return `http://localhost:5004/getVideo?video_filename=${data.video_info.recommended_filename}`;
         }
       }
       // Fallback to original video
-      return `${API_BASE_URL}/getVideo?video_filename=${videoFilename}`;
+      return `http://localhost:5004/getVideo?video_filename=${videoFilename}`;
     } catch (error) {
       console.error('Error getting best video URL:', error);
       // Fallback to original video
-      return `${API_BASE_URL}/getVideo?video_filename=${videoFilename}`;
+      return `http://localhost:5004/getVideo?video_filename=${videoFilename}`;
     }
   };
 
+  const viewProcessedVideo = async (session: SessionData) => {
+    try {
+      console.log('=== viewProcessedVideo called ===');
+      console.log('Session:', session);
+      console.log('hasProcessedVideo:', session.hasProcessedVideo);
+      console.log('processedVideoUrl:', session.processedVideoUrl);
+      console.log('analyticsFile:', session.analyticsFile);
+      
+      if (session.hasProcessedVideo && session.processedVideoUrl) {
+        console.log('Loading processed video for session:', session.videoName);
+        console.log('Session analytics file:', session.analyticsFile);
+        
+        // Get the best available video URL (H.264 if available)
+        const bestVideoUrl = await getBestVideoUrl(session.videoName);
+        if (bestVideoUrl) {
+          const processedVideoUrl = `${bestVideoUrl}&t=${Date.now()}`;
+          console.log('Using best video URL:', processedVideoUrl);
+          
+          // Extract analytics base name if available
+          let analyticsBaseName: string | undefined;
+          if (session.analyticsFile) {
+            const fullVideoName = session.analyticsFile.replace(/\.json$/, '');
+            analyticsBaseName = fullVideoName
+              .replace(/^api_generated_/, '')
+              .replace(/^frame_analysis_/, '')
+              .replace(/^per_frame_analysis_/, '')
+              .replace(/^motion_analysis_/, '')
+              .replace(/^biomechanical_data_/, '')
+              .replace(/^gymnastics_metrics_/, '')
+              .replace(/^performance_analysis_/, '');
+            console.log('Analytics base name:', analyticsBaseName);
+          }
+          
+          // Use the processed video filename for the name
+          const videoFilename = bestVideoUrl.split('video_filename=')[1];
+          const videoName = videoFilename || session.videoName;
+          
+          const videoDataObj = {
+            url: processedVideoUrl,
+            name: videoName,
+            analyticsBaseName: analyticsBaseName
+          };
+          
+          console.log('Setting video data:', videoDataObj);
+          setVideoData(videoDataObj);
+          console.log('Video data set successfully');
+          
+          console.log('Setting showVideoPlayer to true');
+          setShowVideoPlayer(true);
+          console.log('showVideoPlayer set to true');
+        } else {
+          console.log('No video URL available');
+          alert('No video available for this session.');
+        }
+      } else {
+        console.log('No processed video available');
+        alert('No processed video available for this session.');
+      }
+    } catch (error) {
+      console.error('Error viewing processed video:', error);
+      alert('Failed to load processed video');
+    }
+  };
 
   const viewAnalytics = async (session: SessionData) => {
     try {
-      // Extract the core video ID from the video name
-      let baseName = session.videoName
-        .replace(/\.mp4$/, '') // Remove .mp4 extension
-        .replace(/^api_generated_/, '') // Remove api_generated_ prefix
-        .replace(/^analyzed_/, '') // Remove analyzed_ prefix
-        .replace(/^overlayed_/, '') // Remove overlayed_ prefix
-        .replace(/^enhanced_replay_/, '') // Remove enhanced_replay_ prefix
-        .replace(/^acl_risk_overlay_/, '') // Remove acl_risk_overlay_ prefix
-        .replace(/^fixed_overlayed_analytics_/, '') // Remove fixed_overlayed_analytics_ prefix
-        .replace(/^downloaded_overlayed_/, '') // Remove downloaded_overlayed_ prefix
-        .replace(/_\d+$/, ''); // Remove timestamp suffix like _1756828395
+      // Extract the core video ID from the video name using utility function
+      const baseName = extractVideoBaseName(session.videoName);
       
       console.log('Original video name:', session.videoName);
       console.log('Extracted base name for analytics:', baseName);
       
-      const analyticsUrl = `${API_BASE_URL}/getPerFrameStatistics?video_filename=${baseName}`;
+      const analyticsUrl = `http://localhost:5004/getPerFrameStatistics?video_filename=${baseName}`;
       console.log('Loading analytics:', analyticsUrl);
       
       const response = await fetch(analyticsUrl);
@@ -377,7 +780,119 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
     }
   }
 
+  // Test function to debug video URLs
+  const startAnalysis = async (session: SessionData) => {
+    try {
+      console.log('=== Starting Analysis ===');
+      console.log('Session:', session);
+      
+      // Add to analyzing set
+      setAnalyzingVideos(prev => new Set(prev).add(session.id));
+      
+      // Extract the base video name for analysis
+      const baseVideoName = session.videoName
+        .replace(/\.mp4$/, '') // Remove .mp4 extension
+        .replace(/^api_generated_/, '') // Remove api_generated_ prefix
+        .replace(/^analyzed_/, '') // Remove analyzed_ prefix
+        .replace(/^overlayed_/, '') // Remove overlayed_ prefix
+        .replace(/^enhanced_replay_/, '') // Remove enhanced_replay_ prefix
+        .replace(/^acl_risk_overlay_/, '') // Remove acl_risk_overlay_ prefix
+        .replace(/^fixed_overlayed_analytics_/, '') // Remove fixed_overlayed_analytics_ prefix
+        .replace(/^downloaded_overlayed_/, '') // Remove downloaded_overlayed_ prefix
+        .replace(/_\d+$/, ''); // Remove timestamp suffix like _1756828395
+      
+      console.log('Base video name for analysis:', baseVideoName);
+      
+      // Call the analyzeVideo2 endpoint (enhanced analytics)
+      const result = await gymnasticsAPI.analyzeVideo2(
+        baseVideoName,
+        session.athlete,
+        session.event,
+        session.sessionType,
+        'demo_user'
+      );
+      
+      console.log('Analysis result:', result);
+      
+      if (result.success) {
+        alert(`Analysis started successfully! Session ID: ${result.session_id}`);
+        
+        // Refresh the processed videos list
+        const response = await gymnasticsAPI.getProcessedVideos();
+        if (response.success) {
+          setProcessedVideos(response.processed_videos || []);
+        }
+      } else {
+        alert('Failed to start analysis. Please try again.');
+      }
+      
+    } catch (error) {
+      console.error('Error starting analysis:', error);
+      alert(`Failed to start analysis: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      // Remove from analyzing set
+      setAnalyzingVideos(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(session.id);
+        return newSet;
+      });
+    }
+  };
 
+  const testVideoUrl = async (session: SessionData) => {
+    try {
+      console.log('=== Testing Video URL ===');
+      console.log('Session:', session);
+      console.log('Video Name:', session.videoName);
+      console.log('Analytics File:', session.analyticsFile);
+      console.log('Processed Video URL:', session.processedVideoUrl);
+      
+      if (session.analyticsFile) {
+        const baseName = session.analyticsFile
+          .replace(/^api_generated_/, '')
+          .replace(/\.json$/, '');
+        
+        console.log('Extracted base name:', baseName);
+        
+        // Test the per-frame video endpoint
+        const videoResponse = await fetch(`http://localhost:5004/getVideo?video_filename=${baseName}`);
+        console.log('Video endpoint response:', videoResponse.status, videoResponse.statusText);
+        
+        // Test the analytics endpoint
+        const analyticsResponse = await fetch(`http://localhost:5004/getPerFrameStatistics?video_filename=${baseName}`);
+        console.log('Analytics endpoint response:', analyticsResponse.status, analyticsResponse.statusText);
+        
+        if (analyticsResponse.ok) {
+          const analyticsData = await analyticsResponse.json();
+          console.log('Analytics data preview:', {
+            success: analyticsData.success,
+            frameCount: analyticsData.frame_data?.length || 0,
+            firstFrame: analyticsData.frame_data?.[0] || 'No frames'
+          });
+        }
+        
+        // Test with different base name variations
+        console.log('=== Testing Base Name Variations ===');
+        const variations = [
+          baseName,
+          baseName.replace(/^api_generated_/, ''),
+          baseName.replace(/\.mp4$/, ''),
+          session.videoName.replace(/\.mp4$/, '').replace(/\s*\([^)]*\)$/, ''),
+          session.videoName.replace(/\.mp4$/, '')
+        ];
+        
+        for (const variation of variations) {
+          if (variation !== baseName) {
+            console.log(`Testing variation: "${variation}"`);
+            const testResponse = await fetch(`http://localhost:5004/getPerFrameStatistics?video_filename=${variation}`);
+            console.log(`  Status: ${testResponse.status} ${testResponse.statusText}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error testing video URL:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -424,6 +939,15 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
           <p className="text-muted-foreground">View and manage previous analysis sessions</p>
         </div>
         <div className="flex items-center space-x-2">
+          {onNavigateToUpload && (
+            <Button
+              onClick={onNavigateToUpload}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Upload New Video
+            </Button>
+          )}
           <Calendar className="h-5 w-5" />
           <span className="text-sm text-muted-foreground">
             {stats?.totalSessions || 0} total sessions
@@ -571,7 +1095,9 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 w-full">
-            {sessions.map((session) => (
+            {sessions.map((session) => {
+              console.log(`🎯 Rendering session ${session.id}: analysisStatus="${session.analysisStatus}", hasProcessedVideo=${session.hasProcessedVideo}`);
+              return (
               <div
                 key={session.id}
                 className="p-6 ml-card rounded-lg border ml-border hover:ml-hover transition-colors w-full"
@@ -626,10 +1152,23 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
                           size="sm" 
                           variant="default" 
                           className="bg-green-600 hover:bg-green-700 text-white text-xs px-2 py-1"
-                          disabled={true}
+                          onClick={() => {
+                            console.log('🚀 Start Analysis clicked for session:', session.id, session.analysisStatus);
+                            startAnalysis(session);
+                          }}
+                          disabled={analyzingVideos.has(session.id)}
                         >
+                          {analyzingVideos.has(session.id) ? (
+                            <>
+                              <Activity className="h-3 w-3 mr-1 animate-pulse" />
+                              Analyzing...
+                            </>
+                          ) : (
+                            <>
                               <Play className="h-3 w-3 mr-1" />
-                          Pending
+                              Start Analysis
+                            </>
+                          )}
                         </Button>
                       ) : (
                         <Button size="sm" variant="ghost" className="ml-text-lo hover:ml-text-hi p-1" onClick={() => viewSession(session)}>
@@ -640,7 +1179,8 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>

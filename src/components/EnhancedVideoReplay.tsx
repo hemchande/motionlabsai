@@ -8,6 +8,7 @@ import { Slider } from "@/components/ui/slider"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Play, Pause, RotateCcw, SkipBack, SkipForward, Camera, Download, Share2, Brain, Target, Shield, Zap, TrendingUp, AlertTriangle, BarChart3, Eye, Heart } from "lucide-react"
+import { API_BASE_URL } from '@/lib/api'
 import { motion } from "framer-motion"
 
 interface EnhancedFrameData {

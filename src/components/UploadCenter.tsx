@@ -29,7 +29,7 @@ import {
   Shield
 } from "lucide-react"
 import { motion } from "framer-motion"
-import { gymnasticsAPI } from "@/lib/api"
+import { gymnasticsAPI, API_BASE_URL } from "@/lib/api"
 import { useProcessing } from "@/contexts/ProcessingContext"
 import InteractiveVideoPlayer from "./InteractiveVideoPlayer"
 

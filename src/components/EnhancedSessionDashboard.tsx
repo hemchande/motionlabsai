@@ -43,7 +43,7 @@ import {
 } from 'lucide-react';
 import DebugThumbnailVideoReplay from './DebugThumbnailVideoReplay';
 import InteractiveVideoPlayer from './InteractiveVideoPlayer';
-import { gymnasticsAPI } from '@/lib/api';
+import { gymnasticsAPI, API_BASE_URL } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface SessionData {

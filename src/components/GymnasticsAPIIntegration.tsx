@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useGymnasticsAPI } from '@/hooks/useGymnasticsAPI';
+import { API_BASE_URL } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';

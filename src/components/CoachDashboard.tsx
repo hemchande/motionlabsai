@@ -38,7 +38,7 @@ import {
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { motion } from "framer-motion"
-import { gymnasticsAPI } from "@/lib/api"
+import { gymnasticsAPI, API_BASE_URL } from "@/lib/api"
 import { useProcessing } from "@/contexts/ProcessingContext"
 import InteractiveVideoPlayer from "./InteractiveVideoPlayer"
 import AutoAnalyzedVideoPlayer from "./AutoAnalyzedVideoPlayer"

@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import InteractiveVideoPlayer from './InteractiveVideoPlayer';
 import AutoAnalyzedVideoPlayer from './AutoAnalyzedVideoPlayer';
-import { gymnasticsAPI } from '@/lib/api';
+import { gymnasticsAPI, API_BASE_URL } from '@/lib/api';
 import { extractVideoBaseName } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 

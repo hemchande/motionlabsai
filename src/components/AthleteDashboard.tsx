@@ -325,7 +325,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                 aclRisk: Math.floor(Math.random() * 15) + 5,   // 5-20
                 precision: Math.floor(Math.random() * 15) + 80, // 80-95
                 power: Math.floor(Math.random() * 15) + 80,     // 80-95
-                processedVideoUrl: `http://localhost:5004/getVideo?video_filename=h264_analyzed_${session.event.toLowerCase()}_${Date.now()}.mp4`,
+                processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_analyzed_${session.event.toLowerCase()}_${Date.now()}.mp4`,
                 analyticsFile: `analyzed_${session.event.toLowerCase()}_${Date.now()}.json`
               })
             }

@@ -176,7 +176,7 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
       const analyticsFile = findAnalyticsFileForVideo(video.processed_filename || '');
       const hasAnalytics = !!analyticsFile;
       
-      const videoUrl = `http://localhost:5004/getVideo?video_filename=${video.processed_filename}`;
+      const videoUrl = `${API_BASE_URL}/getVideo?video_filename=${video.processed_filename}`;
       
       const session = {
         id: `processed-${index}`,
@@ -236,7 +236,7 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
       },
       notes: 'Excellent execution, minor landing adjustment needed',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=h264_analyzed_overlayed_pdtyUo5UELk_new_1756821489.mp4',
+      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_analyzed_overlayed_pdtyUo5UELk_new_1756821489.mp4`,
       analyticsFile: 'api_generated_pdtyUo5UELk.json'
     },
     {
@@ -262,7 +262,7 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
       },
       notes: 'Good form, focus on landing stability',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=h264_api_generated_UgWHozR_LLA.mp4',
+      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_api_generated_UgWHozR_LLA.mp4`,
       analyticsFile: 'api_generated_UgWHozR_LLA.json'
     },
     {
@@ -288,7 +288,7 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
       },
       notes: 'Outstanding technique, minor timing adjustments',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=analyzed_MeLfAr3GY6w_1756264690.mp4',
+      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=analyzed_MeLfAr3GY6w_1756264690.mp4`,
       analyticsFile: 'api_generated_MeLfAr3GY6w.json'
     },
     {
@@ -314,7 +314,7 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
       },
       notes: 'High power, needs landing refinement',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=analyzed_FWSpWksgk60_1756825611.mp4'
+      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=analyzed_FWSpWksgk60_1756825611.mp4`
     },
     {
       id: '5',
@@ -339,7 +339,7 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
       },
       notes: 'Solid performance, room for improvement',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=api_generated_3-gNgU9Z_jU.mp4',
+      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=api_generated_3-gNgU9Z_jU.mp4`,
       analyticsFile: 'api_generated_3-gNgU9Z_jU.json'
     },
     {
@@ -365,7 +365,7 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
       },
       notes: 'Excellent all-around performance',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=api_generated_Yzhpyecs-ws.mp4'
+      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=api_generated_Yzhpyecs-ws.mp4`
     }
   ];
 

@@ -89,7 +89,7 @@ export function GymnasticsAPIIntegration() {
   const handleGetEnhancedFrameStats = async (videoFilename: string) => {
     try {
       // Use the hook's API methods instead of direct gymnasticsAPI
-      const response = await fetch(`http://localhost:5004/getPerFrameStatistics?video_filename=${videoFilename}`);
+      const response = await fetch(`${API_BASE_URL}/getPerFrameStatistics?video_filename=${videoFilename}`);
       if (response.ok) {
         const stats = await response.json();
         setEnhancedFrameStats(stats);

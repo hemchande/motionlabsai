@@ -179,7 +179,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       console.log(`Base name: ${baseName}, hasAnalytics: ${hasAnalytics}`);
       
       // Use the new getVideo endpoint for frontend display
-      const videoUrl = `http://localhost:5004/getVideo?video_filename=${video.processed_filename}`;
+      const videoUrl = `${API_BASE_URL}/getVideo?video_filename=${video.processed_filename}`;
       console.log(`Video URL: ${videoUrl}`);
       
       const session = {
@@ -242,7 +242,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       },
       notes: 'Excellent execution, minor landing adjustment needed',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=h264_analyzed_overlayed_pdtyUo5UELk_new_1756821489.mp4',
+      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_analyzed_overlayed_pdtyUo5UELk_new_1756821489.mp4`,
       analyticsFile: 'api_generated_pdtyUo5UELk.json'
     },
     {
@@ -268,7 +268,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       },
       notes: 'Good form, focus on landing stability',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=h264_api_generated_UgWHozR_LLA.mp4',
+      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_api_generated_UgWHozR_LLA.mp4`,
       analyticsFile: 'api_generated_UgWHozR_LLA.json'
     },
     {
@@ -294,7 +294,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       },
       notes: 'Outstanding technique, minor timing adjustments',
       hasProcessedVideo: true,
-              processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=analyzed_MeLfAr3GY6w_1756264690.mp4',
+              processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=analyzed_MeLfAr3GY6w_1756264690.mp4`,
       analyticsFile: 'api_generated_MeLfAr3GY6w.json'
     },
     {
@@ -320,7 +320,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       },
       notes: 'High power, needs landing refinement',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=analyzed_FWSpWksgk60_1756825611.mp4'
+      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=analyzed_FWSpWksgk60_1756825611.mp4`
     },
     {
       id: '5',
@@ -345,7 +345,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       },
       notes: 'Solid performance, room for improvement',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=api_generated_3-gNgU9Z_jU.mp4',
+      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=api_generated_3-gNgU9Z_jU.mp4`,
       analyticsFile: 'api_generated_3-gNgU9Z_jU.json'
     },
     {
@@ -371,7 +371,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       },
       notes: 'Excellent all-around performance',
       hasProcessedVideo: true,
-      processedVideoUrl: 'http://localhost:5004/getVideo?video_filename=api_generated_Yzhpyecs-ws.mp4'
+      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=api_generated_Yzhpyecs-ws.mp4`
     }
   ];
 
@@ -636,20 +636,20 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
   const getBestVideoUrl = async (videoFilename: string): Promise<string | null> => {
     try {
       // Get video info to find the best available format
-      const response = await fetch(`http://localhost:5004/getVideoInfo?video_filename=${videoFilename}`);
+      const response = await fetch(`${API_BASE_URL}/getVideoInfo?video_filename=${videoFilename}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.video_info.recommended_filename) {
           // Use the recommended filename (H.264 if available)
-          return `http://localhost:5004/getVideo?video_filename=${data.video_info.recommended_filename}`;
+          return `${API_BASE_URL}/getVideo?video_filename=${data.video_info.recommended_filename}`;
         }
       }
       // Fallback to original video
-      return `http://localhost:5004/getVideo?video_filename=${videoFilename}`;
+      return `${API_BASE_URL}/getVideo?video_filename=${videoFilename}`;
     } catch (error) {
       console.error('Error getting best video URL:', error);
       // Fallback to original video
-      return `http://localhost:5004/getVideo?video_filename=${videoFilename}`;
+      return `${API_BASE_URL}/getVideo?video_filename=${videoFilename}`;
     }
   };
 
@@ -725,7 +725,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       console.log('Original video name:', session.videoName);
       console.log('Extracted base name for analytics:', baseName);
       
-      const analyticsUrl = `http://localhost:5004/getPerFrameStatistics?video_filename=${baseName}`;
+      const analyticsUrl = `${API_BASE_URL}/getPerFrameStatistics?video_filename=${baseName}`;
       console.log('Loading analytics:', analyticsUrl);
       
       const response = await fetch(analyticsUrl);
@@ -855,11 +855,11 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
         console.log('Extracted base name:', baseName);
         
         // Test the per-frame video endpoint
-        const videoResponse = await fetch(`http://localhost:5004/getVideo?video_filename=${baseName}`);
+        const videoResponse = await fetch(`${API_BASE_URL}/getVideo?video_filename=${baseName}`);
         console.log('Video endpoint response:', videoResponse.status, videoResponse.statusText);
         
         // Test the analytics endpoint
-        const analyticsResponse = await fetch(`http://localhost:5004/getPerFrameStatistics?video_filename=${baseName}`);
+        const analyticsResponse = await fetch(`${API_BASE_URL}/getPerFrameStatistics?video_filename=${baseName}`);
         console.log('Analytics endpoint response:', analyticsResponse.status, analyticsResponse.statusText);
         
         if (analyticsResponse.ok) {
@@ -884,7 +884,7 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
         for (const variation of variations) {
           if (variation !== baseName) {
             console.log(`Testing variation: "${variation}"`);
-            const testResponse = await fetch(`http://localhost:5004/getPerFrameStatistics?video_filename=${variation}`);
+            const testResponse = await fetch(`${API_BASE_URL}/getPerFrameStatistics?video_filename=${variation}`);
             console.log(`  Status: ${testResponse.status} ${testResponse.statusText}`);
           }
         }

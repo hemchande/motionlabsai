@@ -1,5 +1,6 @@
 // API client for Gymnastics Analytics Backend
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5004';
+export const API_ANALYSIS_URL = process.env.NEXT_PUBLIC_API_ANALYSIS_URL || 'http://localhost:5005';
 
 export interface HealthStatus {
   status: string;
@@ -153,13 +154,33 @@ export interface SummaryStatistics {
 
 class GymnasticsAPI {
   private baseURL: string;
+  private analysisURL: string;
 
-  constructor(baseURL: string = API_BASE_URL) {
+  constructor(baseURL: string = API_BASE_URL, analysisURL: string = API_ANALYSIS_URL) {
     this.baseURL = baseURL;
+    this.analysisURL = analysisURL;
   }
 
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
+    const response = await fetch(url, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options?.headers,
+      },
+      ...options,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  private async analysisRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    const url = `${this.analysisURL}${endpoint}`;
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
@@ -246,7 +267,7 @@ class GymnasticsAPI {
     });
   }
 
-  // Analyze video from GridFS (new endpoint for large videos)
+  // Analyze video from GridFS (new endpoint for large videos) - Uses dedicated analysis server
   async analyzeVideo1(sessionId: string, cloudflareStreamId?: string): Promise<{ 
     success: boolean; 
     message: string; 
@@ -267,7 +288,7 @@ class GymnasticsAPI {
       thumbnail: string;
     };
   }> {
-    return this.request('/analyzeVideo1', {
+    return this.analysisRequest('/analyzeVideo1', {
       method: 'POST',
       body: JSON.stringify({ 
         session_id: sessionId,

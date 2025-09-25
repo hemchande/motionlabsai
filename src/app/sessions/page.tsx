@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import LayoutWrapper from '@/components/LayoutWrapper';
 import EnhancedSessionDashboard from '@/components/EnhancedSessionDashboard';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/FirebaseAuthContext';
 
 export default function SessionsPage() {
   const { userRole, isAuthenticated } = useAuth();

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,13 +11,15 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { LogIn, UserPlus, Users, Trophy, Target, Activity, Brain, Shield, Play, Instagram, Linkedin, Mail, Award, AlertCircle, Loader2 } from "lucide-react"
 import { motion } from "framer-motion"
 import Logo from "./Logo"
-import { useAuth } from "@/contexts/AuthContext"
+import { useAuth } from "@/contexts/FirebaseAuthContext"
 
 export default function AuthScreen() {
   const { login, signup, loading } = useAuth()
+  const searchParams = useSearchParams()
   const [isLogin, setIsLogin] = useState(true)
   const [userRole, setUserRole] = useState<"coach" | "athlete">("coach")
   const [error, setError] = useState("")
+  const [invitationData, setInvitationData] = useState<any>(null)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -26,6 +29,73 @@ export default function AuthScreen() {
     athleteCount: "",
     agreeToTerms: false
   })
+
+  // Handle invitation token from URL
+  useEffect(() => {
+    const inviteToken = searchParams.get('invite')
+    const mode = searchParams.get('mode')
+    
+    if (inviteToken && mode === 'signup') {
+      // Load invitation data and switch to signup mode
+      loadInvitationData(inviteToken)
+      setIsLogin(false)
+      setUserRole("athlete")
+    }
+  }, [searchParams])
+
+  const loadInvitationData = async (token: string) => {
+    try {
+      const response = await fetch(`/api/invitations?token=${token}`)
+      const data = await response.json()
+      
+      if (data.success && data.invitation) {
+        setInvitationData(data.invitation)
+        // Pre-fill form with invitation data
+        setFormData(prev => ({
+          ...prev,
+          email: data.invitation.athleteEmail,
+          fullName: data.invitation.athleteName || '',
+          institution: data.invitation.institution || ''
+        }))
+      } else {
+        setError("Invalid or expired invitation")
+      }
+    } catch (error) {
+      console.error('Error loading invitation:', error)
+      setError("Failed to load invitation data")
+    }
+  }
+
+  const acceptInvitation = async (user: any) => {
+    if (!invitationData || !user) return
+    
+    try {
+      const response = await fetch('/api/accept-invitation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          invitationId: invitationData.id,
+          athleteId: user.id,
+          athleteEmail: user.email,
+          athleteName: user.fullName
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        console.log('✅ Invitation accepted successfully')
+      } else {
+        console.error('❌ Failed to accept invitation:', data.error)
+        setError(data.error || 'Failed to accept invitation')
+      }
+    } catch (error) {
+      console.error('Error accepting invitation:', error)
+      setError('Failed to accept invitation')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,7 +109,10 @@ export default function AuthScreen() {
       }
 
       const result = await login(formData.email, formData.password)
-      if (!result.success) {
+      if (result.success) {
+        // Clear form on successful login - the auth state change will handle redirect
+        resetForm()
+      } else {
         setError(result.error || "Login failed")
       }
     } else {
@@ -67,9 +140,18 @@ export default function AuthScreen() {
         institution: formData.institution || undefined,
         athleteCount: formData.athleteCount ? parseInt(formData.athleteCount) : undefined
       }
+      
+      console.log('🔍 DEBUG: AuthScreen signupData.role:', signupData.role);
+      console.log('🔍 DEBUG: AuthScreen userRole state:', userRole);
+      console.log('🔍 DEBUG: AuthScreen invitationData:', invitationData);
 
       const result = await signup(signupData)
-      if (!result.success) {
+      if (result.success) {
+        // If this was an invitation signup, accept the invitation
+        if (invitationData) {
+          await acceptInvitation(result.user)
+        }
+      } else {
         setError(result.error || "Signup failed")
       }
     }
@@ -351,6 +433,21 @@ export default function AuthScreen() {
                   </div>
                 </div>
 
+                {/* Invitation Banner (Signup only) */}
+                {!isLogin && invitationData && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <div className="flex items-center space-x-2">
+                      <Mail className="h-5 w-5 text-blue-500" />
+                      <div>
+                        <h3 className="font-semibold text-blue-900">You're Invited!</h3>
+                        <p className="text-sm text-blue-700">
+                          {invitationData.coachName} has invited you to join {invitationData.institution || 'their team'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Full Name (Signup only) */}
                 {!isLogin && (
                   <div>
@@ -408,8 +505,14 @@ export default function AuthScreen() {
                     onChange={(e) => handleInputChange("email", e.target.value)}
                     className="mt-1 ml-hover ml-border ml-text-hi"
                     placeholder="your@email.com"
+                    disabled={!isLogin && invitationData ? true : false}
                     required
                   />
+                  {!isLogin && invitationData && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      Email pre-filled from invitation
+                    </p>
+                  )}
                 </div>
 
                 {/* Password */}

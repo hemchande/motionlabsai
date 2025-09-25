@@ -1,481 +1,356 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import {
-  Users,
-  Mail,
-  User,
-  Lock,
-  Calendar,
-  Phone,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Loader2,
-  ArrowRight,
-  Shield
-} from "lucide-react"
-import { useInvitations } from "@/contexts/InvitationContext"
-import { useAuth } from "@/contexts/AuthContext"
-import Logo from "@/components/Logo"
+import { useState, useEffect, use } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/FirebaseAuthContext';
+import { AthleteRosterService } from '@/services/athleteRoster';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, CheckCircle, XCircle, UserPlus } from 'lucide-react';
 
-export default function InvitationPage() {
-  const params = useParams()
-  const router = useRouter()
-  const { getInvitationByToken, acceptInvitation, declineInvitation, loading } = useInvitations()
-  const { signup } = useAuth()
+interface InvitationPageProps {
+  params: Promise<{
+    token: string;
+  }>;
+}
+
+export default function InvitationPage({ params }: InvitationPageProps) {
+  const { token } = use(params);
+  const router = useRouter();
+  const { isAuthenticated, user, signup, loading: authLoading } = useAuth();
   
-  const [invitation, setInvitation] = useState<any>(null)
-  const [showDeclineDialog, setShowDeclineDialog] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
-  const [isProcessing, setIsProcessing] = useState(false)
-  
-  const [formData, setFormData] = useState({
-    fullName: "",
-    password: "",
-    confirmPassword: "",
-    dateOfBirth: "",
-    emergencyContact: ""
-  })
-
-  const token = params.token as string
+  const [invitation, setInvitation] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [accepting, setAccepting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [showSignup, setShowSignup] = useState(false);
+  const [signupData, setSignupData] = useState({
+    email: '',
+    password: '',
+    fullName: '',
+    confirmPassword: ''
+  });
 
   useEffect(() => {
-    if (token) {
-      const foundInvitation = getInvitationByToken(token)
-      setInvitation(foundInvitation)
-      
-      if (foundInvitation) {
-        setFormData(prev => ({
-          ...prev,
-          fullName: foundInvitation.studentName || ""
-        }))
-      }
+    if (!authLoading) {
+      loadInvitation();
     }
-  }, [token, getInvitationByToken])
+  }, [authLoading, token]);
 
-  const handleAcceptInvitation = async () => {
-    if (!invitation) return
-
-    setError("")
-    setSuccess("")
-    setIsProcessing(true)
-
-    // Validate form
-    if (!formData.fullName.trim()) {
-      setError("Please enter your full name")
-      setIsProcessing(false)
-      return
-    }
-
-    if (!formData.password) {
-      setError("Please enter a password")
-      setIsProcessing(false)
-      return
-    }
-
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long")
-      setIsProcessing(false)
-      return
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match")
-      setIsProcessing(false)
-      return
-    }
-
+  const loadInvitation = async (retryCount = 0) => {
     try {
-      // First, accept the invitation
-      const acceptResult = await acceptInvitation(token, {
-        fullName: formData.fullName.trim(),
-        password: formData.password,
-        dateOfBirth: formData.dateOfBirth || undefined,
-        emergencyContact: formData.emergencyContact || undefined
-      })
-
-      if (!acceptResult.success) {
-        setError(acceptResult.error || "Failed to accept invitation")
-        setIsProcessing(false)
-        return
-      }
-
-      // Then create the user account
-      const signupResult = await signup({
-        email: invitation.studentEmail,
-        password: formData.password,
-        fullName: formData.fullName.trim(),
-        role: "athlete"
-      })
-
-      if (signupResult.success) {
-        setSuccess("Account created successfully! Redirecting to dashboard...")
-        setTimeout(() => {
-          router.push("/")
-        }, 2000)
+      setLoading(true);
+      console.log(`🔍 Loading invitation with token: ${token} (attempt ${retryCount + 1})`);
+      
+      // Find invitation by token
+      const response = await fetch(`/api/invitations?token=${token}`);
+      const data = await response.json();
+      
+      console.log('📡 Invitation API response:', data);
+      
+      if (data.success && data.invitation) {
+        console.log('✅ Invitation found:', data.invitation);
+        setInvitation(data.invitation);
+        
+        // If user is already authenticated and this is their invitation
+        if (isAuthenticated && user && user.email === data.invitation.athleteEmail) {
+          // Auto-accept the invitation
+          await acceptInvitation();
+        } else if (isAuthenticated && user && user.email !== data.invitation.athleteEmail) {
+          setError('This invitation is not for your account. Please log out and use the correct account.');
+        } else {
+          // Pre-fill signup form with invitation data
+          setSignupData(prev => ({
+            ...prev,
+            email: data.invitation.athleteEmail,
+            fullName: data.invitation.athleteName || ''
+          }));
+          setShowSignup(true);
+        }
       } else {
-        setError(signupResult.error || "Failed to create account")
+        // If invitation not found and we haven't retried yet, try again after a short delay
+        if (retryCount < 2 && data.error === 'Invitation not found or expired') {
+          console.log(`⏳ Invitation not found, retrying in 2 seconds... (attempt ${retryCount + 1})`);
+          setTimeout(() => {
+            loadInvitation(retryCount + 1);
+          }, 2000);
+          return;
+        }
+        
+        console.error('❌ Invitation not found:', data.error);
+        setError(data.error || 'Invitation not found or expired');
       }
     } catch (error) {
-      setError("An unexpected error occurred")
+      console.error('❌ Error loading invitation:', error);
+      
+      // Retry on network errors
+      if (retryCount < 2) {
+        console.log(`⏳ Network error, retrying in 2 seconds... (attempt ${retryCount + 1})`);
+        setTimeout(() => {
+          loadInvitation(retryCount + 1);
+        }, 2000);
+        return;
+      }
+      
+      setError('Failed to load invitation');
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setIsProcessing(false)
-  }
-
-  const handleDeclineInvitation = async () => {
-    if (!invitation) return
-
-    setError("")
-    setIsProcessing(true)
-
-    const result = await declineInvitation(token)
-
-    if (result.success) {
-      setSuccess("Invitation declined. You can close this page.")
-    } else {
-      setError(result.error || "Failed to decline invitation")
+  const acceptInvitation = async () => {
+    if (!user || !invitation) return;
+    
+    try {
+      setAccepting(true);
+      setError(null);
+      
+      const response = await fetch('/api/accept-invitation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          invitationId: invitation.id,
+          athleteId: user.id,
+          athleteEmail: user.email,
+          athleteName: user.fullName
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSuccess(true);
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 2000);
+      } else {
+        setError(data.error || 'Failed to accept invitation');
+      }
+    } catch (error) {
+      console.error('Error accepting invitation:', error);
+      setError('Failed to accept invitation');
+    } finally {
+      setAccepting(false);
     }
+  };
 
-    setIsProcessing(false)
-    setShowDeclineDialog(false)
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-500/20 text-yellow-600 border-yellow-500/30'
-      case 'accepted': return 'bg-green-500/20 text-green-600 border-green-500/30'
-      case 'declined': return 'bg-red-500/20 text-red-600 border-red-500/30'
-      case 'expired': return 'bg-gray-500/20 text-gray-600 border-gray-500/30'
-      default: return 'bg-gray-500/20 text-gray-600 border-gray-500/30'
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (signupData.password !== signupData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
     }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending': return <AlertTriangle className="h-4 w-4" />
-      case 'accepted': return <CheckCircle className="h-4 w-4" />
-      case 'declined': return <XCircle className="h-4 w-4" />
-      case 'expired': return <AlertTriangle className="h-4 w-4" />
-      default: return <AlertTriangle className="h-4 w-4" />
+    
+    try {
+      setAccepting(true);
+      setError(null);
+      
+      const result = await signup({
+        email: signupData.email,
+        password: signupData.password,
+        fullName: signupData.fullName,
+        role: 'athlete'
+      });
+      
+      if (result.success) {
+        // After successful signup, accept the invitation
+        await acceptInvitation();
+      } else {
+        setError(result.error || 'Signup failed');
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      setError('Signup failed');
+    } finally {
+      setAccepting(false);
     }
-  }
+  };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-gray-600" />
-          <div className="text-gray-600">Loading invitation...</div>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading invitation...</p>
         </div>
       </div>
-    )
+    );
   }
 
-  if (!invitation) {
+  if (error && !invitation) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="w-full max-w-md ml-card ml-border">
-          <CardContent className="p-6 text-center">
-            <XCircle className="h-12 w-12 mx-auto text-red-500 mb-4" />
-            <h2 className="text-xl font-semibold ml-text-hi mb-2">Invalid Invitation</h2>
-            <p className="ml-text-lo mb-4">This invitation link is invalid or has expired.</p>
-            <Button onClick={() => router.push("/")} className="w-full">
-              Go to Home
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <CardTitle className="text-red-600">Invalid Invitation</CardTitle>
+            <CardDescription>{error}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => router.push('/')} 
+              className="w-full"
+              variant="outline"
+            >
+              Go to Homepage
             </Button>
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
-  if (invitation.status !== 'pending') {
+  if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="w-full max-w-md ml-card ml-border">
-          <CardContent className="p-6 text-center">
-            {invitation.status === 'accepted' ? (
-              <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-4" />
-            ) : invitation.status === 'declined' ? (
-              <XCircle className="h-12 w-12 mx-auto text-red-500 mb-4" />
-            ) : (
-              <AlertTriangle className="h-12 w-12 mx-auto text-gray-500 mb-4" />
-            )}
-            <h2 className="text-xl font-semibold ml-text-hi mb-2">
-              Invitation {invitation.status === 'accepted' ? 'Accepted' : invitation.status === 'declined' ? 'Declined' : 'Expired'}
-            </h2>
-            <p className="ml-text-lo mb-4">
-              {invitation.status === 'accepted' 
-                ? 'You have already accepted this invitation.'
-                : invitation.status === 'declined'
-                ? 'You have declined this invitation.'
-                : 'This invitation has expired.'
-              }
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+            <CardTitle className="text-green-600">Welcome to the Team!</CardTitle>
+            <CardDescription>
+              You have successfully joined {invitation?.institution || 'the team'}!
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600 text-center mb-4">
+              Redirecting to your dashboard...
             </p>
-            <Button onClick={() => router.push("/")} className="w-full">
-              Go to Home
+            <Button 
+              onClick={() => router.push('/dashboard')} 
+              className="w-full"
+            >
+              Go to Dashboard
             </Button>
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <Logo size="lg" />
-          <h1 className="text-3xl font-bold ml-text-hi mt-4">Join Your Team</h1>
-          <p className="ml-text-md">Complete your account setup to join {invitation.teamName}</p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Invitation Details */}
-          <Card className="ml-card ml-border">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="h-5 w-5" />
-                <span>Team Invitation</span>
-              </CardTitle>
-              <CardDescription>
-                You've been invited to join a team
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center space-x-2">
-                  <User className="h-4 w-4 ml-text-lo" />
-                  <div>
-                    <p className="text-sm font-medium ml-text-hi">Coach</p>
-                    <p className="text-sm ml-text-lo">{invitation.coachName}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Mail className="h-4 w-4 ml-text-lo" />
-                  <div>
-                    <p className="text-sm font-medium ml-text-hi">Team</p>
-                    <p className="text-sm ml-text-lo">{invitation.teamName}</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Shield className="h-4 w-4 ml-text-lo" />
-                  <div>
-                    <p className="text-sm font-medium ml-text-hi">Institution</p>
-                    <p className="text-sm ml-text-lo">{invitation.institution}</p>
-                  </div>
-                </div>
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <UserPlus className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+          <CardTitle>You're Invited!</CardTitle>
+          <CardDescription>
+            {invitation?.coachName} has invited you to join {invitation?.institution || 'their team'}
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent>
+          {error && (
+            <Alert className="mb-4" variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          {showSignup && !isAuthenticated ? (
+            <form onSubmit={handleSignup} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Email</label>
+                <input
+                  type="email"
+                  value={signupData.email}
+                  onChange={(e) => setSignupData(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
               </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm ml-text-lo">Status</span>
-                <Badge className={getStatusColor(invitation.status)}>
-                  <div className="flex items-center space-x-1">
-                    {getStatusIcon(invitation.status)}
-                    <span className="capitalize">{invitation.status}</span>
-                  </div>
-                </Badge>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={signupData.fullName}
+                  onChange={(e) => setSignupData(prev => ({ ...prev, fullName: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
               </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm ml-text-lo">Expires</span>
-                <span className="text-sm ml-text-hi">
-                  {new Date(invitation.expiresAt).toLocaleDateString()}
-                </span>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Password</label>
+                <input
+                  type="password"
+                  value={signupData.password}
+                  onChange={(e) => setSignupData(prev => ({ ...prev, password: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                  minLength={6}
+                />
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Account Setup Form */}
-          <Card className="ml-card ml-border">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <User className="h-5 w-5" />
-                <span>Create Your Account</span>
-              </CardTitle>
-              <CardDescription>
-                Set up your athlete account to get started
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-600">{error}</p>
-                </div>
-              )}
-
-              {success && (
-                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-sm text-green-600">{success}</p>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="fullName">Full Name *</Label>
-                  <Input
-                    id="fullName"
-                    value={formData.fullName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-                    placeholder="Alex Chen"
-                    className="ml-hover ml-border"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    value={invitation.studentEmail}
-                    disabled
-                    className="ml-hover ml-border bg-gray-50"
-                  />
-                  <p className="text-xs ml-text-lo mt-1">This is the email you were invited with</p>
-                </div>
-
-                <div>
-                  <Label htmlFor="password">Password *</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                    placeholder="Create a secure password"
-                    className="ml-hover ml-border"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="confirmPassword">Confirm Password *</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                    placeholder="Confirm your password"
-                    className="ml-hover ml-border"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="dateOfBirth">Date of Birth (Optional)</Label>
-                  <Input
-                    id="dateOfBirth"
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => setFormData(prev => ({ ...prev, dateOfBirth: e.target.value }))}
-                    className="ml-hover ml-border"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="emergencyContact">Emergency Contact (Optional)</Label>
-                  <Input
-                    id="emergencyContact"
-                    value={formData.emergencyContact}
-                    onChange={(e) => setFormData(prev => ({ ...prev, emergencyContact: e.target.value }))}
-                    placeholder="Parent/Guardian phone number"
-                    className="ml-hover ml-border"
-                  />
-                </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">Confirm Password</label>
+                <input
+                  type="password"
+                  value={signupData.confirmPassword}
+                  onChange={(e) => setSignupData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
               </div>
-
-              <div className="flex space-x-3 pt-4">
-                <AlertDialog open={showDeclineDialog} onOpenChange={setShowDeclineDialog}>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" className="flex-1" disabled={isProcessing}>
-                      Decline
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Decline Invitation</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to decline this invitation? You won't be able to join this team.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={handleDeclineInvitation}
-                        className="bg-red-600 hover:bg-red-700"
-                        disabled={isProcessing}
-                      >
-                        {isProcessing ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Declining...
-                          </>
-                        ) : (
-                          'Decline Invitation'
-                        )}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-
-                <Button 
-                  onClick={handleAcceptInvitation}
-                  disabled={isProcessing}
-                  className="flex-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating Account...
-                    </>
-                  ) : (
-                    <>
-                      Accept & Join
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </>
-                  )}
-                </Button>
+              
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={accepting}
+              >
+                {accepting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Creating Account...
+                  </>
+                ) : (
+                  'Create Account & Join Team'
+                )}
+              </Button>
+            </form>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-center">
+                <p className="text-sm text-gray-600 mb-4">
+                  You're already signed in as <strong>{user?.email}</strong>
+                </p>
+                <p className="text-sm text-gray-600">
+                  Click below to accept the invitation and join the team.
+                </p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+              
+              <Button 
+                onClick={acceptInvitation}
+                className="w-full" 
+                disabled={accepting}
+              >
+                {accepting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Accepting Invitation...
+                  </>
+                ) : (
+                  'Accept Invitation'
+                )}
+              </Button>
+            </div>
+          )}
+          
+          <div className="mt-4 text-center">
+            <Button 
+              variant="outline" 
+              onClick={() => router.push('/')}
+              className="w-full"
+            >
+              Cancel
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
-  )
+  );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

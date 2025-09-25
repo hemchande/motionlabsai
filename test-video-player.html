@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Video Player with Analytics</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #1a1a1a;
+            color: white;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .video-section {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .video-container {
+            position: relative;
+            background: black;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        video {
+            width: 100%;
+            height: 400px;
+            object-fit: contain;
+        }
+        .analytics-panels {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .panel {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .panel h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #ccc;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 12px;
+        }
+        .metric-label {
+            color: #888;
+        }
+        .metric-value {
+            color: #00ffff;
+            font-family: monospace;
+        }
+        .summary-panel {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+        }
+        .summary-section h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #ccc;
+            border-bottom: 1px solid #444;
+            padding-bottom: 5px;
+        }
+        .controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .controls button {
+            background: #333;
+            border: 1px solid #555;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .controls button:hover {
+            background: #444;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            position: relative;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #00ffff;
+            border-radius: 2px;
+            width: 0%;
+        }
+        .skeleton-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .skeleton-point {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #00ff00;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .skeleton-line {
+            position: absolute;
+            height: 2px;
+            background: #00ff00;
+            transform-origin: left center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gymnastics Video Analysis Player</h1>
+        
+        <div class="video-section">
+            <div class="video-container">
+                <video id="video" controls>
+                    <source src="test_video.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                
+                <!-- Skeleton Overlay -->
+                <div class="skeleton-overlay" id="skeletonOverlay">
+                    <!-- Skeleton points and lines will be drawn here -->
+                </div>
+                
+                <!-- Video Controls -->
+                <div class="controls">
+                    <button onclick="skipBack()">⏪</button>
+                    <button onclick="togglePlay()" id="playBtn">▶️</button>
+                    <button onclick="skipForward()">⏩</button>
+                    <span id="timeDisplay">0:00 / 0:00</span>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <button onclick="toggleSkeleton()" id="skeletonBtn">Show Skeleton</button>
+                </div>
+            </div>
+            
+            <div class="analytics-panels">
+                <!-- Movement Analysis Panel -->
+                <div class="panel">
+                    <h3>Movement Analysis</h3>
+                    <div class="metric">
+                        <span class="metric-label">Height:</span>
+                        <span class="metric-value" id="height">0.0cm</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Elevation:</span>
+                        <span class="metric-value" id="elevation">-82.2°</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Forward Lean:</span>
+                        <span class="metric-value" id="forwardLean">172.2°</span>
+                    </div>
+                </div>
+                
+                <!-- Tumbling Detection Panel -->
+                <div class="panel">
+                    <h3>Tumbling Detection</h3>
+                    <div class="metric">
+                        <span class="metric-label">Status:</span>
+                        <span class="metric-value" id="tumblingStatus">Not Detected</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Phase:</span>
+                        <span class="metric-value" id="flightPhase">GROUND</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Quality:</span>
+                        <span class="metric-value" id="tumblingQuality">0.0/100</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Confidence:</span>
+                        <span class="metric-value" id="confidence">High</span>
+                    </div>
+                </div>
+                
+                <!-- ACL Risk Analysis Panel -->
+                <div class="panel">
+                    <h3>ACL Risk Analysis</h3>
+                    <div class="metric">
+                        <span class="metric-label">Overall Risk:</span>
+                        <span class="metric-value" id="overallRisk">0.0%</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Risk Level:</span>
+                        <span class="metric-value" id="riskLevel">LOW</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Knee Angle:</span>
+                        <span class="metric-value" id="kneeAngle">0.0%</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Knee Valgus:</span>
+                        <span class="metric-value" id="kneeValgus">0.0%</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Landing:</span>
+                        <span class="metric-value" id="landing">0.0%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Enhanced Statistics Summary -->
+        <div class="summary-panel">
+            <h2>Enhanced Statistics Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-section">
+                    <h4>Tumbling Detection</h4>
+                    <div class="metric">
+                        <span class="metric-label">Tumbling Frames:</span>
+                        <span class="metric-value">13</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Percentage:</span>
+                        <span class="metric-value">7.5%</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Flight Phases:</span>
+                        <span class="metric-value">160</span>
+                    </div>
+                </div>
+                
+                <div class="summary-section">
+                    <h4>ACL Risk Analysis</h4>
+                    <div class="metric">
+                        <span class="metric-label">Avg Overall Risk:</span>
+                        <span class="metric-value">1.3%</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">High Risk Frames:</span>
+                        <span class="metric-value">65</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Avg Knee Valgus:</span>
+                        <span class="metric-value">0.0%</span>
+                    </div>
+                </div>
+                
+                <div class="summary-section">
+                    <h4>Movement Analysis</h4>
+                    <div class="metric">
+                        <span class="metric-label">Avg Elevation:</span>
+                        <span class="metric-value">-48.1°</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Max Elevation:</span>
+                        <span class="metric-value">1.8°</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Avg Height:</span>
+                        <span class="metric-value">-7.2cm</span>
+                    </div>
+                </div>
+                
+                <div class="summary-section">
+                    <h4>Tumbling Quality</h4>
+                    <div class="metric">
+                        <span class="metric-label">Avg Quality:</span>
+                        <span class="metric-value">0.0/100</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Max Quality:</span>
+                        <span class="metric-value">0.0/100</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Quality Frames:</span>
+                        <span class="metric-value">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const playBtn = document.getElementById('playBtn');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const progressFill = document.getElementById('progressFill');
+        const skeletonBtn = document.getElementById('skeletonBtn');
+        const skeletonOverlay = document.getElementById('skeletonOverlay');
+        
+        let showSkeleton = false;
+        
+        // Mock analytics data
+        const mockAnalytics = {
+            height: 0.0,
+            elevation: -82.2,
+            forwardLean: 172.2,
+            tumblingDetected: false,
+            flightPhase: 'GROUND',
+            tumblingQuality: 0.0,
+            overallRisk: 0.0,
+            riskLevel: 'LOW',
+            kneeAngle: 0.0,
+            kneeValgus: 0.0,
+            landing: 0.0
+        };
+        
+        function updateAnalytics() {
+            // Simulate real-time analytics updates
+            const time = video.currentTime;
+            const frame = Math.floor(time * 30);
+            
+            // Update movement analysis
+            document.getElementById('height').textContent = (mockAnalytics.height + Math.sin(time) * 10).toFixed(1) + 'cm';
+            document.getElementById('elevation').textContent = (mockAnalytics.elevation + Math.sin(time * 2) * 5).toFixed(1) + '°';
+            document.getElementById('forwardLean').textContent = (mockAnalytics.forwardLean + Math.cos(time) * 3).toFixed(1) + '°';
+            
+            // Update tumbling detection
+            const tumblingDetected = frame > 100 && frame < 200;
+            document.getElementById('tumblingStatus').textContent = tumblingDetected ? 'Detected' : 'Not Detected';
+            document.getElementById('tumblingStatus').style.color = tumblingDetected ? '#00ff00' : '#888';
+            document.getElementById('flightPhase').textContent = tumblingDetected ? 'FLIGHT' : 'GROUND';
+            document.getElementById('tumblingQuality').textContent = tumblingDetected ? '85.2/100' : '0.0/100';
+            
+            // Update ACL risk
+            const risk = Math.min(100, Math.max(0, Math.sin(time * 3) * 30 + 20));
+            document.getElementById('overallRisk').textContent = risk.toFixed(1) + '%';
+            document.getElementById('overallRisk').style.color = risk > 50 ? '#ff4444' : risk > 25 ? '#ffaa00' : '#00ff00';
+            document.getElementById('riskLevel').textContent = risk > 50 ? 'HIGH' : risk > 25 ? 'MODERATE' : 'LOW';
+            document.getElementById('riskLevel').style.color = risk > 50 ? '#ff4444' : risk > 25 ? '#ffaa00' : '#00ff00';
+            document.getElementById('kneeAngle').textContent = (risk * 0.8).toFixed(1) + '%';
+            document.getElementById('kneeValgus').textContent = (risk * 0.6).toFixed(1) + '%';
+            document.getElementById('landing').textContent = (risk * 0.4).toFixed(1) + '%';
+        }
+        
+        function drawSkeleton() {
+            if (!showSkeleton) {
+                skeletonOverlay.innerHTML = '';
+                return;
+            }
+            
+            // Clear previous skeleton
+            skeletonOverlay.innerHTML = '';
+            
+            // Draw mock skeleton points
+            const points = [
+                { x: 0.5, y: 0.2, name: 'head' },
+                { x: 0.5, y: 0.3, name: 'neck' },
+                { x: 0.45, y: 0.35, name: 'left_shoulder' },
+                { x: 0.55, y: 0.35, name: 'right_shoulder' },
+                { x: 0.4, y: 0.45, name: 'left_elbow' },
+                { x: 0.6, y: 0.45, name: 'right_elbow' },
+                { x: 0.5, y: 0.5, name: 'torso' },
+                { x: 0.48, y: 0.6, name: 'left_hip' },
+                { x: 0.52, y: 0.6, name: 'right_hip' },
+                { x: 0.46, y: 0.75, name: 'left_knee' },
+                { x: 0.54, y: 0.75, name: 'right_knee' },
+                { x: 0.44, y: 0.9, name: 'left_ankle' },
+                { x: 0.56, y: 0.9, name: 'right_ankle' }
+            ];
+            
+            points.forEach(point => {
+                const element = document.createElement('div');
+                element.className = 'skeleton-point';
+                element.style.left = (point.x * 100) + '%';
+                element.style.top = (point.y * 100) + '%';
+                skeletonOverlay.appendChild(element);
+            });
+            
+            // Draw skeleton connections
+            const connections = [
+                ['head', 'neck'],
+                ['neck', 'left_shoulder'],
+                ['neck', 'right_shoulder'],
+                ['left_shoulder', 'left_elbow'],
+                ['right_shoulder', 'right_elbow'],
+                ['left_shoulder', 'torso'],
+                ['right_shoulder', 'torso'],
+                ['torso', 'left_hip'],
+                ['torso', 'right_hip'],
+                ['left_hip', 'left_knee'],
+                ['right_hip', 'right_knee'],
+                ['left_knee', 'left_ankle'],
+                ['right_knee', 'right_ankle']
+            ];
+            
+            connections.forEach(([from, to]) => {
+                const fromPoint = points.find(p => p.name === from);
+                const toPoint = points.find(p => p.name === to);
+                
+                if (fromPoint && toPoint) {
+                    const line = document.createElement('div');
+                    line.className = 'skeleton-line';
+                    
+                    const x1 = fromPoint.x * 100;
+                    const y1 = fromPoint.y * 100;
+                    const x2 = toPoint.x * 100;
+                    const y2 = toPoint.y * 100;
+                    
+                    const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+                    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+                    
+                    line.style.left = x1 + '%';
+                    line.style.top = y1 + '%';
+                    line.style.width = length + '%';
+                    line.style.transform = `rotate(${angle}deg)`;
+                    
+                    skeletonOverlay.appendChild(line);
+                }
+            });
+        }
+        
+        function togglePlay() {
+            if (video.paused) {
+                video.play();
+                playBtn.textContent = '⏸️';
+            } else {
+                video.pause();
+                playBtn.textContent = '▶️';
+            }
+        }
+        
+        function skipBack() {
+            video.currentTime = Math.max(0, video.currentTime - 5);
+        }
+        
+        function skipForward() {
+            video.currentTime = Math.min(video.duration, video.currentTime + 5);
+        }
+        
+        function toggleSkeleton() {
+            showSkeleton = !showSkeleton;
+            skeletonBtn.textContent = showSkeleton ? 'Hide Skeleton' : 'Show Skeleton';
+            skeletonBtn.style.backgroundColor = showSkeleton ? '#00aa00' : '#333';
+            drawSkeleton();
+        }
+        
+        function updateTime() {
+            const current = Math.floor(video.currentTime);
+            const duration = Math.floor(video.duration);
+            const currentMin = Math.floor(current / 60);
+            const currentSec = current % 60;
+            const durationMin = Math.floor(duration / 60);
+            const durationSec = duration % 60;
+            
+            timeDisplay.textContent = `${currentMin}:${currentSec.toString().padStart(2, '0')} / ${durationMin}:${durationSec.toString().padStart(2, '0')}`;
+            
+            const progress = (video.currentTime / video.duration) * 100;
+            progressFill.style.width = progress + '%';
+            
+            updateAnalytics();
+            drawSkeleton();
+        }
+        
+        // Event listeners
+        video.addEventListener('timeupdate', updateTime);
+        video.addEventListener('loadedmetadata', () => {
+            updateTime();
+        });
+        
+        // Initialize
+        updateTime();
+    </script>
+</body>
+</html>
+
+
+
+

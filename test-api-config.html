@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Configuration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .results {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 API Configuration Test</h1>
+        <p>Testing which API server the frontend is configured to use</p>
+        
+        <div class="section">
+            <h2>🌐 API Server Tests</h2>
+            <button onclick="testLocalhost()">Test Localhost (5004)</button>
+            <button onclick="testProduction()">Test Production (onrender.com)</button>
+            <button onclick="testBoth()">Test Both</button>
+            <div id="test-status"></div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Test Results</h2>
+            <div id="test-results" class="results"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const results = document.getElementById('test-results');
+            const timestamp = new Date().toLocaleTimeString();
+            results.textContent += `[${timestamp}] ${message}\n`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function showStatus(message, type = 'info') {
+            const element = document.getElementById('test-status');
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        async function testServer(url, name) {
+            try {
+                log(`🔍 Testing ${name}: ${url}`);
+                const startTime = Date.now();
+                const response = await fetch(`${url}/health`);
+                const responseTime = Date.now() - startTime;
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ ${name} is healthy (${responseTime}ms)`);
+                    log(`   Status: ${data.status}`);
+                    log(`   MongoDB: ${data.mongodb}`);
+                    log(`   Cloudflare: ${data.cloudflare_stream}`);
+                    return { success: true, responseTime, data };
+                } else {
+                    log(`❌ ${name} returned error: ${response.status}`);
+                    return { success: false, error: `HTTP ${response.status}` };
+                }
+            } catch (error) {
+                log(`❌ ${name} connection failed: ${error.message}`);
+                return { success: false, error: error.message };
+            }
+        }
+
+        async function testLocalhost() {
+            showStatus('Testing localhost server...', 'info');
+            const result = await testServer('http://localhost:5004', 'Localhost Server');
+            
+            if (result.success) {
+                showStatus(`✅ Localhost server is working! (${result.responseTime}ms)`, 'success');
+            } else {
+                showStatus(`❌ Localhost server failed: ${result.error}`, 'error');
+            }
+        }
+
+        async function testProduction() {
+            showStatus('Testing production server...', 'info');
+            const result = await testServer('https://gymnasticsapi.onrender.com', 'Production Server');
+            
+            if (result.success) {
+                showStatus(`✅ Production server is working! (${result.responseTime}ms)`, 'success');
+            } else {
+                showStatus(`❌ Production server failed: ${result.error}`, 'error');
+            }
+        }
+
+        async function testBoth() {
+            showStatus('Testing both servers...', 'info');
+            log('🚀 Starting comprehensive server test...');
+            
+            const localhostResult = await testServer('http://localhost:5004', 'Localhost Server');
+            const productionResult = await testServer('https://gymnasticsapi.onrender.com', 'Production Server');
+            
+            if (localhostResult.success && productionResult.success) {
+                showStatus(`✅ Both servers are working! Localhost: ${localhostResult.responseTime}ms, Production: ${productionResult.responseTime}ms`, 'success');
+            } else if (localhostResult.success) {
+                showStatus(`✅ Only localhost is working (${localhostResult.responseTime}ms)`, 'success');
+            } else if (productionResult.success) {
+                showStatus(`✅ Only production is working (${productionResult.responseTime}ms)`, 'success');
+            } else {
+                showStatus(`❌ Both servers failed`, 'error');
+            }
+        }
+
+        // Auto-test on page load
+        window.onload = function() {
+            log('🔧 API Configuration Test Page Loaded');
+            log('📋 Environment: ' + (window.location.hostname === 'localhost' ? 'Development' : 'Production'));
+            testBoth();
+        };
+    </script>
+</body>
+</html>
+
+
+
+

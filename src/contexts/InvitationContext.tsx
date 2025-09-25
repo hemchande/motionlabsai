@@ -22,6 +22,7 @@ interface InvitationContextType {
   sendInvitation: (invitationData: SendInvitationData) => Promise<{ success: boolean; error?: string }>;
   acceptInvitation: (token: string, userData: AcceptInvitationData) => Promise<{ success: boolean; error?: string }>;
   declineInvitation: (token: string) => Promise<{ success: boolean; error?: string }>;
+  deleteInvitation: (invitationId: string) => Promise<{ success: boolean; error?: string }>;
   getInvitationByToken: (token: string) => Invitation | null;
   getInvitationsByCoach: (coachId: string) => Invitation[];
   getInvitationsByStudent: (studentEmail: string) => Invitation[];
@@ -79,7 +80,9 @@ const sendEmailInvitation = async (invitation: Invitation): Promise<boolean> => 
 You've been invited by ${invitation.coachName} to join ${invitation.teamName} at ${invitation.institution}.
 
 Click the link below to accept the invitation and create your account:
-${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/invite/${invitation.token}
+${process.env.NODE_ENV === 'production' 
+  ? (process.env.NEXT_PUBLIC_APP_URL || 'https://gymnastics-analytics.vercel.app')
+  : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')}/invite/${invitation.token}
 
 This invitation expires on ${new Date(invitation.expiresAt).toLocaleDateString()}.
 
@@ -91,11 +94,32 @@ MotionLabs AI Team`
 };
 
 export function InvitationProvider({ children }: { children: ReactNode }) {
-  const [invitations, setInvitations] = useState<Invitation[]>(mockInvitations);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
   const generateInvitationToken = (): string => {
     return 'inv_' + Math.random().toString(36).substr(2, 9);
+  };
+
+  // Load invitations from API
+  const loadInvitations = async () => {
+    try {
+      setLoading(true);
+      // For now, we'll use mock data, but this could be replaced with a real API call
+      // const response = await fetch('/api/invitations');
+      // const data = await response.json();
+      
+      // Using mock data for now
+      setInvitations(mockInvitations);
+      setInitialized(true);
+    } catch (error) {
+      console.error('Error loading invitations:', error);
+      setInvitations(mockInvitations); // Fallback to mock data
+      setInitialized(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const sendInvitation = async (invitationData: SendInvitationData): Promise<{ success: boolean; error?: string }> => {
@@ -229,17 +253,54 @@ export function InvitationProvider({ children }: { children: ReactNode }) {
     return invitations.filter(inv => inv.studentEmail === studentEmail);
   };
 
+  const deleteInvitation = async (invitationId: string): Promise<{ success: boolean; error?: string }> => {
+    setLoading(true);
+    
+    try {
+      // Call the API to delete from the database
+      const response = await fetch(`/api/invitations?id=${invitationId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete invitation');
+      }
+
+      // Remove from local state after successful API call
+      setInvitations(prev => prev.filter(inv => inv.id !== invitationId));
+      
+      console.log('✅ Invitation deleted successfully:', invitationId);
+      
+      setLoading(false);
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting invitation:', error);
+      setLoading(false);
+      return { success: false, error: error instanceof Error ? error.message : "Failed to delete invitation" };
+    }
+  };
+
+  // Load invitations on component mount
+  useEffect(() => {
+    if (!initialized) {
+      loadInvitations();
+    }
+  }, [initialized]);
+
   // Clean up expired invitations
   useEffect(() => {
-    const now = new Date();
-    setInvitations(prev => 
-      prev.map(inv => 
-        inv.status === 'pending' && new Date(inv.expiresAt) < now
-          ? { ...inv, status: 'expired' as const }
-          : inv
-      )
-    );
-  }, []);
+    if (invitations.length > 0) {
+      const now = new Date();
+      setInvitations(prev => 
+        prev.map(inv => 
+          inv.status === 'pending' && new Date(inv.expiresAt) < now
+            ? { ...inv, status: 'expired' as const }
+            : inv
+        )
+      );
+    }
+  }, [invitations.length]);
 
   return (
     <InvitationContext.Provider value={{
@@ -247,6 +308,7 @@ export function InvitationProvider({ children }: { children: ReactNode }) {
       sendInvitation,
       acceptInvitation,
       declineInvitation,
+      deleteInvitation,
       getInvitationByToken,
       getInvitationsByCoach,
       getInvitationsByStudent,

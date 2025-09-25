@@ -29,6 +29,7 @@ import { motion, AnimatePresence } from "framer-motion"
 interface AthleteInvitationModalProps {
   coachName: string
   coachEmail: string
+  coachId: string
   institution?: string
   onInvitationSent?: () => void
 }
@@ -42,6 +43,7 @@ interface InvitationForm {
 export default function AthleteInvitationModal({ 
   coachName, 
   coachEmail, 
+  coachId,
   institution,
   onInvitationSent 
 }: AthleteInvitationModalProps) {
@@ -70,6 +72,7 @@ export default function AthleteInvitationModal({
         body: JSON.stringify({
           coachName,
           coachEmail,
+          coachId,
           athleteEmail: formData.athleteEmail,
           athleteName: formData.athleteName || undefined,
           institution,

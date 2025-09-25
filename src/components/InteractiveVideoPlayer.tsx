@@ -112,11 +112,38 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
   console.log('InteractiveVideoPlayer props:', { videoUrl, videoName, analyticsBaseName, sessionId });
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
-  // Compute the actual video URL to use
-  const actualVideoUrl = sessionId 
-    ? `${API_BASE_URL}/getVideoFromSession/${sessionId}`
-    : videoUrl;
+
+
+  console.log("video url",videoUrl)
+  console.log("video name",videoName)
+  // Compute the actual video URL to use - construct from production API server
+  const actualVideoUrl = React.useMemo(() => {
+    // Priority 1: If we have a video name, use that (most reliable)
+    if (videoName) {
+      return `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(videoName)}`;
+    }
+    
+    // Priority 2: Fallback to the provided videoUrl if it exists and doesn't contain localhost
+    if (videoUrl && !videoUrl.includes('localhost')) {
+      return videoUrl;
+    }
+    
+    // Priority 3: If videoUrl contains localhost, try to extract filename and construct proper URL
+    if (videoUrl && videoUrl.includes('localhost')) {
+      const url = new URL(videoUrl);
+      const filename = url.searchParams.get('video_filename');
+      if (filename) {
+        return `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(filename)}`;
+      }
+    }
+    
+    // Priority 4: If we have a sessionId, use the session-based video endpoint (last resort)
+    if (sessionId) {
+      return `${API_BASE_URL}/getVideoFromSession/${sessionId}`;
+    }
+    
+    return videoUrl;
+  }, [videoName, videoUrl, sessionId]);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -134,6 +161,58 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
   const [showSkeleton, setShowSkeleton] = useState(true);
   const [showAngles, setShowAngles] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  // Analytics cache state
+  const [analyticsCache, setAnalyticsCache] = useState<Map<string, { data: any; timestamp: number }>>(new Map());
+  
+  // Cache management utilities
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+  
+  const isCacheValid = (timestamp: number): boolean => {
+    return Date.now() - timestamp < CACHE_DURATION;
+  };
+  
+  const getAnalyticsCacheKey = (baseName: string): string => {
+    return `analytics-${baseName}`;
+  };
+  
+  const getCachedAnalytics = (baseName: string): any | null => {
+    const cacheKey = getAnalyticsCacheKey(baseName);
+    const cached = analyticsCache.get(cacheKey);
+    
+    if (cached && isCacheValid(cached.timestamp)) {
+      console.log('🎯 Using cached analytics data for:', baseName);
+      return cached.data;
+    }
+    
+    return null;
+  };
+  
+  const cacheAnalytics = (baseName: string, data: any): void => {
+    const cacheKey = getAnalyticsCacheKey(baseName);
+    
+    // Limit cache size to prevent memory issues
+    const maxCacheSize = 5; // Keep only last 5 analytics
+    
+    setAnalyticsCache(prev => {
+      const newCache = new Map(prev);
+      newCache.set(cacheKey, { 
+        data, 
+        timestamp: Date.now() 
+      });
+      
+      // If cache exceeds limit, remove oldest entries
+      if (newCache.size > maxCacheSize) {
+        const entries = Array.from(newCache.entries());
+        entries.sort((a, b) => a[1].timestamp - b[1].timestamp); // Sort by timestamp
+        const toRemove = entries.slice(0, entries.length - maxCacheSize);
+        toRemove.forEach(([key]) => newCache.delete(key));
+      }
+      
+      return newCache;
+    });
+    console.log('✅ Cached analytics data for:', baseName);
+  };
 
   // Create mock frame data for videos without analytics
   const createMockFrameData = (): FrameData[] => {
@@ -196,24 +275,28 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
   useEffect(() => {
     return () => {
       const video = videoRef.current
-      if (video) {
-        // Pause and reset video to prevent AbortError
-        video.pause()
-        video.currentTime = 0
-        video.src = ''
-        video.load()
+      if (video && typeof video.pause === 'function') {
+        try {
+          // Pause and reset video to prevent AbortError
+          video.pause();
+          video.currentTime = 0;
+          video.src = '';
+          video.load();
+        } catch (error) {
+          console.error('Error during video cleanup:', error);
+        }
       }
     }
   }, [])
 
-  // Monitor videoUrl changes and set on video element
+  // Monitor actualVideoUrl changes and set on video element
   useEffect(() => {
-    if (videoRef.current && videoUrl) {
-      console.log('Setting video URL on element:', videoUrl);
-      videoRef.current.src = videoUrl;
+    if (videoRef.current && actualVideoUrl) {
+      console.log('Setting video URL on element:', actualVideoUrl);
+      videoRef.current.src = actualVideoUrl;
       videoRef.current.load();
     }
-  }, [videoUrl]);
+  }, [actualVideoUrl]);
 
   // Load frame data from JSON
   useEffect(() => {
@@ -231,7 +314,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
           console.log('Using provided analyticsBaseName:', baseName);
         } else {
           // Fallback to extracting from videoName using utility function
-          baseName = extractVideoBaseName(videoName);
+          baseName = extractVideoBaseName(videoName || 'default');
           
           // For per-frame analysis videos, we need to remove the api_generated_ prefix
           // because the backend expects just the base name
@@ -244,6 +327,17 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
         console.log('Original videoName:', videoName);
         console.log('Provided analyticsBaseName:', analyticsBaseName);
         console.log('Final baseName:', baseName);
+        
+        // Check cache first
+        const cachedData = getCachedAnalytics(baseName);
+        if (cachedData) {
+          console.log('Using cached analytics data for:', baseName);
+          setFrameData(cachedData.frame_data || []);
+          setEnhancedFrameData(convertToEnhancedFrameData(cachedData.frame_data || []));
+          setEnhancedStats(cachedData.enhanced_statistics || null);
+          setLoading(false);
+          return;
+        }
         
         // Determine the analytics URL to use
         const analyticsUrl = sessionId 
@@ -268,7 +362,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
           
           // If still fails, try the original videoName without any processing
           if (!response.ok) {
-            const originalBaseName = videoName.replace(/\.mp4$/, '').replace(/\s*\([^)]*\)$/, '');
+            const originalBaseName = (videoName || 'default').replace(/\.mp4$/, '').replace(/\s*\([^)]*\)$/, '');
             console.log('Trying original base name:', originalBaseName);
             response = await fetch(`${API_BASE_URL}/getPerFrameStatistics?video_filename=${originalBaseName}`);
           }
@@ -277,7 +371,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
           if (!response.ok) {
             console.log('Trying with full analytics filename...');
             // The videoName should contain the full analytics filename without .json
-            const fullAnalyticsName = videoName.replace(/\s*\([^)]*\)$/, '');
+            const fullAnalyticsName = (videoName || 'default').replace(/\s*\([^)]*\)$/, '');
             console.log('Full analytics name:', fullAnalyticsName);
             response = await fetch(`${API_BASE_URL}/getPerFrameStatistics?video_filename=${fullAnalyticsName}`);
           }
@@ -325,6 +419,13 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
             const stats = calculateEnhancedStats(enhancedFrames);
             setEnhancedStats(stats);
             
+            // Cache the analytics data
+            cacheAnalytics(baseName, {
+              frame_data: framesWithData,
+              enhanced_statistics: stats,
+              enhanced_analytics: data.enhanced_analytics
+            });
+            
             console.log(`Loaded ${framesWithData.length} frames with metrics data out of ${data.frame_data.length} total frames`);
             
             if (framesWithData.length === 0) {
@@ -349,6 +450,14 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
           // Calculate enhanced statistics from mock data
           const stats = calculateEnhancedStats(convertToEnhancedFrameData(mockFrameData));
           setEnhancedStats(stats);
+          
+          // Cache the mock data
+          cacheAnalytics(baseName, {
+            frame_data: mockFrameData,
+            enhanced_statistics: stats,
+            enhanced_analytics: false,
+            is_mock_data: true
+          });
           
           setError(null); // Clear error since we have mock data
         }
@@ -381,7 +490,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
         sources: Array.from(video.querySelectorAll('source')).map(s => s.src)
       });
     }
-  }, [videoUrl, videoName]);
+  }, [actualVideoUrl, videoName]);
 
   // Monitor videoUrl changes
   useEffect(() => {
@@ -391,7 +500,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
     // Reset error state when URL changes
     setVideoError(null);
     setIsVideoLoaded(false);
-  }, [videoUrl, videoName]);
+  }, [actualVideoUrl, videoName]);
 
   // Check video element after render
   useEffect(() => {
@@ -423,7 +532,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
     
     // Check again after a short delay to ensure DOM is ready
     setTimeout(checkVideoElement, 100);
-  }, [videoUrl, videoName]);
+  }, [actualVideoUrl, videoName]);
 
   // Video event handlers
   useEffect(() => {
@@ -441,7 +550,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
         currentSrc: video?.currentSrc,
         networkState: video?.networkState,
         readyState: video?.readyState,
-        videoUrl,
+        actualVideoUrl,
         videoName
       });
       
@@ -491,7 +600,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (videoRef.current) {
+      if (videoRef.current && typeof videoRef.current.pause === 'function') {
         try {
           videoRef.current.pause();
         } catch (error) {
@@ -591,15 +700,15 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
   // Video event handlers
   const handleTimeUpdate = () => {
     if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
+      const newCurrentTime = videoRef.current.currentTime;
+      setCurrentTime(newCurrentTime);
       
       // Find the closest frame data with more precise matching
-      const currentTime = videoRef.current.currentTime;
       let closestFrame = null;
       let minDifference = Infinity;
       
       for (const frame of frameData) {
-        const difference = Math.abs(frame.timestamp - currentTime);
+        const difference = Math.abs(frame.timestamp - newCurrentTime);
         if (difference < minDifference) {
           minDifference = difference;
           closestFrame = frame;
@@ -609,6 +718,13 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
       // Only update if we found a frame within 0.2 seconds
       if (closestFrame && minDifference < 0.2) {
         setSelectedFrame(closestFrame);
+        
+        // Also update the enhanced frame data index for synchronization
+        const frameIndex = enhancedFrameData.findIndex(f => f.frame_number === closestFrame.frame_number);
+        if (frameIndex >= 0) {
+          // This will trigger the EnhancedFrameStatistics to update
+          console.log(`🎯 Video time ${newCurrentTime.toFixed(2)}s -> Frame ${closestFrame.frame_number} (index ${frameIndex})`);
+        }
       }
     }
   };
@@ -636,8 +752,18 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
     try {
       if (isPlaying) {
         console.log('Pausing video');
-        videoRef.current.pause();
-        setIsPlaying(false);
+        if (videoRef.current && typeof videoRef.current.pause === 'function') {
+          try {
+            videoRef.current.pause();
+            setIsPlaying(false);
+          } catch (error) {
+            console.error('Error pausing video:', error);
+            setIsPlaying(false);
+          }
+        } else {
+          console.error('Video element not available or pause method missing');
+          setIsPlaying(false);
+        }
       } else {
         // Check if video is ready to play
         if (videoRef.current.readyState >= 2) {
@@ -811,9 +937,9 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-4 max-w-5xl w-full mx-4 max-h-[85vh] overflow-y-auto">
+      <div className="bg-black rounded-lg p-4 max-w-5xl w-full mx-4 max-h-[85vh] overflow-y-auto shadow-2xl border border-blue-400">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Interactive Video Analysis</h3>
+          <h3 className="text-lg font-semibold text-white">Interactive Video Analysis</h3>
           <div className="flex items-center space-x-2">
             {enhancedFrameData.length > 0 && enhancedStats && (
               <Button 
@@ -845,8 +971,8 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
           <div className={showStatistics ? "lg:col-span-3" : "lg:col-span-5"}>
             <div className="relative">
               {/* Debug Info */}
-              <div className="mb-2 p-1 bg-gray-100 rounded text-xs">
-                <div className="grid grid-cols-2 gap-1">
+              <div className="mb-2 p-1 bg-gray-900 rounded text-xs border border-blue-400">
+                <div className="grid grid-cols-2 gap-1 text-gray-300">
                   <div>Error: {videoError ? 'Yes' : 'No'}</div>
                   <div>Loaded: {isVideoLoaded ? 'Yes' : 'No'}</div>
                   <div>Ready: {videoRef.current?.readyState || 'N/A'}</div>
@@ -855,7 +981,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
               </div>
               
               {videoError && (
-                <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
+                <div className="w-full h-64 bg-gray-900 rounded-lg flex items-center justify-center mb-4 border border-blue-400">
                   <div className="text-center">
                     <div className="text-red-500 text-lg mb-2">⚠️ Video Error</div>
                     <div className="text-gray-600 text-sm mb-4">{videoError}</div>
@@ -878,27 +1004,27 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
               )}
               
               {!isVideoLoaded && !videoError && (
-                <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
+                <div className="w-full h-64 bg-gray-900 rounded-lg flex items-center justify-center mb-4 border border-blue-400">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                    <div className="text-gray-600">Loading video...</div>
+                    <div className="text-gray-300">Loading video...</div>
                   </div>
                 </div>
               )}
               
-              <div className="mb-4 p-2 bg-yellow-100 rounded text-sm">
-                <div><strong>Video URL:</strong> {videoUrl}</div>
-                <div><strong>Video Name:</strong> {videoName}</div>
-                <div><strong>Analytics Base:</strong> {analyticsBaseName || 'None'}</div>
-                <div><strong>Video Status:</strong> {videoError ? `Error: ${videoError}` : (isVideoLoaded ? 'Loaded' : 'Loading...')}</div>
+              <div className="mb-4 p-2 bg-gray-900 rounded text-sm border border-blue-400">
+                <div className="text-gray-300"><strong>Video URL:</strong> {actualVideoUrl}</div>
+                <div className="text-gray-300"><strong>Video Name:</strong> {videoName}</div>
+                <div className="text-gray-300"><strong>Analytics Base:</strong> {analyticsBaseName || 'None'}</div>
+                <div className="text-gray-300"><strong>Video Status:</strong> {videoError ? `Error: ${videoError}` : (isVideoLoaded ? 'Loaded' : 'Loading...')}</div>
                 <div className="mt-2 space-x-2">
                   <Button 
                     size="sm" 
                     variant="outline" 
                     onClick={() => {
                       const link = document.createElement('a');
-                      link.href = videoUrl;
-                      link.download = videoName;
+                      link.href = actualVideoUrl || '';
+                      link.download = videoName || 'video';
                       link.click();
                     }}
                   >
@@ -920,7 +1046,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
                     size="sm" 
                     variant="outline" 
                     onClick={() => {
-                      const newUrl = videoUrl.replace('&t=', '');
+                      const newUrl = (actualVideoUrl || '').replace('&t=', '');
                       console.log('Trying URL without timestamp:', newUrl);
                       if (videoRef.current) {
                         videoRef.current.src = newUrl;
@@ -971,7 +1097,7 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
                     variant="outline" 
                     onClick={() => {
                       // Test with the exact URL that works in test-direct-video.html
-                      const testUrl = gymnasticsAPI.getVideo('api_generated_UgWHozR_LLA.mp4');
+                      const testUrl = `${API_BASE_URL}/getVideo?video_filename=api_generated_UgWHozR_LLA.mp4`;
                       console.log('Testing with known working URL:', testUrl);
                       
                       if (videoRef.current) {
@@ -1176,16 +1302,16 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
           {showStatistics && (
             <div className="lg:col-span-2">
               {loading ? (
-                <Card className="h-[60vh] flex flex-col">
+                <Card className="h-[60vh] flex flex-col bg-black border-blue-400 shadow-lg">
                   <CardContent className="p-3 flex-1 flex items-center justify-center">
                     <div className="text-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mx-auto"></div>
-                      <p className="text-xs text-gray-500 mt-1">Loading...</p>
+                      <p className="text-xs text-gray-300 mt-1">Loading...</p>
                     </div>
                   </CardContent>
                 </Card>
               ) : error ? (
-                <Card className="h-[60vh] flex flex-col">
+                <Card className="h-[60vh] flex flex-col bg-black border-blue-400 shadow-lg">
                   <CardContent className="p-3 flex-1 flex items-center justify-center">
                     <div className="text-center">
                       <p className="text-xs text-red-500">{error}</p>
@@ -1195,21 +1321,29 @@ export default function InteractiveVideoPlayer({ videoUrl, videoName, analyticsB
               ) : enhancedFrameData.length > 0 && enhancedStats ? (
                 <div className="h-[60vh] overflow-y-auto">
                   <EnhancedFrameStatistics
-                    videoFilename={videoName}
+                    videoFilename={videoName || 'unknown'}
                     frameData={enhancedFrameData}
                     enhancedStats={enhancedStats}
                     totalFrames={enhancedFrameData.length}
                     fps={29.89}
+                    currentVideoTime={currentTime}
+                    onFrameChange={(frameIndex: number) => {
+                      if (frameIndex >= 0 && frameIndex < enhancedFrameData.length) {
+                        const frame = enhancedFrameData[frameIndex];
+                        seekToTime(frame.timestamp);
+                      }
+                    }}
+                    syncWithVideo={true}
                   />
                 </div>
               ) : (
-                <Card className="h-[60vh] flex flex-col">
+                <Card className="h-[60vh] flex flex-col bg-black border-blue-400 shadow-lg">
                   <CardContent className="p-3 flex-1 flex items-center justify-center">
                     <div className="text-center">
-                      <p className="text-sm text-gray-500">No enhanced frame data available</p>
+                      <p className="text-sm text-gray-300">No enhanced frame data available</p>
                       <p className="text-xs text-gray-400 mt-1">This video has no per-frame analysis data</p>
-                      <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
-                        <p className="text-xs text-yellow-700">
+                      <div className="mt-4 p-3 bg-yellow-900 rounded-lg border border-yellow-600">
+                        <p className="text-xs text-yellow-300">
                           💡 <strong>Tip:</strong> To enable interactive analysis, analyze this video using the "Analyze Per Frame" option in the main dashboard.
                         </p>
                       </div>

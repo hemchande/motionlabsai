@@ -43,8 +43,9 @@ import {
 } from 'lucide-react';
 import DebugThumbnailVideoReplay from './DebugThumbnailVideoReplay';
 import InteractiveVideoPlayer from './InteractiveVideoPlayer';
+import AutoAnalyzedVideoPlayer from './AutoAnalyzedVideoPlayer';
 import { gymnasticsAPI, API_BASE_URL } from '@/lib/api';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/FirebaseAuthContext';
 
 interface SessionData {
   id: string;
@@ -54,37 +55,41 @@ interface SessionData {
   sessionType: string;
   date: string;
   duration: string;
-  fileSize: number;
-  analysisStatus: 'completed' | 'processing' | 'failed' | 'pending';
-  perFrameStatus: 'completed' | 'processing' | 'failed' | 'pending';
-  motionIQ?: number;
-  aclRisk?: number;
-  riskLevel?: 'LOW' | 'MODERATE' | 'HIGH';
-  metrics?: {
-    averageElevationAngle: number;
-    averageFlightTime: number;
-    averageLandingQuality: number;
-    totalFrames: number;
-    framesProcessed: number;
-  };
+  motionIQ: number;
+  aclRisk: number;
+  precision: number;
+  power: number;
+  status: 'completed' | 'processing' | 'failed' | 'pending' | 'uploaded';
   notes?: string;
+  highlights?: string[];
+  areasForImprovement?: string[];
   hasProcessedVideo?: boolean;
   processedVideoUrl?: string;
+  processedVideoFilename?: string;
   analyticsFile?: string;
+  analyticsId?: string;
+  analyticsUrl?: string;
+  sessionId?: string;
+  analysisStatus?: "completed" | "processing" | "failed" | "pending";
+  perFrameStatus?: "completed" | "processing" | "failed" | "pending";
+  analysisProgress?: number;
+  perFrameProgress?: number;
+  cloudflareStream?: {
+    originalStreamId?: string;
+    originalStreamUrl?: string;
+    analyzedStreamId?: string;
+    analyzedStreamUrl?: string;
+    uploadSource?: string;
+    readyToStream?: boolean;
+    thumbnail?: string;
+  };
 }
 
 interface SessionStats {
   totalSessions: number;
-  completedAnalyses: number;
-  averageMotionIQ: number;
-  averageACLRisk: number;
-  riskDistribution: {
-    low: number;
-    moderate: number;
-    high: number;
-  };
-  eventBreakdown: Record<string, number>;
-  athleteBreakdown: Record<string, number>;
+  completedSessions: number;
+  avgMotionIQ: number;
+  avgACLRisk: number;
   recentActivity: SessionData[];
 }
 
@@ -109,35 +114,168 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
   const [dateRange, setDateRange] = useState('all');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
-  // State for processed videos from backend
-  const [processedVideos, setProcessedVideos] = useState<any[]>([]);
-  const [processedVideosLoading, setProcessedVideosLoading] = useState(true);
-
   // Video player state
-  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [selectedSession, setSelectedSession] = useState<SessionData | null>(null);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
-  const [videoData, setVideoData] = useState<{url: string, name: string, analyticsBaseName?: string} | null>(null);
-  const [showAnalytics, setShowAnalytics] = useState(false);
-  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [showAutoAnalyzedPlayer, setShowAutoAnalyzedPlayer] = useState(false);
 
-  // Fetch processed videos from backend
+  // Fetch sessions from frontend API (same as CoachDashboard)
   useEffect(() => {
-    const fetchProcessedVideos = async () => {
+    const fetchSessions = async () => {
       try {
-        setProcessedVideosLoading(true);
-        const response = await gymnasticsAPI.getProcessedVideos();
-        if (response.success) {
-          setProcessedVideos(response.processed_videos || []);
+        setLoading(true);
+        console.log('🚀 EnhancedSessionDashboard: Fetching sessions from frontend API...');
+        const response = await fetch('/api/sessions');
+        const data = await response.json();
+        console.log('📡 EnhancedSessionDashboard: Raw API response:', data);
+        console.log('📊 EnhancedSessionDashboard: Number of sessions received:', data.sessions?.length || 0);
+        
+        if (data.success && data.sessions) {
+          // Use frontend API data directly (already transformed)
+          const transformedSessions: SessionData[] = data.sessions.map((session: any) => {
+            console.log('🔄 EnhancedSessionDashboard: Using session data:', session.id, session.athleteName, session.status, session.analysisStatus);
+            return {
+              id: session.id,
+              videoName: session.videoName || session.originalVideoName,
+              athlete: session.athleteName || 'Unknown Athlete',
+              event: session.event || 'Unknown Event',
+              sessionType: session.sessionType || 'Analysis',
+              date: session.date || new Date().toISOString().split('T')[0],
+              duration: session.duration || '0:00',
+              motionIQ: session.motionIQ || 0,
+              aclRisk: session.aclRisk || 0,
+              precision: 0,
+              power: 0,
+              status: session.status as "completed" | "processing" | "failed" | "pending" | "uploaded",
+              notes: session.notes || '',
+              hasProcessedVideo: session.hasProcessedVideo,
+              processedVideoUrl: session.processedVideoUrl,
+              analyticsFile: session.analyticsFile,
+              analyticsId: session.analyticsId,
+              analyticsUrl: session.analyticsUrl,
+              cloudflareStream: session.cloudflareStream,
+              sessionId: session.sessionId,
+              analysisStatus: session.analysisStatus,
+              perFrameStatus: session.perFrameStatus,
+              analysisProgress: 0,
+              perFrameProgress: 0
+            };
+          });
+          
+          setSessions(transformedSessions);
+          console.log('✅ EnhancedSessionDashboard: Sessions loaded:', transformedSessions.length, 'sessions');
+          
+          // Calculate stats
+          const totalSessions = transformedSessions.length;
+          const completedSessions = transformedSessions.filter(s => s.status === 'completed').length;
+          const avgMotionIQ = transformedSessions.length > 0 
+            ? Math.round(transformedSessions.reduce((sum, s) => sum + s.motionIQ, 0) / transformedSessions.length)
+            : 0;
+          const avgACLRisk = transformedSessions.length > 0 
+            ? Math.round(transformedSessions.reduce((sum, s) => sum + s.aclRisk, 0) / transformedSessions.length)
+            : 0;
+          
+          setStats({
+            totalSessions,
+            completedSessions,
+            avgMotionIQ,
+            avgACLRisk,
+            recentActivity: transformedSessions.slice(0, 5)
+          });
+        } else {
+          console.warn('⚠️ EnhancedSessionDashboard: No sessions found in response');
+          setSessions([]);
+          setStats({
+            totalSessions: 0,
+            completedSessions: 0,
+            avgMotionIQ: 0,
+            avgACLRisk: 0,
+            recentActivity: []
+          });
         }
       } catch (error) {
-        console.error('Error fetching processed videos:', error);
+        console.error('❌ EnhancedSessionDashboard: Error loading sessions:', error);
+        setError(`Failed to load session data: ${error instanceof Error ? error.message : String(error)}`);
+        setSessions([]);
+        setStats({
+          totalSessions: 0,
+          completedSessions: 0,
+          avgMotionIQ: 0,
+          avgACLRisk: 0,
+          recentActivity: []
+        });
       } finally {
-        setProcessedVideosLoading(false);
+        setLoading(false);
       }
     };
 
-    fetchProcessedVideos();
+    fetchSessions();
   }, []);
+
+  // Manual refresh function
+  const refreshSessions = async () => {
+    try {
+      console.log('🔄 Manual refresh of sessions...');
+      const response = await fetch('/api/sessions');
+      const data = await response.json();
+      
+      if (data.success && data.sessions) {
+        // Use frontend API data directly (already transformed)
+        const transformedSessions: SessionData[] = data.sessions.map((session: any) => {
+          console.log('🔄 EnhancedSessionDashboard: Using session data:', session.id, session.athleteName, session.status, session.analysisStatus);
+          return {
+            id: session.id,
+            videoName: session.videoName || session.originalVideoName,
+            athlete: session.athleteName || 'Unknown Athlete',
+            event: session.event || 'Unknown Event',
+            sessionType: session.sessionType || 'Analysis',
+            date: session.date || new Date().toISOString().split('T')[0],
+            duration: session.duration || '0:00',
+            motionIQ: session.motionIQ || 0,
+            aclRisk: session.aclRisk || 0,
+            precision: 0,
+            power: 0,
+            status: session.status as "completed" | "processing" | "failed" | "pending" | "uploaded",
+            notes: session.notes || '',
+            hasProcessedVideo: session.hasProcessedVideo,
+            processedVideoUrl: session.processedVideoUrl,
+            analyticsFile: session.analyticsFile,
+            analyticsId: session.analyticsId,
+            analyticsUrl: session.analyticsUrl,
+            cloudflareStream: session.cloudflareStream,
+            sessionId: session.sessionId,
+            analysisStatus: session.analysisStatus,
+            perFrameStatus: session.perFrameStatus,
+            analysisProgress: 0,
+            perFrameProgress: 0
+          };
+        });
+        
+        setSessions(transformedSessions);
+        console.log('✅ Sessions refreshed:', transformedSessions.length, 'sessions');
+        
+        // Calculate stats
+        const totalSessions = transformedSessions.length;
+        const completedSessions = transformedSessions.filter(s => s.status === 'completed').length;
+        const avgMotionIQ = transformedSessions.length > 0 
+          ? Math.round(transformedSessions.reduce((sum, s) => sum + s.motionIQ, 0) / transformedSessions.length)
+          : 0;
+        const avgACLRisk = transformedSessions.length > 0 
+          ? Math.round(transformedSessions.reduce((sum, s) => sum + s.aclRisk, 0) / transformedSessions.length)
+          : 0;
+        
+        setStats({
+          totalSessions,
+          completedSessions,
+          avgMotionIQ,
+          avgACLRisk,
+          recentActivity: transformedSessions.slice(0, 5)
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing sessions:', error);
+    }
+  };
 
   // Dynamic mapping function to find analytics files based on video ID
   const findAnalyticsFileForVideo = (videoName: string): string | undefined => {
@@ -176,7 +314,7 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
       const analyticsFile = findAnalyticsFileForVideo(video.processed_filename || '');
       const hasAnalytics = !!analyticsFile;
       
-      const videoUrl = gymnasticsAPI.getVideo(video.processed_filename);
+      const videoUrl = `${API_BASE_URL}/getVideo?video_filename=${video.processed_filename}`;
       
       const session = {
         id: `processed-${index}`,
@@ -236,7 +374,7 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
       },
       notes: 'Excellent execution, minor landing adjustment needed',
       hasProcessedVideo: true,
-      processedVideoUrl: gymnasticsAPI.getVideo('h264_analyzed_overlayed_pdtyUo5UELk_new_1756821489.mp4'),
+      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_analyzed_overlayed_pdtyUo5UELk_new_1756821489.mp4`,
       analyticsFile: 'api_generated_pdtyUo5UELk.json'
     },
     {
@@ -262,7 +400,7 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
       },
       notes: 'Good form, focus on landing stability',
       hasProcessedVideo: true,
-      processedVideoUrl: gymnasticsAPI.getVideo('h264_api_generated_UgWHozR_LLA.mp4'),
+      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_api_generated_UgWHozR_LLA.mp4`,
       analyticsFile: 'api_generated_UgWHozR_LLA.json'
     },
     {
@@ -597,7 +735,7 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.averageMotionIQ || 0}</div>
+              <div className="text-2xl font-bold">{stats.avgMotionIQ || 0}</div>
               <p className="text-xs text-muted-foreground">
                 +2.1 from last week
               </p>
@@ -610,7 +748,7 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
               <Shield className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.averageACLRisk || 0}%</div>
+              <div className="text-2xl font-bold">{stats.avgACLRisk || 0}%</div>
               <p className="text-xs text-muted-foreground">
                 {stats.riskDistribution?.low || 0} low risk sessions
               </p>
@@ -728,10 +866,24 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
       {/* Sessions Display */}
       <Card>
         <CardHeader>
-          <CardTitle>Sessions ({filteredSessions.length})</CardTitle>
-          <CardDescription>
-            {viewMode === 'grid' ? 'Grid view with thumbnail previews' : 'List view with detailed information'}
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Sessions ({filteredSessions.length})</CardTitle>
+              <CardDescription>
+                {viewMode === 'grid' ? 'Grid view with thumbnail previews' : 'List view with detailed information'}
+              </CardDescription>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={refreshSessions}
+              className="ml-border"
+              title="Refresh sessions"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {viewMode === 'grid' ? (
@@ -826,15 +978,59 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
                     </div>
                     
                     <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleViewFullVideo(session)}
-                        disabled={session.analysisStatus !== 'completed'}
-                      >
-                        <Play className="h-4 w-4 mr-1" />
-                        View Full Video
-                      </Button>
+                      {/* Show Start Analysis only if session is not completed and doesn't have processed video */}
+                      {session.analysisStatus !== "completed" && session.perFrameStatus !== "completed" && !session.hasProcessedVideo && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          disabled
+                          className="ml-border"
+                        >
+                          <Activity className="h-4 w-4 mr-1 animate-spin" />
+                          Start Analysis
+                        </Button>
+                      )}
+                      
+                      {/* Show Analyzing button if session is processing */}
+                      {(session.analysisStatus === "processing" || session.perFrameStatus === "processing" || session.status === "processing") && (
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          disabled
+                          className="ml-border"
+                        >
+                          <Activity className="h-4 w-4 mr-1 animate-spin" />
+                          Analyzing...
+                        </Button>
+                      )}
+                      
+                      {/* Show View Analysis button if session is completed and has processed video */}
+                      {(session.analysisStatus === "completed" && session.perFrameStatus === "completed" && session.hasProcessedVideo) && (
+                        <Button 
+                          size="sm" 
+                          onClick={() => {
+                            console.log('🎬 EnhancedSessionDashboard View Analysis clicked for session:', session.id, session.hasProcessedVideo);
+                            setSelectedSession(session);
+                            setShowAutoAnalyzedPlayer(true);
+                          }}
+                          className="ml-green-bg text-black hover:ml-green-hover"
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View Analysis
+                        </Button>
+                      )}
+                      
+                      {/* Fallback buttons for other cases */}
+                      {session.analysisStatus === 'completed' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewFullVideo(session)}
+                        >
+                          <Play className="h-4 w-4 mr-1" />
+                          View Video
+                        </Button>
+                      )}
                       {session.analyticsFile && (
                         <Button
                           size="sm"
@@ -918,6 +1114,44 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
                 onClose={() => {
                   setShowVideoPlayer(false);
                   setVideoData(null);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auto Analyzed Video Player */}
+      {showAutoAnalyzedPlayer && selectedSession && (
+        <div>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-4 max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Analyzed Video - {selectedSession.athlete}</h3>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setShowAutoAnalyzedPlayer(false);
+                    setSelectedSession(null);
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <AutoAnalyzedVideoPlayer
+                videoUrl={selectedSession.processedVideoUrl}
+                videoName={selectedSession.videoName}
+                analyticsBaseName={selectedSession.analyticsFile?.replace('.json', '').replace('api_generated_', '')}
+                processedVideoFilename={selectedSession.processedVideoFilename}
+                processedVideoUrl={selectedSession.processedVideoUrl}
+                sessionId={selectedSession.sessionId}
+                analyticsId={selectedSession.analyticsId}
+                analyticsUrl={selectedSession.analyticsUrl}
+                onClose={() => {
+                  setShowAutoAnalyzedPlayer(false);
+                  setSelectedSession(null);
                 }}
               />
             </div>

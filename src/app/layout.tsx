@@ -3,7 +3,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import ClientOnly from "@/components/ClientOnly"
 import { ThemeProvider } from "@/contexts/ThemeContext"
-import { AuthProvider } from "@/contexts/AuthContext"
+import { FirebaseAuthProvider } from "@/contexts/FirebaseAuthContext"
 import { InvitationProvider } from "@/contexts/InvitationContext"
 import { ProcessingProvider } from "@/contexts/ProcessingContext"
 
@@ -28,13 +28,13 @@ export default function RootLayout({
         <div id="root">
           <ClientOnly>
             <ThemeProvider>
-              <AuthProvider>
+              <FirebaseAuthProvider>
                 <InvitationProvider>
                   <ProcessingProvider>
                     {children}
                   </ProcessingProvider>
                 </InvitationProvider>
-              </AuthProvider>
+              </FirebaseAuthProvider>
             </ThemeProvider>
           </ClientOnly>
         </div>

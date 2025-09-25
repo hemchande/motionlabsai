@@ -1,5 +1,5 @@
 // API client for Gymnastics Analytics Backend
-export const API_BASE_URL = 'https://gymnasticsapi.onrender.com';
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5004';
 
 export interface HealthStatus {
   status: string;
@@ -187,10 +187,32 @@ class GymnasticsAPI {
     return response.videos;
   }
 
-  // Upload a new video file
-  async uploadVideo(videoFile: File): Promise<{ success: boolean; message: string; filename: string; size_mb: number }> {
+  // Upload a new video file (with Cloudflare Stream integration)
+  async uploadVideo(videoFile: File, athleteName?: string, event?: string, sessionName?: string, userId?: string): Promise<{ 
+    success: boolean; 
+    message: string; 
+    session_id: string;
+    video_id: string;
+    filename: string; 
+    size_mb: number;
+    cloudflare_stored: boolean;
+    cloudflare_stream_id?: string;
+    cloudflare?: {
+      id: string;
+      uid: string;
+      stream_url: string;
+      ready_to_stream: boolean;
+      size: number;
+      duration: number;
+    };
+  }> {
     const formData = new FormData();
     formData.append('video', videoFile);
+    if (athleteName) formData.append('athlete_name', athleteName);
+    if (event) formData.append('event', event);
+    if (sessionName) formData.append('session_name', sessionName);
+    if (userId) formData.append('user_id', userId);
+    formData.append('auto_analyze', 'false'); // Don't auto-analyze on upload
     
     const response = await fetch(`${this.baseURL}/uploadVideo`, {
       method: 'POST',
@@ -225,7 +247,7 @@ class GymnasticsAPI {
   }
 
   // Analyze video from GridFS (new endpoint for large videos)
-  async analyzeVideo1(videoFilename: string, athleteName?: string, event?: string, sessionName?: string, userId?: string): Promise<{ 
+  async analyzeVideo1(sessionId: string, cloudflareStreamId?: string): Promise<{ 
     success: boolean; 
     message: string; 
     session_id: string; 
@@ -236,15 +258,20 @@ class GymnasticsAPI {
     download_url: string;
     analytics_url?: string;
     timestamp: string;
+    cloudflare_stream?: {
+      video_id: string;
+      stream_url: string;
+      size: number;
+      duration: number;
+      ready_to_stream: boolean;
+      thumbnail: string;
+    };
   }> {
     return this.request('/analyzeVideo1', {
       method: 'POST',
       body: JSON.stringify({ 
-        video_filename: videoFilename,
-        athlete_name: athleteName || 'Unknown Athlete',
-        event: event || 'Floor Exercise',
-        session_name: sessionName || `${athleteName || 'Unknown Athlete'} - ${event || 'Floor Exercise'}`,
-        user_id: userId || 'demo_user'
+        session_id: sessionId,
+        cloudflare_stream_id: cloudflareStreamId
       }),
     });
   }
@@ -385,6 +412,35 @@ class GymnasticsAPI {
     return response.json();
   }
 
+  // Get analytics by ID (new endpoint from updated2 server)
+  async getAnalytics(analyticsId: string): Promise<{
+    analytics_id: string;
+    analytics: any;
+    metadata: {
+      total_frames: number;
+      timestamp: string;
+    };
+  }> {
+    const response = await fetch(`${this.baseURL}/getAnalytics/${analyticsId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to get analytics: ${response.status}`);
+    }
+    return response.json();
+  }
+
+  // Get session by ID
+  async getSession(sessionId: string): Promise<{
+    success: boolean;
+    session: any;
+  }> {
+    const response = await fetch(`${this.baseURL}/getSession/${sessionId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to get session: ${response.status}`);
+    }
+    return response.json();
+  }
+
+
   // Get sessions by user ID
   async getSessionsByUser(userId: string): Promise<{ success: boolean; sessions: any[] }> {
     const response = await fetch(`${this.baseURL}/getSessionsByUser/${userId}`);
@@ -392,6 +448,90 @@ class GymnasticsAPI {
       throw new Error(`Failed to get sessions for user: ${response.status}`);
     }
     return response.json();
+  }
+
+  // Cloudflare Stream endpoints
+  async uploadToCloudflareStream(videoFile: File, athleteName: string, event: string, sessionName?: string, description?: string): Promise<{
+    success: boolean;
+    message: string;
+    session_id: string;
+    video: {
+      id: string;
+      uid: string;
+      filename: string;
+      size: number;
+      duration: number;
+      ready_to_stream: boolean;
+      stream_url: string;
+      thumbnail: string;
+      created: string;
+    };
+  }> {
+    const formData = new FormData();
+    formData.append('video', videoFile);
+    formData.append('athlete_name', athleteName);
+    formData.append('event', event);
+    if (sessionName) formData.append('session_name', sessionName);
+    if (description) formData.append('description', description);
+    
+    const response = await fetch(`${this.baseURL}/stream/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Upload failed! status: ${response.status}`);
+    }
+    
+    return response.json();
+  }
+
+  async listCloudflareVideos(limit: number = 100): Promise<{
+    success: boolean;
+    videos: any[];
+    count: number;
+  }> {
+    return this.request(`/stream/videos?limit=${limit}`);
+  }
+
+  async getCloudflareVideo(videoId: string): Promise<{
+    success: boolean;
+    video: {
+      id: string;
+      uid: string;
+      size: number;
+      duration: number;
+      ready_to_stream: boolean;
+      stream_url: string;
+      thumbnail: string;
+      created: string;
+      meta: any;
+    };
+  }> {
+    return this.request(`/stream/video/${videoId}`);
+  }
+
+  async syncVideoToCloudflare(videoFilename: string): Promise<{
+    success: boolean;
+    message: string;
+    session_id: string;
+    video: {
+      id: string;
+      uid: string;
+      filename: string;
+      size: number;
+      duration: number;
+      ready_to_stream: boolean;
+      stream_url: string;
+      thumbnail: string;
+      created: string;
+    };
+  }> {
+    return this.request('/stream/sync', {
+      method: 'POST',
+      body: JSON.stringify({ video_filename: videoFilename }),
+    });
   }
 }
 

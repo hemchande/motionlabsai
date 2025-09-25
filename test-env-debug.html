@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Environment Variable Debug</title>
+</head>
+<body>
+    <h1>Environment Variable Debug</h1>
+    <div id="debug-info"></div>
+    
+    <script>
+        // Test the API_BASE_URL
+        const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5004';
+        
+        document.getElementById('debug-info').innerHTML = `
+            <p><strong>API_BASE_URL:</strong> ${API_BASE_URL}</p>
+            <p><strong>process.env.NEXT_PUBLIC_API_URL:</strong> ${process.env.NEXT_PUBLIC_API_URL || 'undefined'}</p>
+            <p><strong>NODE_ENV:</strong> ${process.env.NODE_ENV || 'undefined'}</p>
+        `;
+        
+        console.log('API_BASE_URL:', API_BASE_URL);
+        console.log('process.env.NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
+    </script>
+</body>
+</html>
+
+
+
+
+
+

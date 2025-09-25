@@ -375,7 +375,7 @@ export default function UploadCenter({ onVideoUpload, uploadedVideos }: UploadCe
       const baseName = video.name.replace('.mp4', '');
       
       // Try to find the per-frame analysis video first
-      let videoUrl = `${gymnasticsAPI.baseURL}/downloadPerFrameVideo?video_filename=${baseName}`;
+      let videoUrl = `${API_BASE_URL}/downloadPerFrameVideo?video_filename=${baseName}`;
       
       // If no per-frame video exists, try the standard analyzed video
       // We'll need to check what's actually available

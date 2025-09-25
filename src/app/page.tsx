@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import MainDashboard from "@/components/MainDashboard"
 import AuthScreen from "@/components/AuthScreen"
-import { useAuth } from "@/contexts/AuthContext"
+import { useAuth } from "@/contexts/FirebaseAuthContext"
 import GlobalProcessingIndicator from "@/components/GlobalProcessingIndicator"
 
 export default function Home() {

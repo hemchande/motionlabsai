@@ -98,3 +98,8 @@ To test the enhanced filename support:
 - `src/components/AthleteDashboard.tsx` - Uses processedVideoFilename directly
 - `src/lib/api.ts` - API methods unchanged
 - `src/hooks/useGymnasticsAPI.ts` - Hook unchanged
+
+
+
+
+

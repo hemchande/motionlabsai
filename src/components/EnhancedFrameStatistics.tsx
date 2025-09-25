@@ -93,6 +93,9 @@ interface EnhancedFrameStatisticsProps {
   enhancedStats: EnhancedStatistics;
   totalFrames: number;
   fps: number;
+  currentVideoTime?: number;
+  onFrameChange?: (frameIndex: number) => void;
+  syncWithVideo?: boolean;
 }
 
 export function EnhancedFrameStatistics({ 
@@ -100,7 +103,10 @@ export function EnhancedFrameStatistics({
   frameData, 
   enhancedStats, 
   totalFrames, 
-  fps 
+  fps,
+  currentVideoTime = 0,
+  onFrameChange,
+  syncWithVideo = false
 }: EnhancedFrameStatisticsProps) {
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -110,9 +116,32 @@ export function EnhancedFrameStatistics({
 
   const currentFrame = frameData[currentFrameIndex];
 
+  // Sync with video time when syncWithVideo is true
+  useEffect(() => {
+    if (syncWithVideo && currentVideoTime !== undefined && frameData.length > 0) {
+      // Find the closest frame to the current video time
+      let closestFrameIndex = 0;
+      let minDifference = Infinity;
+      
+      for (let i = 0; i < frameData.length; i++) {
+        const difference = Math.abs(frameData[i].timestamp - currentVideoTime);
+        if (difference < minDifference) {
+          minDifference = difference;
+          closestFrameIndex = i;
+        }
+      }
+      
+      // Update frame index if we found a close match (within 0.5 seconds for better responsiveness)
+      if (minDifference < 0.5) {
+        setCurrentFrameIndex(closestFrameIndex);
+        console.log(`📊 Analytics synced: Video ${currentVideoTime.toFixed(2)}s -> Frame ${closestFrameIndex + 1} (${frameData[closestFrameIndex]?.timestamp?.toFixed(2)}s)`);
+      }
+    }
+  }, [syncWithVideo, currentVideoTime, frameData]);
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isPlaying && currentFrameIndex < frameData.length - 1) {
+    if (isPlaying && currentFrameIndex < frameData.length - 1 && !syncWithVideo) {
       interval = setInterval(() => {
         setCurrentFrameIndex(prev => {
           if (prev >= frameData.length - 1) {
@@ -124,25 +153,25 @@ export function EnhancedFrameStatistics({
       }, (1000 / fps) / playbackSpeed);
     }
     return () => clearInterval(interval);
-  }, [isPlaying, currentFrameIndex, frameData.length, fps, playbackSpeed]);
+  }, [isPlaying, currentFrameIndex, frameData.length, fps, playbackSpeed, syncWithVideo]);
 
   const getRiskLevelColor = (level: string) => {
     switch (level) {
       case 'LOW': return 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30';
       case 'MODERATE': return 'bg-cyan-400/30 text-cyan-200 border-cyan-400/40';
       case 'HIGH': return 'bg-red-500/20 text-red-300 border-red-500/30';
-      default: return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
+      default: return 'bg-gray-700 text-gray-300 border-gray-500';
     }
   };
 
   const getFlightPhaseColor = (phase: string) => {
     switch (phase) {
-      case 'ground': return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
+      case 'ground': return 'bg-gray-700 text-gray-300 border-gray-500';
       case 'preparation': return 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30';
       case 'takeoff': return 'bg-cyan-400/30 text-cyan-200 border-cyan-400/40';
       case 'flight': return 'bg-cyan-300/40 text-cyan-100 border-cyan-300/50';
       case 'landing': return 'bg-cyan-600/20 text-cyan-400 border-cyan-600/30';
-      default: return 'bg-slate-500/20 text-slate-300 border-slate-500/30';
+      default: return 'bg-gray-700 text-gray-300 border-gray-500';
     }
   };
 
@@ -169,7 +198,7 @@ export function EnhancedFrameStatistics({
     <div className={getComponentSizeClasses()}>
 
       {/* Frame Playback Controls */}
-      <Card className="bg-slate-900/50 border-slate-700">
+      <Card className="bg-black border-blue-400 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2 text-white">
             <Play className="h-5 w-5 text-cyan-400" />
@@ -186,7 +215,17 @@ export function EnhancedFrameStatistics({
               </div>
               <Progress 
                 value={(currentFrameIndex / (frameData.length - 1)) * 100} 
-                className="w-full"
+                className={`w-full ${syncWithVideo ? 'cursor-pointer' : ''}`}
+                onClick={syncWithVideo ? (e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const clickX = e.clientX - rect.left;
+                  const percentage = clickX / rect.width;
+                  const frameIndex = Math.round(percentage * (frameData.length - 1));
+                  if (onFrameChange) {
+                    onFrameChange(frameIndex);
+                  }
+                } : undefined}
+                title={syncWithVideo ? "Click to jump to frame" : undefined}
               />
             </div>
 
@@ -195,7 +234,13 @@ export function EnhancedFrameStatistics({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentFrameIndex(0)}
+                onClick={() => {
+                  if (syncWithVideo && onFrameChange) {
+                    onFrameChange(0);
+                  } else {
+                    setCurrentFrameIndex(0);
+                  }
+                }}
                 disabled={currentFrameIndex === 0}
               >
                 <SkipBack className="h-4 w-4" />
@@ -203,7 +248,13 @@ export function EnhancedFrameStatistics({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentFrameIndex(prev => Math.max(0, prev - 1))}
+                onClick={() => {
+                  if (syncWithVideo && onFrameChange) {
+                    onFrameChange(Math.max(0, currentFrameIndex - 1));
+                  } else {
+                    setCurrentFrameIndex(prev => Math.max(0, prev - 1));
+                  }
+                }}
                 disabled={currentFrameIndex === 0}
               >
                 <SkipBack className="h-4 w-4" />
@@ -212,13 +263,21 @@ export function EnhancedFrameStatistics({
                 variant="outline"
                 size="sm"
                 onClick={() => setIsPlaying(!isPlaying)}
+                disabled={syncWithVideo}
+                title={syncWithVideo ? "Playback controlled by video" : "Play/Pause frame animation"}
               >
                 {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentFrameIndex(prev => Math.min(frameData.length - 1, prev + 1))}
+                onClick={() => {
+                  if (syncWithVideo && onFrameChange) {
+                    onFrameChange(Math.min(frameData.length - 1, currentFrameIndex + 1));
+                  } else {
+                    setCurrentFrameIndex(prev => Math.min(frameData.length - 1, prev + 1));
+                  }
+                }}
                 disabled={currentFrameIndex === frameData.length - 1}
               >
                 <SkipForward className="h-4 w-4" />
@@ -226,7 +285,13 @@ export function EnhancedFrameStatistics({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentFrameIndex(frameData.length - 1)}
+                onClick={() => {
+                  if (syncWithVideo && onFrameChange) {
+                    onFrameChange(frameData.length - 1);
+                  } else {
+                    setCurrentFrameIndex(frameData.length - 1);
+                  }
+                }}
                 disabled={currentFrameIndex === frameData.length - 1}
               >
                 <SkipForward className="h-4 w-4" />
@@ -234,26 +299,41 @@ export function EnhancedFrameStatistics({
             </div>
 
             {/* Playback Speed */}
-            <div className="flex items-center justify-center space-x-2">
-              <span className="text-sm">Speed:</span>
-              {[0.25, 0.5, 1, 2, 4].map((speed) => (
-                <Button
-                  key={speed}
-                  variant={playbackSpeed === speed ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setPlaybackSpeed(speed)}
-                >
-                  {speed}x
-                </Button>
-              ))}
-            </div>
+            {!syncWithVideo && (
+              <div className="flex items-center justify-center space-x-2">
+                <span className="text-sm">Speed:</span>
+                {[0.25, 0.5, 1, 2, 4].map((speed) => (
+                  <Button
+                    key={speed}
+                    variant={playbackSpeed === speed ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setPlaybackSpeed(speed)}
+                  >
+                    {speed}x
+                  </Button>
+                ))}
+              </div>
+            )}
+            
+            {/* Sync Status */}
+            {syncWithVideo && (
+              <div className="text-center">
+                <div className="inline-flex items-center space-x-2 text-sm text-cyan-400 bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20">
+                  <Activity className="h-4 w-4 animate-pulse" />
+                  <span>Synced with video playback</span>
+                </div>
+                <div className="text-xs text-gray-400 mt-1">
+                  Video: {formatTime(currentVideoTime)} | Frame: {currentFrameIndex + 1} of {frameData.length}
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
       {/* Current Frame Analysis */}
       {currentFrame && (
-        <Card className="bg-slate-900/50 border-slate-700">
+        <Card className="bg-black border-blue-400 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-white">
               <Target className="h-5 w-5 text-cyan-400" />
@@ -268,7 +348,7 @@ export function EnhancedFrameStatistics({
               componentSize === 'small' ? 'gap-4' : componentSize === 'large' ? 'gap-12' : 'gap-8'
             }`}>
               {/* Tumbling Detection */}
-              <div className={`space-y-4 bg-slate-800/50 rounded-lg border border-slate-700 ${
+              <div className={`space-y-4 bg-gray-900 rounded-lg border border-blue-400 ${
                 componentSize === 'small' ? 'p-2' : componentSize === 'large' ? 'p-6' : 'p-4'
               }`}>
                 <h4 className="font-medium flex items-center space-x-2 text-white">
@@ -278,7 +358,7 @@ export function EnhancedFrameStatistics({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-slate-300">Status:</span>
-                    <Badge variant={currentFrame.tumbling_detected ? "default" : "secondary"} className={currentFrame.tumbling_detected ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/30" : "bg-slate-500/20 text-slate-300 border-slate-500/30"}>
+                    <Badge variant={currentFrame.tumbling_detected ? "default" : "secondary"} className={currentFrame.tumbling_detected ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/30" : "bg-gray-700 text-gray-300 border-gray-500"}>
                       {currentFrame.tumbling_detected ? "Detected" : "Not Detected"}
                     </Badge>
                   </div>
@@ -300,7 +380,7 @@ export function EnhancedFrameStatistics({
               </div>
 
               {/* Movement Analysis */}
-              <div className={`space-y-4 bg-slate-800/50 rounded-lg border border-slate-700 ${
+              <div className={`space-y-4 bg-gray-900 rounded-lg border border-blue-400 ${
                 componentSize === 'small' ? 'p-2' : componentSize === 'large' ? 'p-6' : 'p-4'
               }`}>
                 <h4 className="font-medium flex items-center space-x-2 text-white">
@@ -332,7 +412,7 @@ export function EnhancedFrameStatistics({
               </div>
 
               {/* ACL Risk Analysis */}
-              <div className={`space-y-4 bg-slate-800/50 rounded-lg border border-slate-700 ${
+              <div className={`space-y-4 bg-gray-900 rounded-lg border border-blue-400 ${
                 componentSize === 'small' ? 'p-2' : componentSize === 'large' ? 'p-6' : 'p-4'
               }`}>
                 <h4 className="font-medium flex items-center space-x-2 text-white">
@@ -385,7 +465,7 @@ export function EnhancedFrameStatistics({
       )}
 
       {/* Enhanced Statistics Summary */}
-      <Card className="bg-slate-900/50 border-slate-700">
+      <Card className="bg-black border-blue-400 shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center space-x-2 text-white">
@@ -397,7 +477,7 @@ export function EnhancedFrameStatistics({
         <CardContent>
           <div className="grid gap-6 grid-cols-1 md:grid-cols-2 xl:grid-cols-4">
             {/* Tumbling Detection Summary */}
-            <div className="space-y-4 p-6 bg-slate-800/50 rounded-lg border border-slate-700">
+            <div className="space-y-4 p-6 bg-gray-900 rounded-lg border border-blue-400">
               <h4 className="font-semibold flex items-center space-x-2 text-white text-lg">
                 <Zap className="h-5 w-5 text-cyan-400" />
                 <span>Tumbling Detection</span>
@@ -419,7 +499,7 @@ export function EnhancedFrameStatistics({
             </div>
 
             {/* ACL Risk Summary */}
-            <div className="space-y-4 p-6 bg-slate-800/50 rounded-lg border border-slate-700">
+            <div className="space-y-4 p-6 bg-gray-900 rounded-lg border border-blue-400">
               <h4 className="font-semibold flex items-center space-x-2 text-white text-lg">
                 <Shield className="h-5 w-5 text-cyan-400" />
                 <span>ACL Risk Analysis</span>
@@ -441,7 +521,7 @@ export function EnhancedFrameStatistics({
             </div>
 
             {/* Movement Analysis Summary */}
-            <div className="space-y-4 p-6 bg-slate-800/50 rounded-lg border border-slate-700">
+            <div className="space-y-4 p-6 bg-gray-900 rounded-lg border border-blue-400">
               <h4 className="font-semibold flex items-center space-x-2 text-white text-lg">
                 <TrendingUp className="h-5 w-5 text-cyan-400" />
                 <span>Movement Analysis</span>
@@ -463,7 +543,7 @@ export function EnhancedFrameStatistics({
             </div>
 
             {/* Tumbling Quality Summary */}
-            <div className="space-y-4 p-6 bg-slate-800/50 rounded-lg border border-slate-700">
+            <div className="space-y-4 p-6 bg-gray-900 rounded-lg border border-blue-400">
               <h4 className="font-semibold flex items-center space-x-2 text-white text-lg">
                 <Target className="h-5 w-5 text-cyan-400" />
                 <span>Tumbling Quality</span>

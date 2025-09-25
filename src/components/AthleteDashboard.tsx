@@ -28,6 +28,7 @@ import {
   Upload,
   FileVideo,
   Check,
+  RefreshCw,
   X,
   ZoomIn,
   Shield,
@@ -43,6 +44,7 @@ import { useProcessing } from "@/contexts/ProcessingContext"
 import InteractiveVideoPlayer from "./InteractiveVideoPlayer"
 import AutoAnalyzedVideoPlayer from "./AutoAnalyzedVideoPlayer"
 import BackgroundProcessingModal from "./BackgroundProcessingModal"
+import AthleteSessionDashboard from "./AthleteSessionDashboard"
 
 interface User {
   id: string;
@@ -66,6 +68,8 @@ interface AthleteSession {
   power: number;
   status: "completed" | "processing" | "failed" | "pending" | "uploaded";
   videoUrl?: string;
+  videoName?: string;
+  originalFilename?: string;
   notes?: string;
   coachNotes?: string;
   highlights?: string[];
@@ -74,10 +78,22 @@ interface AthleteSession {
   processedVideoUrl?: string;
   processedVideoFilename?: string;
   analyticsFile?: string;
-  // GridFS support
+  analyticsId?: string;
+  analyticsUrl?: string;
   sessionId?: string;
-  analysisStatus?: 'pending' | 'processing' | 'completed' | 'failed' | 'not_available';
-  perFrameStatus?: 'pending' | 'processing' | 'completed' | 'failed' | 'not_available';
+  analysisStatus?: "completed" | "processing" | "failed" | "pending";
+  perFrameStatus?: "completed" | "processing" | "failed" | "pending";
+  analysisProgress?: number;
+  perFrameProgress?: number;
+  cloudflareStream?: {
+    originalStreamId?: string;
+    originalStreamUrl?: string;
+    analyzedStreamId?: string;
+    analyzedStreamUrl?: string;
+    uploadSource?: string;
+    readyToStream?: boolean;
+    thumbnail?: string;
+  };
 }
 
 interface PerformanceMetric {
@@ -185,17 +201,29 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
   // Sessions state
   const [sessions, setSessions] = useState<AthleteSession[]>([])
   const [sessionsLoading, setSessionsLoading] = useState(true)
-  const [sessionsError, setSessionsError] = useState<string | null>(null)
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState("overview")
 
   // Fetch sessions from backend
   useEffect(() => {
     const fetchSessions = async () => {
       try {
         setSessionsLoading(true)
-        console.log('🚀 AthleteDashboard: Fetching sessions from backend...')
-        const response = await gymnasticsAPI.getSessions()
-        console.log('📡 AthleteDashboard: Raw API response:', response)
-        if (response.success && response.sessions) {
+        console.log('🚀 AthleteDashboard: Fetching sessions for user:', user?.email)
+        
+        // Use user-specific sessions endpoint if user is available
+        let response
+        if (user?.email) {
+          response = await gymnasticsAPI.getSessionsByUser(user.email)
+          console.log('📡 AthleteDashboard: Raw API response for user:', user.email, response)
+        } else {
+          // Fallback to all sessions if no user
+          response = await gymnasticsAPI.getSessions()
+          console.log('📡 AthleteDashboard: Raw API response (all sessions):', response)
+        }
+        
+        if (response.sessions) {
           // Transform backend sessions to frontend format
           const transformedSessions: AthleteSession[] = response.sessions.map((session: Record<string, any>) => ({
             id: session._id || session.id,
@@ -207,8 +235,20 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
             precision: session.precision || 0,
             power: session.power || 0,
             status: (() => {
-              const status = session.status === 'completed' ? 'completed' : session.status === 'pending' ? 'pending' : session.status === 'uploaded' ? 'uploaded' : 'processing';
-              console.log(`📊 AthleteDashboard Session ${session._id}: backend status="${session.status}" -> frontend status="${status}"`);
+              // Preserve original status from backend, but map some variations
+              let status = session.status;
+              if (status === 'completed' && session.processing_status === 'completed') {
+                status = 'completed';
+              } else if (status === 'processing' || session.processing_status === 'analyzing') {
+                status = 'processing';
+              } else if (status === 'uploaded' && (!session.processing_status || session.processing_status === 'uploaded')) {
+                status = 'uploaded'; // Keep uploaded status for sessions that need analysis
+              } else if (status === 'failed' || session.processing_status === 'failed') {
+                status = 'failed';
+              } else {
+                status = 'pending'; // Default fallback
+              }
+              console.log(`📊 AthleteDashboard Session ${session._id}: backend status="${session.status}", processing_status="${session.processing_status}" -> frontend status="${status}"`);
               return status;
             })(),
             videoUrl: session.processed_video_url || session.video_url,
@@ -217,27 +257,46 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
             coachNotes: session.coach_notes || '',
             highlights: session.highlights || [],
             areasForImprovement: session.areas_for_improvement || [],
-            hasProcessedVideo: !!session.processed_video_filename,
+            hasProcessedVideo: !!session.processed_video_filename && session.status === 'completed',
             processedVideoUrl: session.processed_video_url || session.video_url,
             processedVideoFilename: session.processed_video_filename,
             analyticsFile: session.analytics_filename,
-            sessionId: session._id // Add sessionId for GridFS support
+            sessionId: session._id, // Add sessionId for GridFS support
+            // Cloudflare Stream metadata
+            cloudflareStream: session.meta ? {
+              originalStreamId: session.meta.cloudflare_stream_id,
+              originalStreamUrl: session.meta.stream_url,
+              analyzedStreamId: session.meta.analyzed_cloudflare_stream_id,
+              analyzedStreamUrl: session.meta.analyzed_stream_url,
+              uploadSource: session.meta.upload_source,
+              readyToStream: session.meta.ready_to_stream,
+              thumbnail: session.meta.thumbnail
+            } : undefined
           }))
           setSessions(transformedSessions)
           console.log('✅ Fetched athlete sessions from backend:', transformedSessions.length)
           
-          // Debug: Log uploaded sessions
-          const uploadedSessions = transformedSessions.filter(s => s.status === 'uploaded')
-          console.log('🔍 AthleteDashboard - Uploaded sessions:', uploadedSessions.map(s => ({
+          // Debug: Log all session statuses
+          transformedSessions.forEach(session => {
+            console.log(`📊 Session ${session.id}: status="${session.status}", hasProcessedVideo=${session.hasProcessedVideo}, analysisStatus="${session.analysisStatus}", perFrameStatus="${session.perFrameStatus}"`)
+            console.log(`🌊 Session ${session.id} cloudflareStream:`, session.cloudflareStream)
+          })
+          
+          // Debug: Log sessions that need analysis
+          const sessionsNeedingAnalysis = transformedSessions.filter(s => 
+            (s.status === 'pending' || s.status === 'uploaded') && !s.hasProcessedVideo
+          )
+          console.log('🔍 AthleteDashboard - Sessions needing analysis:', sessionsNeedingAnalysis.map(s => ({
             id: s.id,
             status: s.status,
             videoUrl: s.videoUrl,
-            hasVideoUrl: !!s.videoUrl
+            hasProcessedVideo: s.hasProcessedVideo,
+            analysisStatus: s.analysisStatus,
+            perFrameStatus: s.perFrameStatus
           })))
         }
       } catch (error) {
         console.error('❌ Error fetching athlete sessions:', error)
-        setSessionsError(`Failed to load sessions: ${error instanceof Error ? error.message : String(error)}`)
         // Keep empty array on error
       } finally {
         setSessionsLoading(false)
@@ -245,7 +304,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
     }
 
     fetchSessions()
-  }, [])
+  }, [user?.email])
 
   // Poll for completed analyses
   useEffect(() => {
@@ -256,7 +315,14 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
 
       try {
         console.log('🔄 AthleteDashboard: Polling for completed analyses...', processingSessions.length, 'processing sessions')
-        const response = await gymnasticsAPI.getSessions()
+        
+        // Use user-specific sessions endpoint for polling too
+        let response
+        if (user?.email) {
+          response = await gymnasticsAPI.getSessionsByUser(user.email)
+        } else {
+          response = await gymnasticsAPI.getSessions()
+        }
         
         if (response.success && response.sessions) {
           // Check if any processing sessions have completed
@@ -325,7 +391,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                 aclRisk: Math.floor(Math.random() * 15) + 5,   // 5-20
                 precision: Math.floor(Math.random() * 15) + 80, // 80-95
                 power: Math.floor(Math.random() * 15) + 80,     // 80-95
-                processedVideoUrl: gymnasticsAPI.getVideo(`h264_analyzed_${session.event.toLowerCase()}_${Date.now()}.mp4`),
+                processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_analyzed_${session.event.toLowerCase()}_${Date.now()}.mp4`,
                 analyticsFile: `analyzed_${session.event.toLowerCase()}_${Date.now()}.json`
               })
             }
@@ -336,6 +402,141 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
 
     return () => clearInterval(interval)
   }, [sessions])
+
+  // Manual refresh function
+  const refreshSessions = async () => {
+    try {
+      console.log('🔄 Manual refresh of sessions for user:', user?.email)
+      
+      // Use user-specific sessions endpoint
+      let response
+      if (user?.email) {
+        response = await gymnasticsAPI.getSessionsByUser(user.email)
+      } else {
+        response = await gymnasticsAPI.getSessions()
+      }
+      
+      if (response.sessions) {
+        // Transform backend sessions to frontend format (same logic as fetchSessions)
+        const transformedSessions: AthleteSession[] = response.sessions.map((session: any) => {
+          console.log('🔄 AthleteDashboard: Transforming session:', session._id, session.athlete_name, session.status, session.processing_status)
+          return {
+            id: session._id || session.id,
+            date: session.date || new Date().toISOString().split('T')[0],
+            event: (() => {
+              const backendEvent = session.event || 'Unknown Event';
+              // Map backend event names to frontend filter values
+              if (backendEvent.toLowerCase().includes('floor')) return 'floor';
+              if (backendEvent.toLowerCase().includes('vault')) return 'vault';
+              if (backendEvent.toLowerCase().includes('bar')) return 'bars';
+              if (backendEvent.toLowerCase().includes('beam')) return 'beam';
+              return backendEvent;
+            })(),
+            duration: session.duration || '0:00',
+            motionIQ: session.motion_iq || 0,
+            aclRisk: session.acl_risk || 0,
+            precision: session.precision || 0,
+            power: session.power || 0,
+            status: (() => {
+              const backendStatus = session.status;
+              const processingStatus = session.processing_status;
+              let frontendStatus: string;
+              
+              if (backendStatus === 'completed' && processingStatus === 'completed') {
+                frontendStatus = 'completed';
+              } else if (backendStatus === 'processing' || processingStatus === 'analyzing') {
+                frontendStatus = 'processing';
+              } else if (backendStatus === 'uploaded' && (!processingStatus || processingStatus === 'uploaded')) {
+                frontendStatus = 'uploaded'; // Keep uploaded status for sessions that need analysis
+              } else if (backendStatus === 'failed' || processingStatus === 'failed') {
+                frontendStatus = 'failed';
+              } else {
+                frontendStatus = 'pending';
+              }
+              
+              console.log(`📊 AthleteDashboard Session ${session._id}: backend status="${backendStatus}", processing_status="${processingStatus}" -> frontend status="${frontendStatus}"`);
+              return frontendStatus as "completed" | "processing" | "failed" | "pending" | "uploaded";
+            })(),
+            videoUrl: session.processed_video_url || session.video_url,
+            originalFilename: session.original_filename,
+            hasProcessedVideo: !!session.processed_video_filename && session.status === 'completed',
+            processedVideoUrl: (() => {
+              // Priority 1: Use Cloudflare Stream URL if available
+              if (session.meta?.analyzed_stream_url) {
+                return session.meta.analyzed_stream_url;
+              }
+              // Priority 2: Use Cloudflare Stream URL for original video
+              if (session.meta?.stream_url) {
+                return session.meta.stream_url;
+              }
+              // Priority 3: Use processed video URL (GridFS fallback)
+              if (session.processed_video_url) {
+                return session.processed_video_url.replace('http://localhost:5004/getVideo?video_filename=', '/api/video/');
+              }
+              // Priority 4: Use video URL
+              return session.video_url || '';
+            })(),
+            analyticsFile: session.analytics_filename,
+            analyticsId: session.gridfs_analytics_id,
+            analyticsUrl: session.analytics_url,
+            // Cloudflare Stream metadata
+            cloudflareStream: session.meta ? {
+              originalStreamId: session.meta.cloudflare_stream_id,
+              originalStreamUrl: session.meta.stream_url,
+              analyzedStreamId: session.meta.analyzed_cloudflare_stream_id,
+              analyzedStreamUrl: session.meta.analyzed_stream_url,
+              uploadSource: session.meta.upload_source,
+              readyToStream: session.meta.ready_to_stream,
+              thumbnail: session.meta.thumbnail
+            } : undefined,
+            notes: session.notes || session.coach_notes || '',
+            sessionId: session._id, // Add sessionId for GridFS support
+            analysisStatus: (() => {
+              const backendStatus = session.status;
+              const processingStatus = session.processing_status;
+              
+              // Map backend statuses to frontend statuses
+              if (backendStatus === 'completed' && processingStatus === 'completed') {
+                return 'completed';
+              } else if (backendStatus === 'processing' || processingStatus === 'analyzing') {
+                return 'processing';
+              } else if (backendStatus === 'uploaded' && (processingStatus === 'analysis_failed' || processingStatus === 'uploaded')) {
+                return 'pending';
+              } else if (backendStatus === 'failed' || processingStatus === 'failed') {
+                return 'failed';
+              } else {
+                return 'pending';
+              }
+            })(),
+            perFrameStatus: (() => {
+              const backendStatus = session.status;
+              const processingStatus = session.processing_status;
+              
+              // Map backend statuses to frontend statuses
+              if (backendStatus === 'completed' && processingStatus === 'completed') {
+                return 'completed';
+              } else if (backendStatus === 'processing' || processingStatus === 'analyzing') {
+                return 'processing';
+              } else if (backendStatus === 'uploaded' && (processingStatus === 'analysis_failed' || processingStatus === 'uploaded')) {
+                return 'pending';
+              } else if (backendStatus === 'failed' || processingStatus === 'failed') {
+                return 'failed';
+              } else {
+                return 'pending';
+              }
+            })(),
+            analysisProgress: session.processing_progress || 0,
+            perFrameProgress: session.processing_progress || 0
+          };
+        });
+        
+        setSessions(transformedSessions);
+        console.log('✅ Sessions refreshed:', transformedSessions.length, 'sessions');
+      }
+    } catch (error) {
+      console.error('Error refreshing sessions:', error);
+    }
+  };
 
   const performanceMetrics: PerformanceMetric[] = useMemo(() => [
     {
@@ -370,9 +571,8 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
 
   const filteredSessions = sessions.filter(session =>
     session.event.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    (selectedEvent === "all" || session.event === selectedEvent) &&
-    // Only show sessions that have successful video and per-frame stats
-    (session.status === "completed" && session.hasProcessedVideo && session.analyticsFile)
+    (selectedEvent === "all" || session.event === selectedEvent)
+    // Show all sessions - completed, processing, and uploaded/pending
   )
 
   const completedSessions = useMemo(() => 
@@ -436,7 +636,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
     try {
       // Check if video is accessible via /getVideo
       if (session.videoUrl) {
-        const videoResponse = await fetch(gymnasticsAPI.getVideo(session.videoUrl))
+        const videoResponse = await fetch(`${API_BASE_URL}/getVideo?video_filename=${session.videoUrl}`)
         if (!videoResponse.ok) {
           console.log(`Video not accessible for session ${session.id}: ${videoResponse.status}`)
           return false
@@ -507,8 +707,8 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
       ))
 
       // The API expects just the file, not FormData
-      console.log('Uploading video:', file.name)
-      const response = await gymnasticsAPI.uploadVideo(file)
+      console.log('Uploading video:', file.name, 'for user:', user?.email)
+      const response = await gymnasticsAPI.uploadVideo(file, uploadMetadata.athlete, uploadMetadata.event, uploadMetadata.session, user?.email)
       console.log('Upload response:', response)
       
       if (response.success && response.filename) {
@@ -516,9 +716,10 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
           upload.id === uploadId ? { ...upload, status: 'completed', progress: 100 } : upload
         ))
 
-        // Create session after upload (without starting analysis)
+        // Create session after upload using backend session_id
         console.log('Video uploaded successfully:', response.filename)
-        await createSessionAfterUpload(response.filename, file.name)
+        console.log('Backend session_id:', response.session_id)
+        await createSessionAfterUpload(response.filename, file.name, response.session_id)
         
         // If this is a MYa FX video, automatically show the existing Mya Wiley session
         if (file.name.toLowerCase().includes('mya fx') || 
@@ -543,9 +744,10 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
     setUploadQueue(prev => prev.filter(upload => upload.id !== uploadId))
   }
 
-  const createSessionAfterUpload = async (filename: string, originalName: string) => {
+  const createSessionAfterUpload = async (filename: string, originalName: string, backendSessionId?: string) => {
     try {
-      const sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      // Use backend session ID if provided, otherwise generate a temporary one
+      const sessionId = backendSessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
       const newSession: AthleteSession = {
         id: sessionId,
         date: new Date().toISOString(),
@@ -555,17 +757,27 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
         aclRisk: 0,
         precision: 0,
         power: 0,
-        status: "pending", // Set to pending so user can manually start analysis
+        status: "uploaded", // Set to uploaded status from backend
         notes: uploadMetadata.notes,
         hasProcessedVideo: false, // Set to false until analysis is completed
-        processedVideoUrl: gymnasticsAPI.getVideo(filename),
+        processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=${filename}`,
         videoUrl: filename,
-        analyticsFile: `${filename.replace(/\.mp4$/, '')}_analytics.json`
+        analyticsFile: `${filename.replace(/\.mp4$/, '')}_analytics.json`,
+        sessionId: backendSessionId, // Store the backend session ID for analysis calls
+        cloudflareStream: backendSessionId ? {
+          originalStreamId: backendSessionId, // This will be updated when we fetch the session
+          originalStreamUrl: "",
+          analyzedStreamId: undefined,
+          analyzedStreamUrl: undefined,
+          uploadSource: "cloudflare_stream",
+          readyToStream: false,
+          thumbnail: undefined
+        } : undefined
       }
       
       // Add to sessions list
       setSessions(prev => [newSession, ...prev])
-      console.log('Created new session with ID:', sessionId, 'for video:', filename)
+      console.log('Created new session with ID:', sessionId, 'for video:', filename, 'backendSessionId:', backendSessionId)
       
       // Show success message
       alert(`Video "${originalName}" uploaded successfully! You can now start analysis from the "Videos Ready for Analysis" section below.`)
@@ -574,39 +786,39 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
     }
   }
 
-  const analyzeVideo1 = async (filename: string, sessionId: string) => {
+  const analyzeVideo1 = async (sessionId: string, cloudflareStreamId?: string) => {
     try {
-      // Extract just the filename from the path (remove /videos/ prefix if present)
-      const actualFilename = filename.includes('/') ? filename.split('/').pop() : filename
-      console.log('Starting analyzeVideo2 (enhanced analytics) for:', actualFilename)
+      console.log('Starting analyzeVideo1 for session:', sessionId, 'with Cloudflare Stream ID:', cloudflareStreamId)
       
       // Update session status to processing
-      setSessions(prev => prev.map(session => 
-        session.id === sessionId 
-          ? { ...session, status: 'processing' as const }
-          : session
-      ))
+      setSessions(prev => prev.map(session => {
+        // Match by either sessionId or id
+        const isMatch = session.sessionId === sessionId || session.id === sessionId;
+        if (isMatch) {
+          console.log('🔄 AthleteDashboard: Updating session to processing:', session.id, session.sessionId, 'with sessionId:', sessionId);
+          return { ...session, status: 'processing' as const };
+        }
+        return session;
+      }))
       
-      // Use the enhanced analyzeVideo2 endpoint
-      const response = await gymnasticsAPI.analyzeVideo2(
-        actualFilename,
-        uploadMetadata.athlete || user?.fullName || "Unknown",
-        uploadMetadata.event || "General",
-        uploadMetadata.session || "Training",
-        user?.id || "unknown"
-      )
+      // Use the new analyzeVideo1 endpoint with session_id and cloudflare_stream_id
+      const response = await gymnasticsAPI.analyzeVideo1(sessionId, cloudflareStreamId)
       
       if (response.success) {
-        console.log('analyzeVideo2 (enhanced analytics) started successfully:', response)
+        console.log('analyzeVideo1 started successfully:', response)
         
-        // Update session with the new session_id from response
+        // Update session with the response data
         setSessions(prev => prev.map(session => 
-          session.id === sessionId 
+          session.sessionId === sessionId || session.id === sessionId
             ? { 
                 ...session, 
                 status: 'processing' as const,
                 sessionId: response.session_id,
-                analysisJobId: response.session_id
+                analysisJobId: response.session_id,
+                analyticsId: response.analytics_id,
+                analyticsUrl: response.analytics_url,
+                processedVideoFilename: response.output_video,
+                processedVideoUrl: response.download_url
               }
             : session
         ))
@@ -614,7 +826,12 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
         // Show success message
         alert(`Analysis started successfully! Session ID: ${response.session_id}`)
       } else {
-        throw new Error(response.message || 'Analysis failed to start')
+        // Check if it's a video processing error
+        if (response.message && response.message.includes('still processing')) {
+          alert(`⏳ Video is still processing: ${response.message}\n\nPlease wait a few minutes and try again.`)
+        } else {
+          throw new Error(response.message || 'Analysis failed to start')
+        }
       }
     } catch (error) {
       console.error("analyzeVideo1 failed:", error)
@@ -628,7 +845,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
       
       // Update session status to failed
       setSessions(prev => prev.map(session => 
-        session.id === sessionId 
+        session.sessionId === sessionId || session.id === sessionId
           ? { ...session, status: 'failed' as const }
           : session
       ))
@@ -679,6 +896,9 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
       // Start standard analysis
       let analysisJob = null
       try {
+        if (!actualFilename) {
+          throw new Error('Video filename is required for analysis')
+        }
         const analysisResponse = await gymnasticsAPI.analyzeVideo(actualFilename)
         if (analysisResponse.success) {
           analysisJob = analysisResponse
@@ -698,6 +918,9 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
       // Start per-frame analysis
       let perFrameJob = null
       try {
+        if (!actualFilename) {
+          throw new Error('Video filename is required for per-frame analysis')
+        }
         const perFrameResponse = await gymnasticsAPI.analyzeVideoPerFrame(actualFilename)
         if (perFrameResponse.success) {
           perFrameJob = perFrameResponse
@@ -731,8 +954,8 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                 precision: Math.floor(Math.random() * 15) + 80,
                 power: Math.floor(Math.random() * 15) + 80,
                 hasProcessedVideo: true,
-                processedVideoUrl: gymnasticsAPI.getVideo(`h264_${actualFilename}`),
-                analyticsFile: `${actualFilename.replace(/\.mp4$/, '')}_analytics.json`
+                processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_${actualFilename || 'unknown'}`,
+                analyticsFile: `${actualFilename?.replace(/\.mp4$/, '')}_analytics.json`
               }
             }
             // Handle completion for sessions (when sessionId is provided or matches videoName)
@@ -746,8 +969,8 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                 precision: Math.floor(Math.random() * 15) + 80,
                 power: Math.floor(Math.random() * 15) + 80,
                 hasProcessedVideo: true,
-                processedVideoUrl: gymnasticsAPI.getVideo(`h264_${actualFilename}`),
-                analyticsFile: `${actualFilename.replace(/\.mp4$/, '')}_analytics.json`
+                processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_${actualFilename || 'unknown'}`,
+                analyticsFile: `${actualFilename?.replace(/\.mp4$/, '')}_analytics.json`
               }
             }
             return session
@@ -810,8 +1033,12 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
         setSelectedSession(session)
         
         setVideoData({
-          url: session.processedVideoUrl,
-          name: session.videoUrl || session.event,
+          url: session.processedVideoFilename 
+            ? `${API_BASE_URL}/getVideo?video_filename=${session.processedVideoFilename}`
+            : session.videoName 
+              ? `${API_BASE_URL}/getVideo?video_filename=${session.videoName}`
+              : `${API_BASE_URL}/getVideo?video_filename=${session.originalFilename || session.id}`,
+          name: session.videoName || session.event,
           analyticsBaseName: session.analyticsFile?.replace('.json', '')
         })
         setShowVideoPlayer(true)
@@ -849,6 +1076,18 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
           <p className="ml-text-md">Welcome back, {user?.fullName}</p>
         </div>
         <div className="flex items-center space-x-3">
+          {/* Refresh Button */}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={refreshSessions}
+            className="ml-border"
+            title="Refresh sessions"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          
           {/* Processing Status Button */}
           {(isProcessing || activeJobs.length > 0) && (
             <Button
@@ -883,8 +1122,16 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
         </div>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Tabs Navigation */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="sessions">My Sessions</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6">
+          {/* Statistics Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium flex items-center">
@@ -1025,14 +1272,6 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
               </div>
             </CardHeader>
             <CardContent>
-              {sessionsError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                  <div className="flex items-center">
-                    <AlertTriangle className="h-4 w-4 text-red-600 mr-2" />
-                    <span className="text-black">{sessionsError}</span>
-                  </div>
-                </div>
-              )}
               <div className="space-y-4 w-full">
                 {filteredSessions.map((session) => (
                   <motion.div
@@ -1080,12 +1319,20 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                       </div>
                       
                       <div className="flex items-center space-x-2">
-                        {(session.status === "pending" || session.status === "uploaded") && (
+                        {/* Show Start Analysis only if session is uploaded/pending and needs analysis */}
+                        {(session.status === "pending" || session.status === "uploaded") && !session.hasProcessedVideo && (
                           <Button 
                             size="sm" 
                             onClick={() => {
                               console.log('🚀 AthleteDashboard Start Analysis clicked for session:', session.id, session.status);
-                              analyzeVideo1(session.videoUrl || session.id, session.id);
+                              console.log('🔍 Session cloudflareStream data:', session.cloudflareStream);
+                              console.log('🔍 Session meta data:', session);
+                              // Get Cloudflare Stream ID from session data with fallback
+                              const cloudflareStreamId = session.cloudflareStream?.originalStreamId || 
+                                                        (session as any).meta?.cloudflare_stream_id || 
+                                                        (session as any).meta?.cloudflare_uid;
+                              console.log('🔍 Using Cloudflare Stream ID:', cloudflareStreamId);
+                              analyzeVideo1(session.sessionId || session.id, cloudflareStreamId);
                             }}
                             className="ml-cyan-bg text-black hover:ml-cyan-hover"
                           >
@@ -1093,7 +1340,9 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                             Start Analysis
                           </Button>
                         )}
-                        {session.status === "processing" && (
+                        
+                        {/* Show Analyzing button if session is processing */}
+                        {(session.analysisStatus === "processing" || session.perFrameStatus === "processing" || session.status === "processing") && (
                           <Button 
                             size="sm" 
                             variant="outline"
@@ -1104,7 +1353,24 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                             Analyzing...
                           </Button>
                         )}
-                        {session.status === "completed" && (
+                        
+                        {/* Show View Analysis button if session is completed and has processed video */}
+                        {(session.analysisStatus === "completed" && session.perFrameStatus === "completed" && session.hasProcessedVideo) && (
+                          <Button 
+                            size="sm" 
+                            onClick={() => {
+                              console.log('🎬 AthleteDashboard View Analysis clicked for session:', session.id, session.hasProcessedVideo);
+                              viewAnalytics(session);
+                            }}
+                            className="ml-green-bg text-black hover:ml-green-hover"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Analysis
+                          </Button>
+                        )}
+                        
+                        {/* Show action buttons for completed sessions */}
+                        {(session.analysisStatus === "completed" && session.perFrameStatus === "completed") && (
                           <>
                         <Button 
                           size="sm" 
@@ -1361,7 +1627,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                   return isUploaded && hasVideo
                 })
                 console.log('🔍 AthleteDashboard - Filtered sessions for "Uploaded videos":', filteredSessions.length, 'sessions')
-                return filteredSessions.map((session) => (
+                return filteredSessions.slice(0, 3).map((session) => (
                   <div key={session.id} className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border">
                     <div className="flex items-center space-x-3">
                       <Video className="h-4 w-4 text-blue-600" />
@@ -1370,14 +1636,35 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                         <p className="text-xs text-gray-500">{session.videoUrl}</p>
                     </div>
                   </div>
-                    <Button 
-                      size="sm" 
-                      onClick={() => analyzeVideo1(session.videoUrl || session.id, session.id)}
-                      className="ml-cyan-bg text-black hover:ml-cyan-hover"
-                    >
-                      <Play className="h-3 w-3 mr-1" />
-                      Start Analysis
-                    </Button>
+                    {/* Only show Start Analysis if session needs analysis */}
+                    {(session.status === "pending" || session.status === "uploaded") && !session.hasProcessedVideo ? (
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          console.log('🚀 Videos Ready for Analysis - Start Analysis clicked for session:', session.id);
+                          console.log('🔍 Session cloudflareStream data:', session.cloudflareStream);
+                          // Get Cloudflare Stream ID from session data with fallback
+                          const cloudflareStreamId = session.cloudflareStream?.originalStreamId || 
+                                                    (session as any).meta?.cloudflare_stream_id || 
+                                                    (session as any).meta?.cloudflare_uid;
+                          console.log('🔍 Using Cloudflare Stream ID:', cloudflareStreamId);
+                          analyzeVideo1(session.sessionId || session.id, cloudflareStreamId);
+                        }}
+                        className="ml-cyan-bg text-black hover:ml-cyan-hover"
+                      >
+                        <Play className="h-3 w-3 mr-1" />
+                        Start Analysis
+                      </Button>
+                    ) : (
+                      <Button 
+                        size="sm" 
+                        onClick={() => viewAnalytics(session)}
+                        className="ml-green-bg text-black hover:ml-green-hover"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View Analysis
+                      </Button>
+                    )}
                 </div>
                 ))
               })()}
@@ -1404,21 +1691,17 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
               </Button>
                         </div>
             <div className="p-4">
-              {selectedSession.hasProcessedVideo ? (
-                <AutoAnalyzedVideoPlayer
-                  videoUrl={selectedSession.processedVideoUrl || selectedSession.videoUrl}
-                  videoName={selectedSession.processedVideoUrl?.split('/').pop() || selectedSession.videoUrl?.split('/').pop() || selectedSession.id}
-                  analyticsBaseName={selectedSession.analyticsFile?.replace('.json', '').replace('api_generated_', '')}
-                  processedVideoFilename={selectedSession.processedVideoFilename}
-                  onClose={() => setSelectedSession(null)}
-                />
-              ) : (
-                <InteractiveVideoPlayer
-                  videoUrl={selectedSession.processedVideoUrl || selectedSession.videoUrl}
-                  videoName={selectedSession.processedVideoUrl?.split('/').pop() || selectedSession.videoUrl?.split('/').pop() || selectedSession.id}
-                  analyticsBaseName={selectedSession.analyticsFile?.replace('.json', '').replace('api_generated_', '')}
-                />
-              )}
+              <AutoAnalyzedVideoPlayer
+                videoUrl={selectedSession.videoUrl}
+                videoName={selectedSession.videoName || selectedSession.originalFilename}
+                analyticsBaseName={selectedSession.analyticsFile?.replace('.json', '').replace('api_generated_', '')}
+                processedVideoFilename={selectedSession.processedVideoFilename}
+                processedVideoUrl={selectedSession.processedVideoUrl}
+                sessionId={selectedSession.sessionId}
+                analyticsId={selectedSession.analyticsId}
+                analyticsUrl={selectedSession.analyticsUrl}
+                onClose={() => setSelectedSession(null)}
+              />
                       </div>
                   </div>
                 </div>
@@ -1439,25 +1722,27 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
               </Button>
             </div>
             <div className="p-4">
-              {selectedSession && selectedSession.hasProcessedVideo ? (
-                <AutoAnalyzedVideoPlayer
-                  videoUrl={selectedSession.processedVideoUrl || selectedSession.videoUrl}
-                  videoName={selectedSession.processedVideoUrl?.split('/').pop() || selectedSession.videoUrl?.split('/').pop() || selectedSession.id}
-                  analyticsBaseName={selectedSession.analyticsFile?.replace('.json', '').replace('api_generated_', '')}
-                  processedVideoFilename={selectedSession.processedVideoFilename}
-                  onClose={closeVideoPlayer}
-                />
-              ) : (
-              <InteractiveVideoPlayer
-                videoUrl={videoData.url}
-                videoName={videoData.name}
-                analyticsBaseName={videoData.analyticsBaseName}
+              <AutoAnalyzedVideoPlayer
+                videoUrl={selectedSession?.videoUrl || videoData.url}
+                videoName={selectedSession?.videoName || selectedSession?.originalFilename || videoData.name}
+                analyticsBaseName={selectedSession?.analyticsFile?.replace('.json', '').replace('api_generated_', '') || videoData.analyticsBaseName}
+                processedVideoFilename={selectedSession?.processedVideoFilename}
+                processedVideoUrl={selectedSession?.processedVideoUrl}
+                sessionId={selectedSession?.sessionId}
+                analyticsId={selectedSession?.analyticsId}
+                analyticsUrl={selectedSession?.analyticsUrl}
+                onClose={closeVideoPlayer}
               />
-              )}
             </div>
           </div>
         </div>
       )}
+        </TabsContent>
+
+        <TabsContent value="sessions" className="space-y-6">
+          <AthleteSessionDashboard />
+        </TabsContent>
+      </Tabs>
 
       {/* Background Processing Modal */}
       <BackgroundProcessingModal

@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SendGridService, AthleteInvitation } from '@/services/sendgrid';
+import { BrevoService, AthleteInvitation } from '@/services/brevo';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { coachName, coachEmail, athleteEmail, athleteName, institution } = body;
+    const { coachName, coachEmail, athleteEmail, athleteName, institution, coachId } = body;
 
     // Validate required fields
-    if (!coachName || !coachEmail || !athleteEmail) {
+    if (!coachName || !coachEmail || !athleteEmail || !coachId) {
       return NextResponse.json(
-        { error: 'Missing required fields: coachName, coachEmail, athleteEmail' },
+        { error: 'Missing required fields: coachName, coachEmail, athleteEmail, coachId' },
         { status: 400 }
       );
     }
@@ -23,8 +25,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate invitation link (in production, this would be a secure token)
-    const invitationLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/signup?invited=true&coach=${encodeURIComponent(coachEmail)}&athlete=${encodeURIComponent(athleteEmail)}`;
+    // Generate invitation link with unique token
+    const invitationToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    
+    // Use production URL in production, localhost in development
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? (process.env.NEXT_PUBLIC_APP_URL || 'https://gymnastics-analytics.vercel.app')
+      : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000');
+    
+    // Redirect to signup page with invitation data
+    const invitationLink = `${baseUrl}/?invite=${invitationToken}&mode=signup`;
 
     // Create invitation object
     const invitation: AthleteInvitation = {
@@ -36,14 +46,40 @@ export async function POST(request: NextRequest) {
       invitationLink
     };
 
+    // Create invitation document in Firestore
+    const invitationData = {
+      coachId,
+      coachName,
+      coachEmail,
+      athleteEmail,
+      athleteName,
+      institution,
+      invitationLink,
+      invitationToken,
+      status: 'pending',
+      createdAt: serverTimestamp()
+    };
+    
+    console.log('💾 Creating invitation document:', {
+      athleteEmail,
+      invitationToken,
+      invitationLink
+    });
+    
+    const invitationDoc = await addDoc(collection(db, 'invitations'), invitationData);
+    
+    console.log('✅ Invitation document created with ID:', invitationDoc.id);
+
     // Send invitation email
-    const result = await SendGridService.sendAthleteInvitation(invitation);
+    const result = await BrevoService.sendAthleteInvitation(invitation);
 
     if (result.success) {
       return NextResponse.json({
         success: true,
         message: 'Athlete invitation sent successfully',
-        messageId: result.messageId
+        messageId: result.messageId,
+        invitationId: invitationDoc.id,
+        invitationToken
       });
     } else {
       return NextResponse.json(
@@ -61,25 +97,25 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  // Test SendGrid connection
+  // Test Brevo connection
   try {
-    const isConnected = await SendGridService.testConnection();
+    const isConnected = await BrevoService.testConnection();
     
     if (isConnected) {
       return NextResponse.json({
         success: true,
-        message: 'SendGrid connection successful'
+        message: 'Brevo connection successful'
       });
     } else {
       return NextResponse.json({
         success: false,
-        message: 'SendGrid connection failed'
+        message: 'Brevo connection failed'
       }, { status: 500 });
     }
   } catch (error) {
-    console.error('Error testing SendGrid connection:', error);
+    console.error('Error testing Brevo connection:', error);
     return NextResponse.json(
-      { error: 'Failed to test SendGrid connection' },
+      { error: 'Failed to test Brevo connection' },
       { status: 500 }
     );
   }

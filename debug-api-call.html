@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug API Call</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .results {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Debug API Call</h1>
+        <p>Testing API calls to understand why frontend shows 0 sessions</p>
+        
+        <div class="section">
+            <h2>🌐 API Tests</h2>
+            <button onclick="testBackendDirect()">Test Backend Direct (5004)</button>
+            <button onclick="testFrontendAPI()">Test Frontend API (3001)</button>
+            <button onclick="testEnvironment()">Test Environment Variables</button>
+            <div id="test-status"></div>
+        </div>
+
+        <div class="section">
+            <h2>📊 Test Results</h2>
+            <div id="test-results" class="results"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(message) {
+            const results = document.getElementById('test-results');
+            const timestamp = new Date().toLocaleTimeString();
+            results.textContent += `[${timestamp}] ${message}\n`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function showStatus(message, type = 'info') {
+            const element = document.getElementById('test-status');
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        async function testBackendDirect() {
+            try {
+                showStatus('Testing backend directly...', 'info');
+                log('🔍 Testing backend directly: http://localhost:5004/getSessions');
+                
+                const response = await fetch('http://localhost:5004/getSessions');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showStatus(`✅ Backend working! Found ${data.count} sessions`, 'success');
+                    log(`✅ Backend response: ${data.count} sessions`);
+                    log(`📋 Sample session: ${JSON.stringify(data.sessions[0], null, 2)}`);
+                } else {
+                    showStatus(`❌ Backend error: ${response.status}`, 'error');
+                    log(`❌ Backend error: ${response.status} - ${data.error}`);
+                }
+            } catch (error) {
+                showStatus(`❌ Backend connection failed: ${error.message}`, 'error');
+                log(`❌ Backend connection error: ${error.message}`);
+            }
+        }
+
+        async function testFrontendAPI() {
+            try {
+                showStatus('Testing frontend API...', 'info');
+                log('🔍 Testing frontend API: http://localhost:3001/api/sessions');
+                
+                const response = await fetch('http://localhost:3001/api/sessions');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showStatus(`✅ Frontend API working! Found ${data.sessions.length} sessions`, 'success');
+                    log(`✅ Frontend API response: ${data.sessions.length} sessions`);
+                    log(`📋 Sample session: ${JSON.stringify(data.sessions[0], null, 2)}`);
+                } else {
+                    showStatus(`❌ Frontend API error: ${response.status}`, 'error');
+                    log(`❌ Frontend API error: ${response.status} - ${data.error}`);
+                }
+            } catch (error) {
+                showStatus(`❌ Frontend API connection failed: ${error.message}`, 'error');
+                log(`❌ Frontend API connection error: ${error.message}`);
+            }
+        }
+
+        async function testEnvironment() {
+            try {
+                showStatus('Testing environment variables...', 'info');
+                log('🔍 Testing environment variables...');
+                
+                // Test if we can access the environment variable
+                const envTest = await fetch('http://localhost:3001/api/test-env');
+                if (envTest.ok) {
+                    const envData = await envTest.json();
+                    log(`✅ Environment test: ${JSON.stringify(envData, null, 2)}`);
+                } else {
+                    log('⚠️ Environment test endpoint not available');
+                }
+                
+                // Test the API base URL directly
+                log('🔍 Testing API base URL construction...');
+                const apiBaseUrl = 'http://localhost:5004'; // This should match NEXT_PUBLIC_API_URL
+                log(`📋 Expected API Base URL: ${apiBaseUrl}`);
+                
+                const testResponse = await fetch(`${apiBaseUrl}/health`);
+                if (testResponse.ok) {
+                    const healthData = await testResponse.json();
+                    log(`✅ API Base URL test successful: ${healthData.status}`);
+                } else {
+                    log(`❌ API Base URL test failed: ${testResponse.status}`);
+                }
+                
+            } catch (error) {
+                log(`❌ Environment test error: ${error.message}`);
+            }
+        }
+
+        // Auto-test on page load
+        window.onload = function() {
+            log('🔍 Debug API Call Page Loaded');
+            log('📋 Current URL: ' + window.location.href);
+            testBackendDirect();
+        };
+    </script>
+</body>
+</html>
+
+
+
+

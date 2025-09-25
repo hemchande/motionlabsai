@@ -17,6 +17,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
   Users,
   Mail,
   Plus,
@@ -30,7 +41,7 @@ import {
   Loader2
 } from "lucide-react"
 import { useInvitations } from "@/contexts/InvitationContext"
-import { useAuth } from "@/contexts/AuthContext"
+import { useAuth } from "@/contexts/FirebaseAuthContext"
 
 interface User {
   id: string;
@@ -48,7 +59,7 @@ interface InvitationManagerProps {
 }
 
 export default function InvitationManager({ user }: InvitationManagerProps) {
-  const { sendInvitation, getInvitationsByCoach, loading } = useInvitations()
+  const { sendInvitation, getInvitationsByCoach, deleteInvitation, loading } = useInvitations()
   const [showInviteDialog, setShowInviteDialog] = useState(false)
   const [inviteForm, setInviteForm] = useState({
     studentEmail: "",
@@ -57,6 +68,7 @@ export default function InvitationManager({ user }: InvitationManagerProps) {
   })
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [deletingInvitation, setDeletingInvitation] = useState<string | null>(null)
 
   const invitations = user ? getInvitationsByCoach(user.id) : []
 
@@ -133,6 +145,26 @@ export default function InvitationManager({ user }: InvitationManagerProps) {
     const link = `${window.location.origin}/invite/${token}`
     navigator.clipboard.writeText(link)
     // You could add a toast notification here
+  }
+
+  const handleDeleteInvitation = async (invitationId: string) => {
+    setError("")
+    setSuccess("")
+    setDeletingInvitation(invitationId)
+
+    try {
+      const result = await deleteInvitation(invitationId)
+      
+      if (result.success) {
+        setSuccess("Invitation deleted successfully!")
+      } else {
+        setError(result.error || "Failed to delete invitation")
+      }
+    } catch (error) {
+      setError("Failed to delete invitation")
+    } finally {
+      setDeletingInvitation(null)
+    }
   }
 
   return (
@@ -297,14 +329,45 @@ export default function InvitationManager({ user }: InvitationManagerProps) {
                             <Copy className="h-3 w-3 mr-1" />
                             Copy Link
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-3 w-3 mr-1" />
-                            Cancel
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={deletingInvitation === invitation.id}
+                                className="hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-3 w-3 mr-1" />
+                                Delete
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Invitation</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete this invitation to {invitation.studentName || invitation.studentEmail}? 
+                                  This action cannot be undone and the invitation link will no longer work.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteInvitation(invitation.id)}
+                                  disabled={deletingInvitation === invitation.id}
+                                  className="bg-red-600 hover:bg-red-700"
+                                >
+                                  {deletingInvitation === invitation.id ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                      Deleting...
+                                    </>
+                                  ) : (
+                                    'Delete Invitation'
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </>
                       )}
                     </div>

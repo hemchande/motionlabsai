@@ -2,7 +2,7 @@
 
 import Navigation from './Navigation';
 import AuthScreen from './AuthScreen';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/FirebaseAuthContext';
 import GlobalProcessingIndicator from './GlobalProcessingIndicator';
 
 interface LayoutWrapperProps {

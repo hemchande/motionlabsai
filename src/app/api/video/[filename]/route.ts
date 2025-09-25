@@ -12,7 +12,7 @@ export async function GET(
     }
 
     // Construct the backend URL
-    const backendUrl = `http://localhost:5004/getVideo?video_filename=${encodeURIComponent(filename)}`
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5004'}/getVideo?video_filename=${encodeURIComponent(filename)}`
     
     console.log(`🎬 Proxying video request: ${filename}`)
     console.log(`🔗 Backend URL: ${backendUrl}`)
@@ -78,7 +78,7 @@ export async function HEAD(
     }
 
     // Construct the backend URL
-    const backendUrl = `http://localhost:5004/getVideo?video_filename=${encodeURIComponent(filename)}`
+    const backendUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5004'}/getVideo?video_filename=${encodeURIComponent(filename)}`
     
     // Fetch headers from the backend
     const response = await fetch(backendUrl, {

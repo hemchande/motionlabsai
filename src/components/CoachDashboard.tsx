@@ -1184,7 +1184,7 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
                   status: 'completed' as const,
                   hasProcessedVideo: !!backendSession.processed_video_filename,
                   processedVideoUrl: backendSession.processed_video_url ? 
-                    backendSession.processed_video_url.replace('http://localhost:5004/getVideo?video_filename=', '/api/video/') :
+                    backendSession.processed_video_url.replace(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5004'}/getVideo?video_filename=`, '/api/video/') :
                     session.videoUrl,
                   processedVideoFilename: backendSession.processed_video_filename,
                   analyticsFile: backendSession.analytics_filename,

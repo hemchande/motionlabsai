@@ -1,7 +1,7 @@
 // Test script for Brevo integration
 // Using built-in fetch (Node.js 18+)
 
-const BREVO_API_KEY = 'your_brevo_api_key_here';
+const BREVO_API_KEY = process.env.BREVO_API_KEY || 'your_brevo_api_key_here';
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
 
 async function testBrevoConnection() {

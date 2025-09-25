@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
         }
         // Priority 3: Use processed video URL (GridFS fallback)
         if (session.processed_video_url) {
-          return session.processed_video_url.replace('http://localhost:5004/getVideo?video_filename=', '/api/video/');
+          return session.processed_video_url.replace(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5004'}/getVideo?video_filename=`, '/api/video/');
         }
         // Priority 4: Use video URL
         return session.video_url || '';

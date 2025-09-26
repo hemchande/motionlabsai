@@ -196,7 +196,7 @@ export default function AthleteManagement({ userRole, selectedAthlete, onAthlete
   if (userRole === "athlete") {
     return (
       <TooltipProvider>
-        <div className="p-6 space-y-6">
+        <div className="p-6 pl-12 pr-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -351,7 +351,7 @@ export default function AthleteManagement({ userRole, selectedAthlete, onAthlete
 
   return (
     <TooltipProvider>
-      <div className="p-4 space-y-6 max-w-none">
+      <div className="p-4 pl-12 pr-4 space-y-6 max-w-none">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

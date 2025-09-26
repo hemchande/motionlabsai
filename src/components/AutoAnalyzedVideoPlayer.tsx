@@ -1516,7 +1516,7 @@ export default function AutoAnalyzedVideoPlayer({
           <div>
             <h3 className="text-lg font-semibold">AI Video Analysis</h3>
             <p className="text-xs text-gray-500 mt-1">
-              Use ← → arrow keys for frame-by-frame, spacebar to play/pause, F for fullscreen
+              Click video to advance frame-by-frame • Right-click to go back • Use ← → arrow keys • Spacebar to play/pause • F for fullscreen
             </p>
           </div>
                   <div className="flex items-center space-x-2">
@@ -1611,79 +1611,98 @@ export default function AutoAnalyzedVideoPlayer({
                       }}
                     />
                   ) : (
-                    // Regular HTML5 video element
-                    <video
-                      ref={videoRef}
-                      className="w-full h-full max-h-[500px] object-contain"
-                      src={actualVideoUrl || undefined}
-                      preload="auto"
-                      playsInline
-                      muted
-                      crossOrigin="anonymous"
-                      onLoadedData={() => {
-                        console.log('Video loaded successfully');
-                        setLoading(false);
-                        // Calculate and set video aspect ratio
-                        if (videoRef.current) {
-                          const video = videoRef.current;
-                          const aspectRatio = video.videoWidth / video.videoHeight;
-                          setVideoAspectRatio(aspectRatio);
-                          console.log('Video aspect ratio:', aspectRatio, 'Dimensions:', video.videoWidth, 'x', video.videoHeight);
-                        }
+                    // Regular HTML5 video element with click-to-advance
+                    <div 
+                      className="relative w-full h-full cursor-pointer"
+                      onClick={goToNextFrame}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        goToPreviousFrame();
                       }}
-                      onError={(e) => {
-                        console.error('Video load error:', e);
-                        console.error('Video URL:', actualVideoUrl);
-                        console.error('Video element error:', e.currentTarget?.error);
-                        console.error('Error details:', {
-                          code: e.currentTarget?.error?.code,
-                          message: e.currentTarget?.error?.message,
-                          networkState: e.currentTarget?.networkState,
-                          readyState: e.currentTarget?.readyState
-                        });
-                        
-                        const errorCode = e.currentTarget?.error?.code;
-                        let errorMessage = 'Unknown video error';
-                        
-                        switch (errorCode) {
-                          case 1:
-                            errorMessage = 'Video loading aborted';
-                            break;
-                          case 2:
-                            errorMessage = 'Network error while loading video';
-                            break;
-                          case 3:
-                            errorMessage = 'Video decoding error';
-                            break;
-                          case 4:
-                            errorMessage = 'Video format not supported';
-                            break;
-                          default:
-                            errorMessage = `Video error (code: ${errorCode})`;
-                        }
-                        
-                        setError(errorMessage);
-                        setLoading(false);
-                      }}
-                      onCanPlay={() => {
-                        console.log('Video can play');
-                        setLoading(false);
-                      }}
-                      onLoadStart={() => {
-                        console.log('Video load started');
-                        setLoading(true);
-                      }}
-                      onPlay={() => {
-                        console.log('Video started playing');
-                        setIsPlaying(true);
-                      }}
-                      onPause={() => {
-                        console.log('Video paused');
-                        setIsPlaying(false);
-                      }}
-                      onTimeUpdate={handleTimeUpdate}
-                      style={{ width: '100%', height: '100%' }}
-                    />
+                      title="Click to advance to next frame, right-click to go to previous frame"
+                    >
+                      <video
+                        ref={videoRef}
+                        className="w-full h-full max-h-[500px] object-contain"
+                        src={actualVideoUrl || undefined}
+                        preload="auto"
+                        playsInline
+                        muted
+                        crossOrigin="anonymous"
+                        onLoadedData={() => {
+                          console.log('Video loaded successfully');
+                          setLoading(false);
+                          // Calculate and set video aspect ratio
+                          if (videoRef.current) {
+                            const video = videoRef.current;
+                            const aspectRatio = video.videoWidth / video.videoHeight;
+                            setVideoAspectRatio(aspectRatio);
+                            console.log('Video aspect ratio:', aspectRatio, 'Dimensions:', video.videoWidth, 'x', video.videoHeight);
+                          }
+                        }}
+                        onError={(e) => {
+                          console.error('Video load error:', e);
+                          console.error('Video URL:', actualVideoUrl);
+                          console.error('Video element error:', e.currentTarget?.error);
+                          console.error('Error details:', {
+                            code: e.currentTarget?.error?.code,
+                            message: e.currentTarget?.error?.message,
+                            networkState: e.currentTarget?.networkState,
+                            readyState: e.currentTarget?.readyState
+                          });
+                          
+                          const errorCode = e.currentTarget?.error?.code;
+                          let errorMessage = 'Unknown video error';
+                          
+                          switch (errorCode) {
+                            case 1:
+                              errorMessage = 'Video loading aborted';
+                              break;
+                            case 2:
+                              errorMessage = 'Network error while loading video';
+                              break;
+                            case 3:
+                              errorMessage = 'Video decoding error';
+                              break;
+                            case 4:
+                              errorMessage = 'Video format not supported';
+                              break;
+                            default:
+                              errorMessage = `Video error (code: ${errorCode})`;
+                          }
+                          
+                          setError(errorMessage);
+                          setLoading(false);
+                        }}
+                        onCanPlay={() => {
+                          console.log('Video can play');
+                          setLoading(false);
+                        }}
+                        onLoadStart={() => {
+                          console.log('Video load started');
+                          setLoading(true);
+                        }}
+                        onPlay={() => {
+                          console.log('Video started playing');
+                          setIsPlaying(true);
+                        }}
+                        onPause={() => {
+                          console.log('Video paused');
+                          setIsPlaying(false);
+                        }}
+                        onTimeUpdate={handleTimeUpdate}
+                        style={{ width: '100%', height: '100%' }}
+                      />
+                      
+                      {/* Click overlay indicator */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="bg-black bg-opacity-60 rounded-full p-4 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center space-x-2">
+                          <StepBack className="h-5 w-5 text-white" />
+                          <span className="text-white text-sm font-medium">Click to advance</span>
+                          <StepForward className="h-5 w-5 text-white" />
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}

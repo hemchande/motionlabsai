@@ -1804,82 +1804,50 @@ export default function AutoAnalyzedVideoPlayer({
                 )}
               </div>
 
-              {/* Video Controls */}
-              <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-85 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center space-x-3">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => seekToTime(Math.max(0, currentTime - 5))}
-                      className="text-white hover:bg-white hover:bg-opacity-20"
-                    >
-                      <SkipBack className="h-5 w-5" />
-                  </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={togglePlay}
-                      className="text-white hover:bg-white hover:bg-opacity-20"
-                    >
-                      {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => seekToTime(Math.min(duration, currentTime + 5))}
-                      className="text-white hover:bg-white hover:bg-opacity-20"
-                    >
-                      <SkipForward className="h-5 w-5" />
-                  </Button>
-                    <span className="text-white text-sm font-mono">
-                    {formatTime(currentTime)} / {formatTime(duration)}
-                    </span>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={toggleFullscreen}
-                    className="text-white hover:bg-white hover:bg-opacity-20"
-                    title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-                  >
-                    {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-                  </Button>
-                </div>
+              {/* Video Controls - Only Fullscreen Button */}
+              <div className="absolute bottom-4 right-4">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={toggleFullscreen}
+                  className="text-white hover:bg-white hover:bg-opacity-20"
+                  title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                >
+                  {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                </Button>
+              </div>
 
-                {/* Frame-by-Frame Controls */}
-                <div className="flex items-center justify-center space-x-2 mb-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={goToPreviousFrame}
-                    disabled={currentFrameIndex <= 0}
-                    className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
-                  >
-                    <StepBack className="h-3 w-3" />
-                  </Button>
-                  <span className="text-white text-xs px-2">
-                    Frame: {currentFrameIndex + 1} / {frameData.length}
-                  </span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={goToNextFrame}
-                    disabled={currentFrameIndex >= frameData.length - 1}
-                    className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
-                  >
-                    <StepForward className="h-3 w-3" />
-                  </Button>
-                  <span className="text-white text-xs px-2">
-                    {frameData.length > 0 ? `Frame Time: ${formatTime(frameData[currentFrameIndex]?.timestamp || 0)}` : ''}
-                  </span>
-                </div>
-
+              {/* Frame-by-Frame Controls - Moved down */}
+              <div className="absolute bottom-16 left-4 right-4 flex items-center justify-center space-x-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={goToPreviousFrame}
+                  disabled={currentFrameIndex <= 0}
+                  className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
+                >
+                  <StepBack className="h-3 w-3" />
+                </Button>
+                <span className="text-white text-xs px-2">
+                  Frame: {currentFrameIndex + 1} / {frameData.length}
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={goToNextFrame}
+                  disabled={currentFrameIndex >= frameData.length - 1}
+                  className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
+                >
+                  <StepForward className="h-3 w-3" />
+                </Button>
+                <span className="text-white text-xs px-2">
+                  {frameData.length > 0 ? `Frame Time: ${formatTime(frameData[currentFrameIndex]?.timestamp || 0)}` : ''}
+                </span>
               </div>
             </div>
             
-            {/* Risk Timeline Component */}
-            <div className="flex justify-center mt-4">
+            {/* Risk Timeline Component - Moved further down */}
+            <div className="flex justify-center mt-8">
               <RiskTimeline
                 frameData={frameData}
                 currentTime={currentTime}

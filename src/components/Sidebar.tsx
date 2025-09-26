@@ -7,13 +7,13 @@ import {
   Video,
   BarChart3,
   Users,
-  Share2,
+  // Share2, // COMMENTED OUT FOR NOW - Share & Export functionality
   Settings,
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Sun,
-  Moon,
+  // Sun, // COMMENTED OUT FOR NOW - Theme toggle functionality
+  // Moon, // COMMENTED OUT FOR NOW - Theme toggle functionality
   User,
   Home,
   Calendar,
@@ -22,7 +22,8 @@ import {
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import Logo from "./Logo"
-import { useTheme } from "@/contexts/ThemeContext"
+// COMMENTED OUT FOR NOW - Theme toggle functionality
+// import { useTheme } from "@/contexts/ThemeContext"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import LogoutConfirmation from "./LogoutConfirmation"
@@ -56,7 +57,8 @@ interface SidebarProps {
 
 export default function Sidebar({ activeView, setActiveView, userRole, onLogout, user, stats }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
-  const { theme, toggleTheme } = useTheme()
+  // COMMENTED OUT FOR NOW - Theme toggle functionality
+  // const { theme, toggleTheme } = useTheme()
   const pathname = usePathname()
 
   const mainMenuItems = [
@@ -102,14 +104,16 @@ export default function Sidebar({ activeView, setActiveView, userRole, onLogout,
     }] : [])
   ]
 
-  const coachTools = [
-    {
-      id: "share-export",
-      label: "Share & Export",
-      icon: Share2,
-      description: "Share clips and reports"
-    }
-  ]
+  // COMMENTED OUT FOR NOW - Share & Export functionality
+  // const coachTools = [
+  //   {
+  //     id: "share-export",
+  //     label: "Share & Export",
+  //     icon: Share2,
+  //     description: "Share clips and reports"
+  //   }
+  // ]
+  const coachTools = []
 
   const highlights = [
     { 
@@ -141,7 +145,7 @@ export default function Sidebar({ activeView, setActiveView, userRole, onLogout,
       initial={false}
       animate={{ width: isCollapsed ? 80 : 280 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="ml-nav border-r ml-border h-screen flex flex-col"
+      className="ml-nav border-r ml-border h-screen flex flex-col flex-shrink-0"
     >
       {/* Header */}
       <div className="p-4 border-b ml-border">
@@ -428,8 +432,8 @@ export default function Sidebar({ activeView, setActiveView, userRole, onLogout,
 
       {/* Bottom Actions */}
       <div className="p-4 border-t ml-border space-y-2">
-        {/* Theme Toggle */}
-        <Button
+        {/* Theme Toggle - COMMENTED OUT FOR NOW */}
+        {/* <Button
           variant="ghost"
           className={`w-full justify-start h-auto p-3 ml-text-md hover:ml-text-hi hover:ml-hover`}
           onClick={toggleTheme}
@@ -454,7 +458,7 @@ export default function Sidebar({ activeView, setActiveView, userRole, onLogout,
               </motion.div>
             )}
           </AnimatePresence>
-        </Button>
+        </Button> */}
 
         {/* Settings */}
         <Button

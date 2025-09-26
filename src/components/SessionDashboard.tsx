@@ -52,6 +52,7 @@ interface SessionData {
   fileSize: number;
   analysisStatus: 'completed' | 'processing' | 'failed' | 'pending';
   perFrameStatus: 'completed' | 'processing' | 'failed' | 'pending';
+  cloudflare_stream_id?: string;
   motionIQ?: number;
   aclRisk?: number;
   riskLevel?: 'LOW' | 'MODERATE' | 'HIGH';
@@ -869,13 +870,10 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
       
       console.log('Base video name for analysis:', baseVideoName);
       
-      // Call the analyzeVideo2 endpoint (enhanced analytics)
-      const result = await gymnasticsAPI.analyzeVideo2(
-        baseVideoName,
-        session.athlete,
-        session.event,
-        session.sessionType,
-        'demo_user'
+      // Call the analyzeVideo1 endpoint (enhanced analytics)
+      const result = await gymnasticsAPI.analyzeVideo1(
+        session.id,
+        session.cloudflare_stream_id
       );
       
       console.log('Analysis result:', result);

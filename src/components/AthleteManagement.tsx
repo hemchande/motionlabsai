@@ -253,10 +253,10 @@ export default function AthleteManagement({ userRole, selectedAthlete, onAthlete
                   </Badge>
                 </div>
                 {user?.institution && (
-                  <div className="flex justify-between">
+                <div className="flex justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Institution</span>
                     <span className="text-sm text-gray-900 dark:text-white">{user.institution}</span>
-                  </div>
+                </div>
                 )}
                 <div className="flex justify-between">
                   <span className="text-sm text-gray-600 dark:text-gray-400">Member Since</span>
@@ -318,27 +318,27 @@ export default function AthleteManagement({ userRole, selectedAthlete, onAthlete
             <CardContent className="space-y-4">
               <div className="space-y-3">
                 {stats?.totalSessions > 0 && (
-                  <div className="flex items-center space-x-2">
-                    <Trophy className="h-4 w-4 text-yellow-500" />
-                    <span className="text-sm text-gray-900 dark:text-white">First Session Completed</span>
-                  </div>
+                <div className="flex items-center space-x-2">
+                  <Trophy className="h-4 w-4 text-yellow-500" />
+                  <span className="text-sm text-gray-900 dark:text-white">First Session Completed</span>
+                </div>
                 )}
                 {(stats?.avgMotionIQ || stats?.averageMotionIQ || 0) > 90 && (
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="h-4 w-4 text-green-500" />
-                    <span className="text-sm text-gray-900 dark:text-white">Motion IQ &gt; 90</span>
-                  </div>
+                <div className="flex items-center space-x-2">
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                  <span className="text-sm text-gray-900 dark:text-white">Motion IQ &gt; 90</span>
+                </div>
                 )}
                 {stats?.totalSessions >= 5 && (
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="h-4 w-4 text-blue-500" />
+                <div className="flex items-center space-x-2">
+                  <Calendar className="h-4 w-4 text-blue-500" />
                     <span className="text-sm text-gray-900 dark:text-white">5+ Sessions Completed</span>
                   </div>
                 )}
                 {(!stats || stats.totalSessions === 0) && (
                   <div className="text-center py-4">
                     <p className="text-sm text-gray-500 dark:text-gray-400">Complete your first session to unlock achievements!</p>
-                  </div>
+                </div>
                 )}
               </div>
             </CardContent>
@@ -351,7 +351,7 @@ export default function AthleteManagement({ userRole, selectedAthlete, onAthlete
 
   return (
     <TooltipProvider>
-      <div className="p-6 space-y-6">
+      <div className="p-4 space-y-6 max-w-none">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -388,7 +388,7 @@ export default function AthleteManagement({ userRole, selectedAthlete, onAthlete
       {activeTab === "roster" ? (
         <>
           {/* Statistics Banners */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium flex items-center">
@@ -530,7 +530,7 @@ export default function AthleteManagement({ userRole, selectedAthlete, onAthlete
           ) : (
             <>
               {/* Athletes Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
                 {filteredAthletes.map((athlete) => (
               <Card 
                 key={athlete.id} 
@@ -664,7 +664,7 @@ export default function AthleteManagement({ userRole, selectedAthlete, onAthlete
         <div className="space-y-8">
           {/* Enhanced Invitation Header */}
           <div className="bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl p-8 text-white">
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
               <div className="space-y-2">
                 <h2 className="text-4xl font-bold">Team Invitations</h2>
                 <p className="text-xl text-cyan-100">Invite athletes to join your team and unlock their potential</p>
@@ -682,24 +682,24 @@ export default function AthleteManagement({ userRole, selectedAthlete, onAthlete
                     <span className="text-sm font-medium">Improve Performance</span>
                   </div>
                 </div>
-              </div>
+            </div>
               <div className="text-right">
-                <AthleteInvitationModal 
-                  coachName={user?.fullName || "Coach"}
-                  coachEmail={user?.email || ""}
-                  coachId={user?.id || ""}
-                  institution={user?.institution}
-                  onInvitationSent={() => {
-                    console.log("Athlete invitation sent successfully!")
-                    fetchRoster();
-                  }}
-                />
+            <AthleteInvitationModal 
+              coachName={user?.fullName || "Coach"}
+              coachEmail={user?.email || ""}
+              coachId={user?.id || ""}
+              institution={user?.institution}
+              onInvitationSent={() => {
+                console.log("Athlete invitation sent successfully!")
+                fetchRoster();
+              }}
+            />
               </div>
             </div>
           </div>
 
           {/* Enhanced Invitation Stats with Real Data */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border-yellow-200 dark:border-yellow-700 hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -762,7 +762,7 @@ export default function AthleteManagement({ userRole, selectedAthlete, onAthlete
           </div>
 
           {/* Enhanced Invitation Process & Benefits */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
             {/* How It Works */}
             <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
               <CardHeader className="pb-4">

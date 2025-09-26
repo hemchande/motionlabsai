@@ -349,8 +349,8 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
     return sessions;
   };
 
-  // Mock data for demonstration
-  const mockSessions: SessionData[] = [
+  // Mock data for demonstration - REMOVED, now using real API data
+  /* const mockSessions: SessionData[] = [
     {
       id: '1',
       videoName: 'pdtyUo5UELk.mp4',
@@ -505,9 +505,9 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
       hasProcessedVideo: true,
       processedVideoUrl: gymnasticsAPI.getVideo('api_generated_Yzhpyecs-ws.mp4')
     }
-  ];
+  ]; */
 
-  const mockStats: SessionStats = {
+  /* const mockStats: SessionStats = {
     totalSessions: 6,
     completedAnalyses: 6,
     averageMotionIQ: 90.3,
@@ -531,26 +531,86 @@ export default function EnhancedSessionDashboard({ onNavigateToUpload }: Enhance
       'Gabby Douglas': 1
     },
     recentActivity: mockSessions.slice(0, 3)
-  };
+  }; */
 
   useEffect(() => {
-    const loadSessions = async () => {
+    const fetchSessions = async () => {
       try {
-        setLoading(true);
-        const processedSessions = convertProcessedVideosToSessions();
-        const allSessions = [...mockSessions, ...processedSessions];
-        setSessions(allSessions);
-        setStats(mockStats);
-      } catch (err) {
-        setError('Failed to load session data');
-        console.error('Error loading sessions:', err);
+        setLoading(true)
+        console.log('🚀 EnhancedSessionDashboard: Fetching sessions from frontend API...')
+        const response = await fetch('/api/sessions')
+        const data = await response.json()
+        
+        if (data.success && data.sessions) {
+          // Transform backend sessions to frontend format
+          const transformedSessions: SessionData[] = data.sessions.map((session: any) => ({
+            id: session.id,
+            videoName: session.videoName || session.originalFilename || 'Unknown Video',
+            athlete: session.athleteName || 'Unknown Athlete',
+            event: session.event || 'Unknown Event',
+            sessionType: session.sessionType || 'Analysis',
+            date: session.date || new Date().toISOString().split('T')[0],
+            duration: session.duration || '0:00',
+            fileSize: session.fileSize || 0,
+            analysisStatus: session.status === 'completed' ? 'completed' : 
+                           session.status === 'processing' ? 'processing' : 'pending',
+            perFrameStatus: session.perFrameStatus || 'pending',
+            motionIQ: session.motionIQ || 0,
+            aclRisk: session.aclRisk || 0,
+            riskLevel: session.aclRisk > 50 ? 'HIGH' : session.aclRisk > 25 ? 'MODERATE' : 'LOW',
+            metrics: {
+              averageElevationAngle: session.metrics?.averageElevationAngle || 0,
+              averageFlightTime: session.metrics?.averageFlightTime || 0,
+              averageLandingQuality: session.metrics?.averageLandingQuality || 0,
+              totalFrames: session.metrics?.totalFrames || 0,
+              framesProcessed: session.metrics?.framesProcessed || 0
+            },
+            notes: session.notes || '',
+            hasProcessedVideo: session.hasProcessedVideo || false,
+            processedVideoUrl: session.processedVideoUrl || '',
+            analyticsFile: session.analyticsFile || ''
+          }))
+          
+          console.log('📊 EnhancedSessionDashboard: Transformed sessions:', transformedSessions.length)
+          setSessions(transformedSessions)
+          
+          // Calculate real stats from the data
+          const completedSessions = transformedSessions.filter(s => s.analysisStatus === 'completed')
+          const riskDistribution = {
+            low: completedSessions.filter(s => s.riskLevel === 'LOW').length,
+            moderate: completedSessions.filter(s => s.riskLevel === 'MODERATE').length,
+            high: completedSessions.filter(s => s.riskLevel === 'HIGH').length
+          }
+          
+          const eventDistribution = completedSessions.reduce((acc, session) => {
+            acc[session.event] = (acc[session.event] || 0) + 1
+            return acc
+          }, {} as Record<string, number>)
+          
+          const calculatedStats: SessionStats = {
+            totalSessions: transformedSessions.length,
+            completedAnalyses: completedSessions.length,
+            averageMotionIQ: completedSessions.length > 0 ? 
+              Math.round(completedSessions.reduce((sum, s) => sum + s.motionIQ, 0) / completedSessions.length) : 0,
+            averageACLRisk: completedSessions.length > 0 ? 
+              Math.round(completedSessions.reduce((sum, s) => sum + s.aclRisk, 0) / completedSessions.length) : 0,
+            riskDistribution,
+            eventDistribution,
+            recentActivity: [] // Could be populated from backend if available
+          }
+          
+          setStats(calculatedStats)
+        }
+      } catch (error) {
+        console.error('Error fetching sessions:', error)
+        setError('Failed to load sessions')
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    loadSessions();
-  }, [processedVideos]);
+    fetchSessions()
+  }, [])
 
   const filteredSessions = sessions.filter(session => {
     const matchesSearch = session.videoName.toLowerCase().includes(searchTerm.toLowerCase()) ||

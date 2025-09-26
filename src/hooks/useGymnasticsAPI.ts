@@ -18,7 +18,7 @@ export interface UseGymnasticsAPIActions {
   getProcessedVideos: () => Promise<void>;
   analyzeVideo: (videoFilename: string) => Promise<void>;
   analyzeVideo1: (videoFilename: string, athleteName?: string, event?: string, sessionName?: string, userId?: string) => Promise<void>;
-  analyzeVideo2: (videoFilename: string, athleteName?: string, event?: string, sessionName?: string, userId?: string) => Promise<void>;
+  analyzeVideoEnhanced: (videoFilename: string, athleteName?: string, event?: string, sessionName?: string, userId?: string) => Promise<void>;
   analyzeVideoPerFrame: (videoFilename: string) => Promise<string | null>;
   pollJobStatus: (jobId: string) => Promise<void>;
   getACLRiskAnalysis: (videoFilename: string) => Promise<void>;
@@ -115,11 +115,11 @@ export function useGymnasticsAPI(): UseGymnasticsAPIState & UseGymnasticsAPIActi
     }
   }, [setLoading, setError, getProcessedVideos]);
 
-  const analyzeVideo2 = useCallback(async (videoFilename: string, athleteName?: string, event?: string, sessionName?: string, userId?: string) => {
+  const analyzeVideoEnhanced = useCallback(async (videoFilename: string, athleteName?: string, event?: string, sessionName?: string, userId?: string) => {
     try {
       setLoading(true);
       setError(null);
-      await gymnasticsAPI.analyzeVideo2(videoFilename, athleteName, event, sessionName, userId);
+      await gymnasticsAPI.analyzeVideo1(videoFilename, athleteName, event, sessionName, userId);
       // Refresh processed videos after analysis
       await getProcessedVideos();
     } catch (error) {
@@ -223,7 +223,7 @@ export function useGymnasticsAPI(): UseGymnasticsAPIState & UseGymnasticsAPIActi
     getProcessedVideos,
     analyzeVideo,
     analyzeVideo1,
-    analyzeVideo2,
+    analyzeVideoEnhanced,
     analyzeVideoPerFrame,
     pollJobStatus,
     getACLRiskAnalysis,

@@ -54,12 +54,9 @@ export async function POST(request: NextRequest) {
 
     // Start analysis on backend
     try {
-      const analysisResult = await gymnasticsAPI.analyzeVideo2(
-        videoName.replace('.mp4', ''),
-        athleteName,
-        event,
-        sessionType || 'Analysis',
-        coachId
+      const analysisResult = await gymnasticsAPI.analyzeVideo1(
+        sessionDocId,
+        undefined // No cloudflare stream ID for uploaded videos
       );
 
       if (analysisResult.success) {
@@ -103,6 +100,8 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+
 
 
 

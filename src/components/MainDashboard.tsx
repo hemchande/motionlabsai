@@ -6,7 +6,8 @@ import VideoAnalysisMain from "./VideoAnalysisMain"
 import PerformanceAnalytics from "./PerformanceAnalytics"
 import AthleteManagement from "./AthleteManagement"
 import UploadCenter from "./UploadCenter"
-import ShareExport from "./ShareExport"
+// COMMENTED OUT FOR NOW - Share & Export functionality
+// import ShareExport from "./ShareExport"
 import Settings from "./Settings"
 import CoachDashboard from "./CoachDashboard"
 import AthleteDashboard from "./AthleteDashboard"
@@ -129,8 +130,9 @@ export default function MainDashboard({ userRole, onLogout, user }: MainDashboar
             uploadedVideos={uploadedVideos}
           />
         ) : null
-      case "share-export":
-        return userRole === "coach" ? <ShareExport /> : null
+      // COMMENTED OUT FOR NOW - Share & Export functionality
+      // case "share-export":
+      //   return userRole === "coach" ? <ShareExport /> : null
       case "sessions":
         return userRole === "coach" ? (
           <SessionDashboard onNavigateToUpload={() => setActiveView("upload")} />
@@ -160,19 +162,21 @@ export default function MainDashboard({ userRole, onLogout, user }: MainDashboar
   }
 
   return (
-    <div className="h-screen ml-bg flex">
+    <div className="h-screen ml-bg flex min-w-0">
       {/* Sidebar */}
-      <Sidebar
-        activeView={activeView}
-        setActiveView={setActiveView}
-        userRole={userRole}
-        onLogout={onLogout}
-        user={user}
-        stats={dashboardStats}
-      />
+      <div className="flex-shrink-0">
+        <Sidebar
+          activeView={activeView}
+          setActiveView={setActiveView}
+          userRole={userRole}
+          onLogout={onLogout}
+          user={user}
+          stats={dashboardStats}
+        />
+      </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto pr-6">
+      <div className="flex-1 overflow-y-auto pr-2 min-w-0">
         {renderMainContent()}
       </div>
     </div>

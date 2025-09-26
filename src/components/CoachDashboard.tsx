@@ -229,9 +229,15 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
         )
       )
 
-      // The API expects just the file, not FormData
-      console.log('Uploading video:', uploadItem.file.name)
-      const response = await gymnasticsAPI.uploadVideo(uploadItem.file)
+      // The API expects the file with metadata
+      console.log('Uploading video:', uploadItem.file.name, 'with metadata:', uploadMetadata)
+      const response = await gymnasticsAPI.uploadVideo(
+        uploadItem.file, 
+        uploadMetadata.athlete, 
+        uploadMetadata.event, 
+        uploadMetadata.session, 
+        user?.email
+      )
       console.log('Upload response:', response)
       
       if (response.success && response.filename) {
@@ -2018,7 +2024,7 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
                     return isPending && hasVideo
                   })
                   console.log('🔍 CoachDashboard - Filtered sessions for "Videos Ready for Analysis":', filteredSessions.length, 'sessions')
-                  return filteredSessions.slice(0, 3).map((session) => (
+                  return filteredSessions.map((session) => (
                     <div key={session.id} className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border">
                       <div className="flex items-center space-x-3">
                         <Video className="h-4 w-4 text-blue-600" />
@@ -2041,11 +2047,6 @@ export default function CoachDashboard({ user, onStatsUpdate }: CoachDashboardPr
               </div>
               
               
-              {sessions.filter(s => s.status === "pending" && s.videoName).length > 3 && (
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
-                  +{sessions.filter(s => s.status === "pending" && s.videoName).length - 3} more videos ready for analysis
-                </p>
-              )}
             </div>
           )}
         </CardContent>

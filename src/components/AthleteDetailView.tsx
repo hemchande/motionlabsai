@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { API_BASE_URL } from '@/lib/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -79,94 +79,91 @@ export default function AthleteDetailView({ athlete, onBack, onViewVideos }: Ath
   const [selectedEvent, setSelectedEvent] = useState("all")
   const [selectedTimeframe, setSelectedTimeframe] = useState("30d")
 
-  // Mock data - in a real app, this would come from an API
-  const [sessions, setSessions] = useState<AthleteSession[]>([
-    {
-      id: "1",
-      date: "2024-01-15",
-      event: "Vault",
-      duration: "2:34",
-      motionIQ: 94,
-      aclRisk: 8,
-      precision: 91,
-      power: 88,
-      status: "completed",
-      notes: "Great form on entry, slight adjustment needed on landing",
-      coachNotes: "Excellent run and block. Focus on keeping chest up on landing.",
-      highlights: ["Strong run", "Good block position", "Clean entry"],
-      areasForImprovement: ["Landing position", "Chest up on landing"],
-      hasProcessedVideo: true,
-      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_api_generated_overlayed_pdtyUo5UELk_new.mp4`,
-      analyticsFile: "api_generated_pdtyUo5UELk.json"
-    },
-    {
-      id: "2",
-      date: "2024-01-12",
-      event: "Bars",
-      duration: "3:15",
-      motionIQ: 87,
-      aclRisk: 12,
-      precision: 85,
-      power: 82,
-      status: "completed",
-      notes: "Improved handstand position, work on release timing",
-      coachNotes: "Great improvement on handstand. Continue working on release timing and body position.",
-      highlights: ["Better handstand", "Improved release timing"],
-      areasForImprovement: ["Release timing", "Body position"],
-      hasProcessedVideo: true,
-      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_api_generated_UgWHozR_LLA.mp4`,
-      analyticsFile: "UgWHozR_LLA_analytics.json"
-    },
-    {
-      id: "3",
-      date: "2024-01-10",
-      event: "Floor",
-      duration: "2:45",
-      motionIQ: 89,
-      aclRisk: 15,
-      precision: 87,
-      power: 85,
-      status: "completed",
-      notes: "Good tumbling, needs work on dance elements",
-      coachNotes: "Strong tumbling passes. Focus on dance elements and presentation.",
-      highlights: ["Strong tumbling", "Good power"],
-      areasForImprovement: ["Dance elements", "Presentation"],
-      hasProcessedVideo: true,
-      processedVideoUrl: `${API_BASE_URL}/getVideo?video_filename=h264_analyzed_floor_routine.mp4`,
-      analyticsFile: "floor_routine_analytics.json"
-    }
-  ])
+  // Fetch real sessions from API
+  const [sessions, setSessions] = useState<AthleteSession[]>([])
+  const [sessionsLoading, setSessionsLoading] = useState(true)
 
-  const performanceMetrics: PerformanceMetric[] = [
-    {
-      event: "Vault",
-      currentScore: 94,
-      previousScore: 89,
-      improvement: 5,
-      trend: "up"
-    },
-    {
-      event: "Bars",
-      currentScore: 87,
-      previousScore: 82,
-      improvement: 5,
-      trend: "up"
-    },
-    {
-      event: "Beam",
-      currentScore: 91,
-      previousScore: 88,
-      improvement: 3,
-      trend: "up"
-    },
-    {
-      event: "Floor",
-      currentScore: 89,
-      previousScore: 85,
-      improvement: 4,
-      trend: "up"
+  // Fetch athlete sessions from backend
+  useEffect(() => {
+    const fetchAthleteSessions = async () => {
+      try {
+        setSessionsLoading(true)
+        console.log('🚀 AthleteDetailView: Fetching sessions for athlete:', athlete.name)
+        
+        // Fetch all sessions and filter by athlete name
+        const response = await fetch('/api/sessions')
+        const data = await response.json()
+        
+        if (data.success && data.sessions) {
+          // Filter sessions by athlete name
+          const athleteSessions = data.sessions
+            .filter((session: any) => session.athleteName === athlete.name)
+            .map((session: any) => ({
+              id: session.id,
+              date: session.date || new Date().toISOString().split('T')[0],
+              event: session.event || 'Unknown Event',
+              duration: session.duration || '0:00',
+              motionIQ: session.motionIQ || 0,
+              aclRisk: session.aclRisk || 0,
+              precision: session.precision || 0,
+              power: session.power || 0,
+              status: session.status || 'pending',
+              notes: session.notes || '',
+              coachNotes: session.coachNotes || '',
+              highlights: session.highlights || [],
+              areasForImprovement: session.areasForImprovement || [],
+              hasProcessedVideo: session.hasProcessedVideo || false,
+              processedVideoUrl: session.processedVideoUrl || '',
+              analyticsFile: session.analyticsFile || ''
+            }))
+          
+          console.log('📊 AthleteDetailView: Found', athleteSessions.length, 'sessions for', athlete.name)
+          setSessions(athleteSessions)
+        }
+      } catch (error) {
+        console.error('Error fetching athlete sessions:', error)
+      } finally {
+        setSessionsLoading(false)
+      }
     }
-  ]
+
+    if (athlete?.name) {
+      fetchAthleteSessions()
+    }
+  }, [athlete?.name])
+
+  // Calculate performance metrics from real session data
+  const performanceMetrics: PerformanceMetric[] = React.useMemo(() => {
+    const events = ['Vault', 'Bars', 'Beam', 'Floor']
+    
+    return events.map(event => {
+      const eventSessions = sessions.filter(s => s.event === event && s.status === 'completed')
+      
+      if (eventSessions.length === 0) {
+        return {
+          event,
+          currentScore: 0,
+          previousScore: 0,
+          improvement: 0,
+          trend: "stable" as const
+        }
+      }
+      
+      // Sort by date to get most recent vs previous
+      const sortedSessions = eventSessions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      const currentScore = sortedSessions[0]?.motionIQ || 0
+      const previousScore = sortedSessions[1]?.motionIQ || currentScore
+      const improvement = currentScore - previousScore
+      
+      return {
+        event,
+        currentScore,
+        previousScore,
+        improvement,
+        trend: improvement > 0 ? "up" : improvement < 0 ? "down" : "stable"
+      }
+    })
+  }, [sessions])
 
   const filteredSessions = sessions.filter(session =>
     selectedEvent === "all" || session.event === selectedEvent
@@ -174,14 +171,14 @@ export default function AthleteDetailView({ athlete, onBack, onViewVideos }: Ath
 
   const stats = {
     totalSessions: sessions.length,
-    avgMotionIQ: Math.round(sessions.reduce((sum, s) => sum + s.motionIQ, 0) / sessions.length),
-    avgACLRisk: Math.round(sessions.reduce((sum, s) => sum + s.aclRisk, 0) / sessions.length),
-    avgPrecision: Math.round(sessions.reduce((sum, s) => sum + s.precision, 0) / sessions.length),
-    avgPower: Math.round(sessions.reduce((sum, s) => sum + s.power, 0) / sessions.length),
-    bestEvent: performanceMetrics.reduce((best, current) => 
+    avgMotionIQ: sessions.length > 0 ? Math.round(sessions.reduce((sum, s) => sum + s.motionIQ, 0) / sessions.length) : 0,
+    avgACLRisk: sessions.length > 0 ? Math.round(sessions.reduce((sum, s) => sum + s.aclRisk, 0) / sessions.length) : 0,
+    avgPrecision: sessions.length > 0 ? Math.round(sessions.reduce((sum, s) => sum + s.precision, 0) / sessions.length) : 0,
+    avgPower: sessions.length > 0 ? Math.round(sessions.reduce((sum, s) => sum + s.power, 0) / sessions.length) : 0,
+    bestEvent: performanceMetrics.length > 0 ? performanceMetrics.reduce((best, current) => 
       current.currentScore > best.currentScore ? current : best
-    ).event,
-    improvement: Math.round(performanceMetrics.reduce((sum, m) => sum + m.improvement, 0) / performanceMetrics.length)
+    ).event : 'N/A',
+    improvement: performanceMetrics.length > 0 ? Math.round(performanceMetrics.reduce((sum, m) => sum + m.improvement, 0) / performanceMetrics.length) : 0
   }
 
   const getTrendIcon = (trend: "up" | "down" | "stable") => {
@@ -200,8 +197,19 @@ export default function AthleteDetailView({ athlete, onBack, onViewVideos }: Ath
     console.log('Viewing session:', session.id)
   }
 
+  if (sessionsLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-2 text-gray-600">Loading athlete sessions...</span>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -226,7 +234,7 @@ export default function AthleteDetailView({ athlete, onBack, onViewVideos }: Ath
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 min-h-[120px]">
         <Card className="ml-card ml-border">
           <CardContent className="p-4">
             <div className="flex items-center space-x-3">

@@ -37,6 +37,7 @@ import {
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { EnhancedFrameStatistics } from './EnhancedFrameStatistics'
+import RiskTimeline from './RiskTimeline'
 
 interface VideoMetrics {
   motionIQ: number
@@ -178,6 +179,7 @@ export default function AutoAnalyzedVideoPlayer({
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   
   // Compute the actual video URL to use - construct from production API server
   // Check if we should use Cloudflare Stream iframe embed
@@ -286,6 +288,7 @@ export default function AutoAnalyzedVideoPlayer({
   const [showSkeleton, setShowSkeleton] = useState(false)
   const [showAngles, setShowAngles] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [videoAspectRatio, setVideoAspectRatio] = useState<number | null>(null)
   const [currentFrameIndex, setCurrentFrameIndex] = useState(0)
   const [fps, setFps] = useState(30)
   const [realTimeMetrics, setRealTimeMetrics] = useState<VideoMetrics>({
@@ -375,7 +378,7 @@ export default function AutoAnalyzedVideoPlayer({
       } else {
         localStorage.setItem('gymnastics-analytics-cache', dataString);
         setAnalyticsCache(limitedCache);
-        console.log('💾 Saved analytics cache to localStorage');
+      console.log('💾 Saved analytics cache to localStorage');
       }
     } catch (error) {
       console.error('Error saving analytics cache to localStorage:', error);
@@ -868,13 +871,13 @@ export default function AutoAnalyzedVideoPlayer({
   // Convert regular frame data to enhanced frame data
   const convertToEnhancedFrameData = (frames: FrameData[]): EnhancedFrameData[] => {
     console.log('Converting frame data to enhanced format. Input frames:', frames.length);
-    
+      
     return frames.map((frame, index) => {
       // Debug the first few frames to understand the data structure
       if (index < 2) {
         console.log(`Frame ${index} structure:`, {
-          frame_number: frame.frame_number,
-          timestamp: frame.timestamp,
+        frame_number: frame.frame_number,
+        timestamp: frame.timestamp,
           metrics: frame.metrics,
           analytics: frame.analytics
         });
@@ -1029,7 +1032,7 @@ export default function AutoAnalyzedVideoPlayer({
       const video = videoRef.current
       if (video && typeof video.pause === 'function') {
         try {
-          // Pause and reset video to prevent AbortError
+        // Pause and reset video to prevent AbortError
           video.pause();
           video.currentTime = 0;
           video.src = '';
@@ -1267,37 +1270,37 @@ export default function AutoAnalyzedVideoPlayer({
       videoRef.current.currentTime = time
     }
     
-    // Immediately update current time and frame analysis
-    setCurrentTime(time)
-    
-    // Find and update the current frame
-    const currentFrame = frameData.find(frame => 
-      Math.abs(frame.timestamp - time) < 0.1
-    )
+      // Immediately update current time and frame analysis
+      setCurrentTime(time)
+      
+      // Find and update the current frame
+      const currentFrame = frameData.find(frame => 
+        Math.abs(frame.timestamp - time) < 0.1
+      )
     
     // Find the corresponding enhanced frame data
     const currentEnhancedFrame = enhancedFrameData.find(frame => 
       Math.abs(frame.timestamp - time) < 0.1
     )
     setSelectedEnhancedFrame(currentEnhancedFrame || null)
-    
-    if (currentFrame) {
-      // Update real-time metrics immediately
+      
+      if (currentFrame) {
+        // Update real-time metrics immediately
       const aclRisk = (currentFrame.metrics as any)?.tumbling_metrics?.acl_risk_factors?.overall_acl_risk || 
                       currentFrame.metrics?.acl_risk || 0
       
-      setRealTimeMetrics({
+        setRealTimeMetrics({
         motionIQ: Math.max(0, 100 - aclRisk * 0.8),
         aclRisk: aclRisk,
         precision: Math.max(0, 100 - aclRisk * 0.6),
         power: Math.max(0, 100 - aclRisk * 0.4),
-        timestamp: time
-      })
-      
-      // Force a re-render of the frame analysis
-      console.log('Seeked to frame:', currentFrame.frame_number, 'at time:', time)
-    } else {
-      console.log('No frame found for time:', time)
+          timestamp: time
+        })
+        
+        // Force a re-render of the frame analysis
+        console.log('Seeked to frame:', currentFrame.frame_number, 'at time:', time)
+      } else {
+        console.log('No frame found for time:', time)
     }
   }
 
@@ -1343,36 +1346,99 @@ export default function AutoAnalyzedVideoPlayer({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
 
-  const getRiskColor = (risk: number) => {
-    if (risk < 30) return 'bg-green-500'
-    if (risk < 70) return 'bg-yellow-500'
-    return 'bg-red-500'
+  // Calculate optimal video container dimensions
+  const getVideoContainerStyle = () => {
+    if (!videoAspectRatio) {
+      return { width: '100%', height: '500px' }
+    }
+
+    const containerWidth = 800 // Approximate width of the video container
+    const containerHeight = 500 // Fixed height
+    const containerAspectRatio = containerWidth / containerHeight
+
+    let optimalWidth = containerWidth
+    let optimalHeight = containerHeight
+
+    if (videoAspectRatio > containerAspectRatio) {
+      // Video is wider than container - fit to width
+      optimalHeight = containerWidth / videoAspectRatio
+    } else {
+      // Video is taller than container - fit to height
+      optimalWidth = containerHeight * videoAspectRatio
+    }
+
+    return {
+      width: `${optimalWidth}px`,
+      height: `${optimalHeight}px`,
+      maxWidth: '100%',
+      maxHeight: '500px'
+    }
   }
 
-  const getRiskLevel = (risk: number) => {
-    if (risk < 30) return 'LOW'
-    if (risk < 70) return 'MODERATE'
-    return 'HIGH'
-  }
 
   const toggleFullscreen = () => {
-    if (!videoRef.current) return
+    console.log('Toggling fullscreen, current state:', isFullscreen)
+    console.log('Is Cloudflare Stream:', isCloudflareStream)
+    console.log('Stream player available:', !!streamPlayer)
 
-    if (!isFullscreen) {
-      if (videoRef.current.requestFullscreen) {
-        videoRef.current.requestFullscreen()
-      } else if ((videoRef.current as any).webkitRequestFullscreen) {
-        (videoRef.current as any).webkitRequestFullscreen()
-      } else if ((videoRef.current as any).msRequestFullscreen) {
-        (videoRef.current as any).msRequestFullscreen()
+    if (isCloudflareStream && streamPlayer) {
+      // Handle Cloudflare Stream fullscreen
+      try {
+        if (!isFullscreen) {
+          console.log('Entering Cloudflare Stream fullscreen...')
+          // Cloudflare Stream has its own fullscreen method
+          if (streamPlayer.requestFullscreen) {
+            streamPlayer.requestFullscreen()
+          } else {
+            // Fallback to iframe fullscreen
+            const iframe = document.getElementById('stream-player') as HTMLIFrameElement
+            if (iframe && iframe.requestFullscreen) {
+              iframe.requestFullscreen()
+            }
+          }
+        } else {
+          console.log('Exiting Cloudflare Stream fullscreen...')
+          if (document.exitFullscreen) {
+            document.exitFullscreen()
+          }
+        }
+      } catch (error) {
+        console.error('Error with Cloudflare Stream fullscreen:', error)
       }
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen()
-      } else if ((document as any).webkitExitFullscreen) {
-        (document as any).webkitExitFullscreen()
-      } else if ((document as any).msExitFullscreen) {
-        (document as any).msExitFullscreen()
+      // Handle regular HTML5 video fullscreen
+      const videoElement = videoRef.current
+      if (!videoElement) {
+        console.error('Video element not available for fullscreen')
+        return
+      }
+
+      if (!isFullscreen) {
+        // Enter fullscreen
+        console.log('Entering video fullscreen...')
+        if (videoElement.requestFullscreen) {
+          videoElement.requestFullscreen().catch(err => {
+            console.error('Error entering fullscreen:', err)
+          })
+        } else if ((videoElement as any).webkitRequestFullscreen) {
+          (videoElement as any).webkitRequestFullscreen()
+        } else if ((videoElement as any).msRequestFullscreen) {
+          (videoElement as any).msRequestFullscreen()
+        } else {
+          console.error('Fullscreen API not supported')
+        }
+      } else {
+        // Exit fullscreen
+        console.log('Exiting video fullscreen...')
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(err => {
+            console.error('Error exiting fullscreen:', err)
+          })
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen()
+        } else if ((document as any).msExitFullscreen) {
+          (document as any).msExitFullscreen()
+        }
       }
     }
   }
@@ -1380,7 +1446,22 @@ export default function AutoAnalyzedVideoPlayer({
   // Listen for fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement)
+      const fullscreenElement = document.fullscreenElement
+      let isCurrentlyFullscreen = false
+      
+      if (fullscreenElement) {
+        // Check if either the video element or the iframe is in fullscreen
+        if (isCloudflareStream) {
+          const iframe = document.getElementById('stream-player') as HTMLIFrameElement
+          isCurrentlyFullscreen = fullscreenElement === iframe || fullscreenElement === videoRef.current
+        } else {
+          isCurrentlyFullscreen = fullscreenElement === videoRef.current
+        }
+      }
+      
+      console.log('Fullscreen change detected:', isCurrentlyFullscreen)
+      console.log('Fullscreen element:', fullscreenElement)
+      setIsFullscreen(isCurrentlyFullscreen)
     }
 
     document.addEventListener('fullscreenchange', handleFullscreenChange)
@@ -1392,7 +1473,7 @@ export default function AutoAnalyzedVideoPlayer({
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
       document.removeEventListener('msfullscreenchange', handleFullscreenChange)
     }
-  }, [])
+  }, [isCloudflareStream])
 
   // Keyboard shortcuts for frame-by-frame navigation
   useEffect(() => {
@@ -1428,8 +1509,8 @@ export default function AutoAnalyzedVideoPlayer({
   }, [currentFrameIndex, frameData.length])
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 video-player-container">
-      <div className="bg-white rounded-lg w-full max-w-7xl max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+    <div ref={containerRef} className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-16 video-player-container">
+      <div className="bg-white rounded-lg w-full max-w-7xl max-h-[85vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-white sticky top-0 z-10">
           <div>
@@ -1438,19 +1519,11 @@ export default function AutoAnalyzedVideoPlayer({
               Use ← → arrow keys for frame-by-frame, spacebar to play/pause, F for fullscreen
             </p>
           </div>
-          <div className="flex items-center space-x-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={toggleFullscreen}
-              title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-            >
-              {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+                  <div className="flex items-center space-x-2">
+                    <Button variant="ghost" size="sm" onClick={onClose}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
         </div>
 
         <div className="p-4 pb-8 space-y-6">
@@ -1458,7 +1531,7 @@ export default function AutoAnalyzedVideoPlayer({
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Video Player - Left Side */}
             <div className="lg:col-span-3">
-              <div className="relative bg-black rounded-lg overflow-hidden h-[400px] flex items-center justify-center">
+              <div className="relative bg-black rounded-lg overflow-hidden flex items-center justify-center" style={getVideoContainerStyle()}>
               {error ? (
                 <div className="text-center text-white p-6">
                   <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-500" />
@@ -1483,7 +1556,7 @@ export default function AutoAnalyzedVideoPlayer({
                       onClick={() => {
                         // Try opening the video in a new tab
                         if (actualVideoUrl) {
-                          window.open(actualVideoUrl, '_blank');
+                        window.open(actualVideoUrl, '_blank');
                         }
                       }}
                       variant="outline"
@@ -1499,7 +1572,7 @@ export default function AutoAnalyzedVideoPlayer({
                     // Cloudflare Stream iframe embed
                     <iframe
                       src={cloudflareStreamUrl}
-                      style={{ border: 'none', width: '100%', height: '400px' }}
+                      style={{ border: 'none', width: '100%', height: '500px' }}
                       allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
                       allowFullScreen={true}
                       id="stream-player"
@@ -1541,16 +1614,22 @@ export default function AutoAnalyzedVideoPlayer({
                     // Regular HTML5 video element
                     <video
                       ref={videoRef}
-                      className="w-full h-full max-h-[400px] object-contain"
+                      className="w-full h-full max-h-[500px] object-contain"
                       src={actualVideoUrl || undefined}
                       preload="auto"
                       playsInline
                       muted
-                      controls
                       crossOrigin="anonymous"
                       onLoadedData={() => {
                         console.log('Video loaded successfully');
                         setLoading(false);
+                        // Calculate and set video aspect ratio
+                        if (videoRef.current) {
+                          const video = videoRef.current;
+                          const aspectRatio = video.videoWidth / video.videoHeight;
+                          setVideoAspectRatio(aspectRatio);
+                          console.log('Video aspect ratio:', aspectRatio, 'Dimensions:', video.videoWidth, 'x', video.videoHeight);
+                        }
                       }}
                       onError={(e) => {
                         console.error('Video load error:', e);
@@ -1603,19 +1682,9 @@ export default function AutoAnalyzedVideoPlayer({
                         setIsPlaying(false);
                       }}
                       onTimeUpdate={handleTimeUpdate}
-                      style={{ minHeight: '300px' }}
+                      style={{ width: '100%', height: '100%' }}
                     />
                   )}
-                  {/* Fullscreen Button Overlay */}
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="absolute top-2 right-2 bg-black bg-opacity-50 hover:bg-opacity-70 text-white"
-                    onClick={toggleFullscreen}
-                    title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-                  >
-                    {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-                  </Button>
                 </div>
               )}
               
@@ -1663,17 +1732,6 @@ export default function AutoAnalyzedVideoPlayer({
                   </div>
                 </div>
                 
-                {/* Skeleton Toggle Button */}
-                <div className="mb-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowSkeleton(!showSkeleton)}
-                    className={`text-xs ${showSkeleton ? 'bg-green-600 text-white' : 'bg-gray-600 text-gray-300'}`}
-                  >
-                    {showSkeleton ? 'Hide Skeleton' : 'Show Skeleton'}
-                  </Button>
-                </div>
                 
                 {selectedFrame ? (
                   <div className="space-y-2 text-xs">
@@ -1741,26 +1799,52 @@ export default function AutoAnalyzedVideoPlayer({
                   </div>
                 ) : (
                   <div className="text-xs text-gray-400">
-                    Loading frame data...
+                    No frame data available
                   </div>
                 )}
               </div>
 
               {/* Video Controls */}
-              <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-75 rounded-lg p-3">
-                <div className="flex items-center justify-center space-x-4 mb-2">
-                  <Button variant="ghost" size="sm" onClick={() => seekToTime(Math.max(0, currentTime - 5))}>
-                    <SkipBack className="h-4 w-4" />
+              <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-85 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-3">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => seekToTime(Math.max(0, currentTime - 5))}
+                      className="text-white hover:bg-white hover:bg-opacity-20"
+                    >
+                      <SkipBack className="h-5 w-5" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={togglePlay}>
-                    {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={togglePlay}
+                      className="text-white hover:bg-white hover:bg-opacity-20"
+                    >
+                      {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => seekToTime(Math.min(duration, currentTime + 5))}
+                      className="text-white hover:bg-white hover:bg-opacity-20"
+                    >
+                      <SkipForward className="h-5 w-5" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => seekToTime(Math.min(duration, currentTime + 5))}>
-                    <SkipForward className="h-4 w-4" />
-                  </Button>
-                  <span className="text-white text-sm">
+                    <span className="text-white text-sm font-mono">
                     {formatTime(currentTime)} / {formatTime(duration)}
-                  </span>
+                    </span>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={toggleFullscreen}
+                    className="text-white hover:bg-white hover:bg-opacity-20"
+                    title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                  >
+                    {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                  </Button>
                 </div>
 
                 {/* Frame-by-Frame Controls */}
@@ -1791,28 +1875,17 @@ export default function AutoAnalyzedVideoPlayer({
                   </span>
                 </div>
 
-                {/* Risk Timeline */}
-                <div className="relative h-2 bg-gray-600 rounded-full overflow-hidden">
-                  <div 
-                    className="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-100"
-                    style={{ width: `${(currentTime / duration) * 100}%` }}
-                  />
-                  {frameData.map((frame, index) => (
-                    <button
-                      key={index}
-                      className={`absolute top-0 w-1 h-full ${getRiskColor(frame.metrics?.acl_risk || 0)} hover:opacity-80 transition-opacity`}
-                      style={{ left: `${(frame.timestamp / duration) * 100}%` }}
-                      onClick={() => seekToTime(frame.timestamp)}
-                      title={`${formatTime(frame.timestamp)} - ${getRiskLevel(frame.metrics?.acl_risk || 0)} Risk (${(frame.metrics?.acl_risk || 0).toFixed(0)}%)`}
-                    />
-                  ))}
-                </div>
-                <div className="flex justify-between text-xs text-gray-300 mt-1">
-                  <span>Low Risk</span>
-                  <span>Moderate Risk</span>
-                  <span>High Risk</span>
-                </div>
               </div>
+            </div>
+            
+            {/* Risk Timeline Component */}
+            <div className="flex justify-center mt-4">
+              <RiskTimeline
+                frameData={frameData}
+                currentTime={currentTime}
+                duration={duration}
+                onSeek={seekToTime}
+              />
             </div>
             </div>
 

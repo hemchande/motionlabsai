@@ -1627,7 +1627,7 @@ export default function AthleteDashboard({ user, onStatsUpdate }: AthleteDashboa
                   return isUploaded && hasVideo
                 })
                 console.log('🔍 AthleteDashboard - Filtered sessions for "Uploaded videos":', filteredSessions.length, 'sessions')
-                return filteredSessions.slice(0, 3).map((session) => (
+                return filteredSessions.map((session) => (
                   <div key={session.id} className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border">
                     <div className="flex items-center space-x-3">
                       <Video className="h-4 w-4 text-blue-600" />

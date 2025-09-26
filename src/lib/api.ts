@@ -1,6 +1,6 @@
 // API client for Gymnastics Analytics Backend
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5004';
-export const API_ANALYSIS_URL = process.env.NEXT_PUBLIC_API_ANALYSIS_URL || 'http://localhost:5005';
+export const API_ANALYSIS_URL = process.env.NEXT_PUBLIC_API_URL || 'https://gymnasticsapi.onrender.com';
 
 export interface HealthStatus {
   status: string;
@@ -297,32 +297,6 @@ class GymnasticsAPI {
     });
   }
 
-  // Analyze video with enhanced analytics (analyzeVideo2 endpoint)
-  async analyzeVideo2(videoFilename: string, athleteName?: string, event?: string, sessionName?: string, userId?: string): Promise<{ 
-    success: boolean; 
-    message: string; 
-    session_id: string; 
-    video_id: string; 
-    analytics_id?: string; 
-    output_video: string; 
-    analytics_file?: string;
-    download_url: string;
-    analytics_url?: string;
-    enhanced_analytics: boolean;
-    features: string[];
-    timestamp: string;
-  }> {
-    return this.request('/analyzevideo2', {
-      method: 'POST',
-      body: JSON.stringify({ 
-        video_filename: videoFilename,
-        athlete_name: athleteName || 'Unknown Athlete',
-        event: event || 'Floor Exercise',
-        session_name: sessionName || `${athleteName || 'Unknown Athlete'} - ${event || 'Floor Exercise'}`,
-        user_id: userId || 'demo_user'
-      }),
-    });
-  }
 
   // Analyze video per frame (advanced analysis)
   async analyzeVideoPerFrame(videoFilename: string): Promise<PerFrameJobStatus> {

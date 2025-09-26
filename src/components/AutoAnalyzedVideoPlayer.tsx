@@ -306,7 +306,6 @@ export default function AutoAnalyzedVideoPlayer({
   const [showStatistics, setShowStatistics] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [showFrameNumber, setShowFrameNumber] = useState(false)
   
   // Analytics cache state
   const [analyticsCache, setAnalyticsCache] = useState<Map<string, { data: any; timestamp: number }>>(new Map())
@@ -1315,10 +1314,6 @@ export default function AutoAnalyzedVideoPlayer({
         const frameTime = frameData[newFrameIndex].timestamp
         seekToTime(frameTime)
       }
-      
-      // Show frame number indicator
-      setShowFrameNumber(true)
-      setTimeout(() => setShowFrameNumber(false), 1500)
     }
   }
 
@@ -1331,10 +1326,6 @@ export default function AutoAnalyzedVideoPlayer({
         const frameTime = frameData[newFrameIndex].timestamp
         seekToTime(frameTime)
       }
-      
-      // Show frame number indicator
-      setShowFrameNumber(true)
-      setTimeout(() => setShowFrameNumber(false), 1500)
     }
   }
 
@@ -1580,58 +1571,56 @@ export default function AutoAnalyzedVideoPlayer({
                   {isCloudflareStream && cloudflareStreamUrl ? (
                     // Cloudflare Stream iframe embed
                     <div className="relative">
-                      <iframe
-                        src={cloudflareStreamUrl}
-                        style={{ border: 'none', width: '100%', height: '500px' }}
-                        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                        allowFullScreen={true}
-                        id="stream-player"
-                        onLoad={() => {
-                          console.log('Cloudflare Stream iframe loaded successfully');
-                          setLoading(false);
-                          // Initialize Cloudflare Stream player
-                          if (window.Stream) {
-                            const player = window.Stream(document.getElementById('stream-player'));
-                            setStreamPlayer(player); // Store player reference
-                            player.addEventListener('play', () => {
-                              console.log('Cloudflare Stream playing!');
-                              setIsPlaying(true);
-                            });
-                            player.addEventListener('pause', () => {
-                              console.log('Cloudflare Stream paused');
-                              setIsPlaying(false);
-                            });
-                            player.addEventListener('timeupdate', () => {
-                              // Handle time updates for Cloudflare Stream
-                              if (player.currentTime !== undefined) {
-                                setCurrentTime(player.currentTime);
-                              }
-                            });
-                            player.play().catch(() => {
-                              console.log('Cloudflare Stream playback failed, muting to try again');
-                              player.muted = true;
-                              player.play();
-                            });
-                          }
-                        }}
-                        onError={() => {
-                          console.error('Cloudflare Stream iframe load error');
-                          setError('Failed to load Cloudflare Stream video');
-                          setLoading(false);
-                        }}
-                      />
+                    <iframe
+                      src={cloudflareStreamUrl}
+                      style={{ border: 'none', width: '100%', height: '500px' }}
+                      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                      allowFullScreen={true}
+                      id="stream-player"
+                      onLoad={() => {
+                        console.log('Cloudflare Stream iframe loaded successfully');
+                        setLoading(false);
+                        // Initialize Cloudflare Stream player
+                        if (window.Stream) {
+                          const player = window.Stream(document.getElementById('stream-player'));
+                          setStreamPlayer(player); // Store player reference
+                          player.addEventListener('play', () => {
+                            console.log('Cloudflare Stream playing!');
+                            setIsPlaying(true);
+                          });
+                          player.addEventListener('pause', () => {
+                            console.log('Cloudflare Stream paused');
+                            setIsPlaying(false);
+                          });
+                          player.addEventListener('timeupdate', () => {
+                            // Handle time updates for Cloudflare Stream
+                            if (player.currentTime !== undefined) {
+                              setCurrentTime(player.currentTime);
+                            }
+                          });
+                          player.play().catch(() => {
+                            console.log('Cloudflare Stream playback failed, muting to try again');
+                            player.muted = true;
+                            player.play();
+                          });
+                        }
+                      }}
+                      onError={() => {
+                        console.error('Cloudflare Stream iframe load error');
+                        setError('Failed to load Cloudflare Stream video');
+                        setLoading(false);
+                      }}
+                    />
                       
-                      {/* Frame number indicator for Cloudflare Stream */}
-                      {showFrameNumber && (
-                        <div className="absolute top-4 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
-                          <div className="text-white text-lg font-bold">
-                            Frame {currentFrameIndex + 1} / {frameData.length}
-                          </div>
-                          <div className="text-gray-300 text-sm">
-                            {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
-                          </div>
+                      {/* Persistent frame number display for Cloudflare Stream */}
+                      <div className="absolute top-4 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
+                        <div className="text-white text-lg font-bold">
+                          Frame {currentFrameIndex + 1} / {frameData.length}
                         </div>
-                      )}
+                        <div className="text-gray-300 text-sm">
+                          {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     // Regular HTML5 video element with click-to-advance
@@ -1644,78 +1633,78 @@ export default function AutoAnalyzedVideoPlayer({
                       }}
                       title="Click to advance to next frame, right-click to go to previous frame"
                     >
-                      <video
-                        ref={videoRef}
-                        className="w-full h-full max-h-[500px] object-contain"
-                        src={actualVideoUrl || undefined}
-                        preload="auto"
-                        playsInline
-                        muted
-                        crossOrigin="anonymous"
-                        onLoadedData={() => {
-                          console.log('Video loaded successfully');
-                          setLoading(false);
-                          // Calculate and set video aspect ratio
-                          if (videoRef.current) {
-                            const video = videoRef.current;
-                            const aspectRatio = video.videoWidth / video.videoHeight;
-                            setVideoAspectRatio(aspectRatio);
-                            console.log('Video aspect ratio:', aspectRatio, 'Dimensions:', video.videoWidth, 'x', video.videoHeight);
-                          }
-                        }}
-                        onError={(e) => {
-                          console.error('Video load error:', e);
-                          console.error('Video URL:', actualVideoUrl);
-                          console.error('Video element error:', e.currentTarget?.error);
-                          console.error('Error details:', {
-                            code: e.currentTarget?.error?.code,
-                            message: e.currentTarget?.error?.message,
-                            networkState: e.currentTarget?.networkState,
-                            readyState: e.currentTarget?.readyState
-                          });
-                          
-                          const errorCode = e.currentTarget?.error?.code;
-                          let errorMessage = 'Unknown video error';
-                          
-                          switch (errorCode) {
-                            case 1:
-                              errorMessage = 'Video loading aborted';
-                              break;
-                            case 2:
-                              errorMessage = 'Network error while loading video';
-                              break;
-                            case 3:
-                              errorMessage = 'Video decoding error';
-                              break;
-                            case 4:
-                              errorMessage = 'Video format not supported';
-                              break;
-                            default:
-                              errorMessage = `Video error (code: ${errorCode})`;
-                          }
-                          
-                          setError(errorMessage);
-                          setLoading(false);
-                        }}
-                        onCanPlay={() => {
-                          console.log('Video can play');
-                          setLoading(false);
-                        }}
-                        onLoadStart={() => {
-                          console.log('Video load started');
-                          setLoading(true);
-                        }}
-                        onPlay={() => {
-                          console.log('Video started playing');
-                          setIsPlaying(true);
-                        }}
-                        onPause={() => {
-                          console.log('Video paused');
-                          setIsPlaying(false);
-                        }}
-                        onTimeUpdate={handleTimeUpdate}
-                        style={{ width: '100%', height: '100%' }}
-                      />
+                    <video
+                      ref={videoRef}
+                      className="w-full h-full max-h-[500px] object-contain"
+                      src={actualVideoUrl || undefined}
+                      preload="auto"
+                      playsInline
+                      muted
+                      crossOrigin="anonymous"
+                      onLoadedData={() => {
+                        console.log('Video loaded successfully');
+                        setLoading(false);
+                        // Calculate and set video aspect ratio
+                        if (videoRef.current) {
+                          const video = videoRef.current;
+                          const aspectRatio = video.videoWidth / video.videoHeight;
+                          setVideoAspectRatio(aspectRatio);
+                          console.log('Video aspect ratio:', aspectRatio, 'Dimensions:', video.videoWidth, 'x', video.videoHeight);
+                        }
+                      }}
+                      onError={(e) => {
+                        console.error('Video load error:', e);
+                        console.error('Video URL:', actualVideoUrl);
+                        console.error('Video element error:', e.currentTarget?.error);
+                        console.error('Error details:', {
+                          code: e.currentTarget?.error?.code,
+                          message: e.currentTarget?.error?.message,
+                          networkState: e.currentTarget?.networkState,
+                          readyState: e.currentTarget?.readyState
+                        });
+                        
+                        const errorCode = e.currentTarget?.error?.code;
+                        let errorMessage = 'Unknown video error';
+                        
+                        switch (errorCode) {
+                          case 1:
+                            errorMessage = 'Video loading aborted';
+                            break;
+                          case 2:
+                            errorMessage = 'Network error while loading video';
+                            break;
+                          case 3:
+                            errorMessage = 'Video decoding error';
+                            break;
+                          case 4:
+                            errorMessage = 'Video format not supported';
+                            break;
+                          default:
+                            errorMessage = `Video error (code: ${errorCode})`;
+                        }
+                        
+                        setError(errorMessage);
+                        setLoading(false);
+                      }}
+                      onCanPlay={() => {
+                        console.log('Video can play');
+                        setLoading(false);
+                      }}
+                      onLoadStart={() => {
+                        console.log('Video load started');
+                        setLoading(true);
+                      }}
+                      onPlay={() => {
+                        console.log('Video started playing');
+                        setIsPlaying(true);
+                      }}
+                      onPause={() => {
+                        console.log('Video paused');
+                        setIsPlaying(false);
+                      }}
+                      onTimeUpdate={handleTimeUpdate}
+                      style={{ width: '100%', height: '100%' }}
+                    />
                       
                       {/* Click overlay indicator */}
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -1726,17 +1715,15 @@ export default function AutoAnalyzedVideoPlayer({
                         </div>
                       </div>
                       
-                      {/* Frame number indicator */}
-                      {showFrameNumber && (
-                        <div className="absolute top-4 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
-                          <div className="text-white text-lg font-bold">
-                            Frame {currentFrameIndex + 1} / {frameData.length}
-                          </div>
-                          <div className="text-gray-300 text-sm">
-                            {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
-                          </div>
+                      {/* Persistent frame number display on video */}
+                      <div className="absolute top-4 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
+                        <div className="text-white text-lg font-bold">
+                          Frame {currentFrameIndex + 1} / {frameData.length}
                         </div>
-                      )}
+                        <div className="text-gray-300 text-sm">
+                          {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

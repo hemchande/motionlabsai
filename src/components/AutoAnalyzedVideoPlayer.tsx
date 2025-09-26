@@ -306,6 +306,7 @@ export default function AutoAnalyzedVideoPlayer({
   const [showStatistics, setShowStatistics] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showFrameNumber, setShowFrameNumber] = useState(false)
   
   // Analytics cache state
   const [analyticsCache, setAnalyticsCache] = useState<Map<string, { data: any; timestamp: number }>>(new Map())
@@ -1314,6 +1315,10 @@ export default function AutoAnalyzedVideoPlayer({
         const frameTime = frameData[newFrameIndex].timestamp
         seekToTime(frameTime)
       }
+      
+      // Show frame number indicator
+      setShowFrameNumber(true)
+      setTimeout(() => setShowFrameNumber(false), 1500)
     }
   }
 
@@ -1326,6 +1331,10 @@ export default function AutoAnalyzedVideoPlayer({
         const frameTime = frameData[newFrameIndex].timestamp
         seekToTime(frameTime)
       }
+      
+      // Show frame number indicator
+      setShowFrameNumber(true)
+      setTimeout(() => setShowFrameNumber(false), 1500)
     }
   }
 
@@ -1570,46 +1579,60 @@ export default function AutoAnalyzedVideoPlayer({
                 <div className="relative">
                   {isCloudflareStream && cloudflareStreamUrl ? (
                     // Cloudflare Stream iframe embed
-                    <iframe
-                      src={cloudflareStreamUrl}
-                      style={{ border: 'none', width: '100%', height: '500px' }}
-                      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                      allowFullScreen={true}
-                      id="stream-player"
-                      onLoad={() => {
-                        console.log('Cloudflare Stream iframe loaded successfully');
-                        setLoading(false);
-                        // Initialize Cloudflare Stream player
-                        if (window.Stream) {
-                          const player = window.Stream(document.getElementById('stream-player'));
-                          setStreamPlayer(player); // Store player reference
-                          player.addEventListener('play', () => {
-                            console.log('Cloudflare Stream playing!');
-                            setIsPlaying(true);
-                          });
-                          player.addEventListener('pause', () => {
-                            console.log('Cloudflare Stream paused');
-                            setIsPlaying(false);
-                          });
-                          player.addEventListener('timeupdate', () => {
-                            // Handle time updates for Cloudflare Stream
-                            if (player.currentTime !== undefined) {
-                              setCurrentTime(player.currentTime);
-                            }
-                          });
-                          player.play().catch(() => {
-                            console.log('Cloudflare Stream playback failed, muting to try again');
-                            player.muted = true;
-                            player.play();
-                          });
-                        }
-                      }}
-                      onError={() => {
-                        console.error('Cloudflare Stream iframe load error');
-                        setError('Failed to load Cloudflare Stream video');
-                        setLoading(false);
-                      }}
-                    />
+                    <div className="relative">
+                      <iframe
+                        src={cloudflareStreamUrl}
+                        style={{ border: 'none', width: '100%', height: '500px' }}
+                        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                        allowFullScreen={true}
+                        id="stream-player"
+                        onLoad={() => {
+                          console.log('Cloudflare Stream iframe loaded successfully');
+                          setLoading(false);
+                          // Initialize Cloudflare Stream player
+                          if (window.Stream) {
+                            const player = window.Stream(document.getElementById('stream-player'));
+                            setStreamPlayer(player); // Store player reference
+                            player.addEventListener('play', () => {
+                              console.log('Cloudflare Stream playing!');
+                              setIsPlaying(true);
+                            });
+                            player.addEventListener('pause', () => {
+                              console.log('Cloudflare Stream paused');
+                              setIsPlaying(false);
+                            });
+                            player.addEventListener('timeupdate', () => {
+                              // Handle time updates for Cloudflare Stream
+                              if (player.currentTime !== undefined) {
+                                setCurrentTime(player.currentTime);
+                              }
+                            });
+                            player.play().catch(() => {
+                              console.log('Cloudflare Stream playback failed, muting to try again');
+                              player.muted = true;
+                              player.play();
+                            });
+                          }
+                        }}
+                        onError={() => {
+                          console.error('Cloudflare Stream iframe load error');
+                          setError('Failed to load Cloudflare Stream video');
+                          setLoading(false);
+                        }}
+                      />
+                      
+                      {/* Frame number indicator for Cloudflare Stream */}
+                      {showFrameNumber && (
+                        <div className="absolute top-4 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
+                          <div className="text-white text-lg font-bold">
+                            Frame {currentFrameIndex + 1} / {frameData.length}
+                          </div>
+                          <div className="text-gray-300 text-sm">
+                            {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     // Regular HTML5 video element with click-to-advance
                     <div 
@@ -1702,6 +1725,18 @@ export default function AutoAnalyzedVideoPlayer({
                           <StepForward className="h-5 w-5 text-white" />
                         </div>
                       </div>
+                      
+                      {/* Frame number indicator */}
+                      {showFrameNumber && (
+                        <div className="absolute top-4 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
+                          <div className="text-white text-lg font-bold">
+                            Frame {currentFrameIndex + 1} / {frameData.length}
+                          </div>
+                          <div className="text-gray-300 text-sm">
+                            {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

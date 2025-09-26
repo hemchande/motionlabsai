@@ -306,6 +306,8 @@ export default function AutoAnalyzedVideoPlayer({
   const [showStatistics, setShowStatistics] = useState(true)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [frameStepInterval, setFrameStepInterval] = useState<NodeJS.Timeout | null>(null)
+  const [isFrameStepping, setIsFrameStepping] = useState(false)
   
   // Analytics cache state
   const [analyticsCache, setAnalyticsCache] = useState<Map<string, { data: any; timestamp: number }>>(new Map())
@@ -1029,6 +1031,9 @@ export default function AutoAnalyzedVideoPlayer({
   // Cleanup effect to prevent AbortError when component unmounts
   useEffect(() => {
     return () => {
+      // Stop frame stepping
+      stopFrameStepping()
+      
       const video = videoRef.current
       if (video && typeof video.pause === 'function') {
         try {
@@ -1351,6 +1356,57 @@ export default function AutoAnalyzedVideoPlayer({
     }
   }
 
+  // Frame stepping functions
+  const startFrameStepping = () => {
+    if (frameData.length === 0) return
+    
+    setIsFrameStepping(true)
+    
+    // Calculate frame duration based on video FPS (default 30fps)
+    const fps = 30
+    const frameDuration = 1000 / fps // milliseconds per frame
+    
+    const interval = setInterval(() => {
+      setCurrentFrameIndex(prevIndex => {
+        const nextIndex = prevIndex + 1
+        
+        if (nextIndex >= frameData.length) {
+          // End of video - stop stepping
+          stopFrameStepping()
+          return prevIndex
+        }
+        
+        // Seek to the next frame
+        if (frameData[nextIndex]) {
+          const frameTime = frameData[nextIndex].timestamp / 1000 // Convert to seconds
+          seekToTime(frameTime)
+        }
+        
+        return nextIndex
+      })
+    }, frameDuration)
+    
+    setFrameStepInterval(interval)
+    console.log('Frame stepping started at', frameDuration, 'ms per frame')
+  }
+
+  const stopFrameStepping = () => {
+    if (frameStepInterval) {
+      clearInterval(frameStepInterval)
+      setFrameStepInterval(null)
+    }
+    setIsFrameStepping(false)
+    console.log('Frame stepping stopped')
+  }
+
+  const toggleFrameStepping = () => {
+    if (isFrameStepping) {
+      stopFrameStepping()
+    } else {
+      startFrameStepping()
+    }
+  }
+
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60)
     const seconds = Math.floor(time % 60)
@@ -1527,7 +1583,7 @@ export default function AutoAnalyzedVideoPlayer({
           <div>
             <h3 className="text-lg font-semibold">AI Video Analysis</h3>
             <p className="text-xs text-gray-500 mt-1">
-              Click video to advance frame-by-frame • Right-click to go back • Use ← → arrow keys • Spacebar to play/pause • F for fullscreen
+              Click video to advance frame-by-frame • Right-click to go back • Use ← → arrow keys • Click play button for auto frame stepping • Spacebar to play/pause • F for fullscreen
             </p>
           </div>
                   <div className="flex items-center space-x-2">
@@ -1785,7 +1841,7 @@ export default function AutoAnalyzedVideoPlayer({
                     variant="ghost" 
                     size="sm" 
                     onClick={goToPreviousFrame}
-                    disabled={currentFrameIndex <= 0}
+                    disabled={currentFrameIndex <= 0 || isFrameStepping}
                     className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
                   >
                     <StepBack className="h-3 w-3" />
@@ -1797,10 +1853,19 @@ export default function AutoAnalyzedVideoPlayer({
                     variant="ghost" 
                     size="sm" 
                     onClick={goToNextFrame}
-                    disabled={currentFrameIndex >= frameData.length - 1}
+                    disabled={currentFrameIndex >= frameData.length - 1 || isFrameStepping}
                     className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
                   >
                     <StepForward className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={toggleFrameStepping}
+                    className={`text-white hover:bg-white hover:bg-opacity-20 ${isFrameStepping ? 'bg-red-600 bg-opacity-50' : 'bg-green-600 bg-opacity-50'}`}
+                    title={isFrameStepping ? "Stop frame stepping" : "Start frame stepping"}
+                  >
+                    {isFrameStepping ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                   </Button>
                   <span className="text-white text-xs px-2">
                   {frameData.length > 0 ? `Frame Time: ${formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}` : ''}

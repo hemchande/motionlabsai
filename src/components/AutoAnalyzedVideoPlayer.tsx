@@ -1753,8 +1753,8 @@ export default function AutoAnalyzedVideoPlayer({
                   </Button>
                 </div>
 
-              {/* Frame-by-Frame Controls - Moved even further down */}
-              <div className="absolute bottom-32 left-4 right-4 flex items-center justify-center space-x-2">
+              {/* Frame-by-Frame Controls - Moved to very bottom */}
+              <div className="absolute bottom-8 left-4 right-4 flex items-center justify-center space-x-2">
                   <Button 
                     variant="ghost" 
                     size="sm" 

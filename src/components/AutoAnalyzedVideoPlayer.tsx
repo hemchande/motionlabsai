@@ -308,6 +308,7 @@ export default function AutoAnalyzedVideoPlayer({
   const [error, setError] = useState<string | null>(null)
   const [frameStepInterval, setFrameStepInterval] = useState<NodeJS.Timeout | null>(null)
   const [isFrameStepping, setIsFrameStepping] = useState(false)
+  const [frameCallbackId, setFrameCallbackId] = useState<number | null>(null)
   
   // Analytics cache state
   const [analyticsCache, setAnalyticsCache] = useState<Map<string, { data: any; timestamp: number }>>(new Map())
@@ -1037,7 +1038,12 @@ export default function AutoAnalyzedVideoPlayer({
       const video = videoRef.current
       if (video && typeof video.pause === 'function') {
         try {
-        // Pause and reset video to prevent AbortError
+          // Cancel any pending frame callbacks
+          if (frameCallbackId && typeof video.cancelVideoFrameCallback === 'function') {
+            video.cancelVideoFrameCallback(frameCallbackId)
+          }
+          
+          // Pause and reset video to prevent AbortError
           video.pause();
           video.currentTime = 0;
           video.src = '';
@@ -1047,7 +1053,7 @@ export default function AutoAnalyzedVideoPlayer({
         }
       }
     }
-  }, [])
+  }, [frameCallbackId])
 
   // Handle video loading errors
   useEffect(() => {
@@ -1356,13 +1362,67 @@ export default function AutoAnalyzedVideoPlayer({
     }
   }
 
-  // Frame stepping functions
+  // Frame stepping functions using requestVideoFrameCallback
   const startFrameStepping = () => {
     if (frameData.length === 0) return
     
+    const video = videoRef.current
+    if (!video || typeof video.requestVideoFrameCallback !== 'function') {
+      console.warn('requestVideoFrameCallback not supported, falling back to interval method')
+      startFrameSteppingInterval()
+      return
+    }
+    
     setIsFrameStepping(true)
     
-    // Calculate frame duration based on video FPS (default 30fps)
+    // Set video to play at normal speed for frame callback
+    video.muted = true
+    video.playbackRate = 1.0
+    
+    const onFrame = (now: number, metadata: any) => {
+      if (!isFrameStepping) return
+      
+      // Get precise media time from metadata
+      const mediaTime = metadata.mediaTime || video.currentTime
+      
+      // Find the closest frame index based on media time
+      const closestFrameIndex = frameData.findIndex(frame => {
+        const frameTime = frame.timestamp / 1000 // Convert to seconds
+        return Math.abs(frameTime - mediaTime) < 0.05 // 50ms tolerance
+      })
+      
+      if (closestFrameIndex !== -1 && closestFrameIndex !== currentFrameIndex) {
+        setCurrentFrameIndex(closestFrameIndex)
+        console.log(`Frame callback: mediaTime=${mediaTime.toFixed(3)}s, frame=${closestFrameIndex + 1}/${frameData.length}`)
+      }
+      
+      // Check if we've reached the end
+      if (mediaTime >= (frameData[frameData.length - 1]?.timestamp || 0) / 1000) {
+        stopFrameStepping()
+        return
+      }
+      
+      // Request next frame callback
+      if (isFrameStepping) {
+        const callbackId = video.requestVideoFrameCallback(onFrame)
+        setFrameCallbackId(callbackId)
+      }
+    }
+    
+    // Start the frame callback chain
+    const callbackId = video.requestVideoFrameCallback(onFrame)
+    setFrameCallbackId(callbackId)
+    
+    // Start video playback
+    video.play().catch(console.error)
+    
+    console.log('Frame stepping started with requestVideoFrameCallback')
+  }
+
+  // Fallback interval-based method for browsers without requestVideoFrameCallback
+  const startFrameSteppingInterval = () => {
+    setIsFrameStepping(true)
+    
     const fps = 30
     const frameDuration = 1000 / fps // milliseconds per frame
     
@@ -1371,14 +1431,12 @@ export default function AutoAnalyzedVideoPlayer({
         const nextIndex = prevIndex + 1
         
         if (nextIndex >= frameData.length) {
-          // End of video - stop stepping
           stopFrameStepping()
           return prevIndex
         }
         
-        // Seek to the next frame
         if (frameData[nextIndex]) {
-          const frameTime = frameData[nextIndex].timestamp / 1000 // Convert to seconds
+          const frameTime = frameData[nextIndex].timestamp / 1000
           seekToTime(frameTime)
         }
         
@@ -1387,14 +1445,29 @@ export default function AutoAnalyzedVideoPlayer({
     }, frameDuration)
     
     setFrameStepInterval(interval)
-    console.log('Frame stepping started at', frameDuration, 'ms per frame')
+    console.log('Frame stepping started with interval fallback')
   }
 
   const stopFrameStepping = () => {
+    const video = videoRef.current
+    
+    // Cancel frame callback if active
+    if (frameCallbackId && video && typeof video.cancelVideoFrameCallback === 'function') {
+      video.cancelVideoFrameCallback(frameCallbackId)
+      setFrameCallbackId(null)
+    }
+    
+    // Clear interval if active
     if (frameStepInterval) {
       clearInterval(frameStepInterval)
       setFrameStepInterval(null)
     }
+    
+    // Pause video
+    if (video) {
+      video.pause()
+    }
+    
     setIsFrameStepping(false)
     console.log('Frame stepping stopped')
   }
@@ -1583,7 +1656,7 @@ export default function AutoAnalyzedVideoPlayer({
           <div>
             <h3 className="text-lg font-semibold">AI Video Analysis</h3>
             <p className="text-xs text-gray-500 mt-1">
-              Click video to advance frame-by-frame • Right-click to go back • Use ← → arrow keys • Click play button for auto frame stepping • Spacebar to play/pause • F for fullscreen
+              Click video to advance frame-by-frame • Right-click to go back • Use ← → arrow keys • Click play button for precise frame stepping (uses requestVideoFrameCallback) • Spacebar to play/pause • F for fullscreen
             </p>
           </div>
                   <div className="flex items-center space-x-2">

@@ -1003,15 +1003,6 @@ export default function SessionDashboard({ onNavigateToUpload }: SessionDashboar
           <p className="text-muted-foreground">View and manage previous analysis sessions</p>
         </div>
         <div className="flex items-center space-x-2">
-          {onNavigateToUpload && (
-            <Button
-              onClick={onNavigateToUpload}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Upload New Video
-            </Button>
-          )}
           <Calendar className="h-5 w-5" />
           <span className="text-sm text-muted-foreground">
             {stats?.totalSessions || 0} total sessions

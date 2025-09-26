@@ -1346,50 +1346,6 @@ export default function AutoAnalyzedVideoPlayer({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`
   }
 
-  // Find the exact frame that matches the current video timestamp
-  const getCurrentFrameData = () => {
-    if (!frameData.length) return null
-    
-    // Convert currentTime to milliseconds to match frame timestamps
-    const currentTimeMs = currentTime * 1000
-    
-    // Find the frame with the closest timestamp to current video time
-    let closestFrame = frameData[0]
-    let minDifference = Math.abs(frameData[0].timestamp - currentTimeMs)
-    
-    for (const frame of frameData) {
-      const difference = Math.abs(frame.timestamp - currentTimeMs)
-      if (difference < minDifference) {
-        minDifference = difference
-        closestFrame = frame
-      }
-    }
-    
-    return closestFrame
-  }
-
-  // Find the exact enhanced frame that matches the current video timestamp
-  const getCurrentEnhancedFrameData = () => {
-    if (!enhancedFrameData.length) return null
-    
-    // Convert currentTime to milliseconds to match frame timestamps
-    const currentTimeMs = currentTime * 1000
-    
-    // Find the enhanced frame with the closest timestamp to current video time
-    let closestFrame = enhancedFrameData[0]
-    let minDifference = Math.abs(enhancedFrameData[0].timestamp - currentTimeMs)
-    
-    for (const frame of enhancedFrameData) {
-      const difference = Math.abs(frame.timestamp - currentTimeMs)
-      if (difference < minDifference) {
-        minDifference = difference
-        closestFrame = frame
-      }
-    }
-    
-    return closestFrame
-  }
-
   // Calculate optimal video container dimensions
   const getVideoContainerStyle = () => {
     if (!videoAspectRatio) {
@@ -1757,7 +1713,7 @@ export default function AutoAnalyzedVideoPlayer({
                 </div>
 
               {/* Frame-by-Frame Controls - Moved even further down */}
-              <div className="absolute bottom-40 left-4 right-4 flex items-center justify-center space-x-2">
+              <div className="absolute bottom-32 left-4 right-4 flex items-center justify-center space-x-2">
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -1835,55 +1791,55 @@ export default function AutoAnalyzedVideoPlayer({
                     <div className="flex justify-between">
                       <span className="text-gray-400 text-xs">L Knee:</span>
                       <span className="text-cyan-400 text-xs font-mono">
-                        {getCurrentFrameData()?.metrics?.left_knee_angle?.toFixed(0) || 'N/A'}°
+                        {frameData[currentFrameIndex]?.metrics?.left_knee_angle?.toFixed(0) || 'N/A'}°
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400 text-xs">R Knee:</span>
                       <span className="text-cyan-400 text-xs font-mono">
-                        {getCurrentFrameData()?.metrics?.right_knee_angle?.toFixed(0) || 'N/A'}°
+                        {frameData[currentFrameIndex]?.metrics?.right_knee_angle?.toFixed(0) || 'N/A'}°
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400 text-xs">L Hip:</span>
                       <span className="text-cyan-400 text-xs font-mono">
-                        {getCurrentFrameData()?.metrics?.left_hip_angle?.toFixed(0) || 'N/A'}°
+                        {frameData[currentFrameIndex]?.metrics?.left_hip_angle?.toFixed(0) || 'N/A'}°
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400 text-xs">R Hip:</span>
                       <span className="text-cyan-400 text-xs font-mono">
-                        {getCurrentFrameData()?.metrics?.right_hip_angle?.toFixed(0) || 'N/A'}°
+                        {frameData[currentFrameIndex]?.metrics?.right_hip_angle?.toFixed(0) || 'N/A'}°
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400 text-xs">L Elbow:</span>
                       <span className="text-cyan-400 text-xs font-mono">
-                        {getCurrentFrameData()?.metrics?.left_elbow_angle?.toFixed(0) || 'N/A'}°
+                        {frameData[currentFrameIndex]?.metrics?.left_elbow_angle?.toFixed(0) || 'N/A'}°
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400 text-xs">R Elbow:</span>
                       <span className="text-cyan-400 text-xs font-mono">
-                        {getCurrentFrameData()?.metrics?.right_elbow_angle?.toFixed(0) || 'N/A'}°
+                        {frameData[currentFrameIndex]?.metrics?.right_elbow_angle?.toFixed(0) || 'N/A'}°
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400 text-xs">L Shoulder:</span>
                       <span className="text-cyan-400 text-xs font-mono">
-                        {getCurrentFrameData()?.metrics?.left_shoulder_angle?.toFixed(0) || 'N/A'}°
+                        {frameData[currentFrameIndex]?.metrics?.left_shoulder_angle?.toFixed(0) || 'N/A'}°
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400 text-xs">R Shoulder:</span>
                       <span className="text-cyan-400 text-xs font-mono">
-                        {getCurrentFrameData()?.metrics?.right_shoulder_angle?.toFixed(0) || 'N/A'}°
+                        {frameData[currentFrameIndex]?.metrics?.right_shoulder_angle?.toFixed(0) || 'N/A'}°
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-400 text-xs">Split Angle:</span>
                       <span className="text-cyan-400 text-xs font-mono">
-                        {getCurrentFrameData()?.metrics?.split_angle?.toFixed(0) || 'N/A'}°
+                        {frameData[currentFrameIndex]?.metrics?.split_angle?.toFixed(0) || 'N/A'}°
                       </span>
                     </div>
                   </div>
@@ -1899,25 +1855,19 @@ export default function AutoAnalyzedVideoPlayer({
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-xs">Height:</span>
                     <span className="text-cyan-400 text-xs font-mono">
-                      {getCurrentEnhancedFrameData() ? (getCurrentEnhancedFrameData()!.height_from_ground * 100).toFixed(1) : '0.0'}cm
+                      {enhancedFrameData[currentFrameIndex] ? (enhancedFrameData[currentFrameIndex].height_from_ground * 100).toFixed(1) : '0.0'}cm
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-xs">Elevation:</span>
                     <span className="text-cyan-400 text-xs font-mono">
-                      {getCurrentEnhancedFrameData() ? getCurrentEnhancedFrameData()!.elevation_angle.toFixed(1) : '0.0'}°
+                      {enhancedFrameData[currentFrameIndex] ? enhancedFrameData[currentFrameIndex].elevation_angle.toFixed(1) : '0.0'}°
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-xs">Forward Lean:</span>
                     <span className="text-cyan-400 text-xs font-mono">
-                      {getCurrentEnhancedFrameData() ? getCurrentEnhancedFrameData()!.forward_lean_angle.toFixed(1) : '0.0'}°
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Flight Time:</span>
-                    <span className="text-yellow-400 text-xs font-mono">
-                      {getCurrentFrameData()?.metrics?.flight_time?.toFixed(2) || 'N/A'}s
+                      {enhancedFrameData[currentFrameIndex] ? enhancedFrameData[currentFrameIndex].forward_lean_angle.toFixed(1) : '0.0'}°
                     </span>
                   </div>
                 </CardContent>
@@ -1932,21 +1882,21 @@ export default function AutoAnalyzedVideoPlayer({
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-xs">Status:</span>
                     <span className={`text-xs font-semibold ${
-                      getCurrentEnhancedFrameData()?.tumbling_detected ? 'text-green-400' : 'text-gray-400'
+                      enhancedFrameData[currentFrameIndex]?.tumbling_detected ? 'text-green-400' : 'text-gray-400'
                     }`}>
-                      {getCurrentEnhancedFrameData()?.tumbling_detected ? 'Detected' : 'Not Detected'}
+                      {enhancedFrameData[currentFrameIndex]?.tumbling_detected ? 'Detected' : 'Not Detected'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-xs">Phase:</span>
                     <span className="text-cyan-400 text-xs font-semibold">
-                      {(getCurrentEnhancedFrameData()?.flight_phase || 'GROUND').toUpperCase()}
+                      {(enhancedFrameData[currentFrameIndex]?.flight_phase || 'GROUND').toUpperCase()}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-xs">Quality:</span>
                     <span className="text-cyan-400 text-xs font-mono">
-                      {getCurrentEnhancedFrameData() ? getCurrentEnhancedFrameData()!.tumbling_quality.toFixed(1) : '0.0'}/100
+                      {enhancedFrameData[currentFrameIndex] ? enhancedFrameData[currentFrameIndex].tumbling_quality.toFixed(1) : '0.0'}/100
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -1965,37 +1915,37 @@ export default function AutoAnalyzedVideoPlayer({
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-xs">Overall Risk:</span>
                     <span className={`text-xs font-mono ${
-                      (getCurrentEnhancedFrameData()?.acl_risk_factors?.overall_acl_risk || 0) > 50 ? 'text-red-400' : 
-                      (getCurrentEnhancedFrameData()?.acl_risk_factors?.overall_acl_risk || 0) > 25 ? 'text-yellow-400' : 'text-green-400'
+                      (enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.overall_acl_risk || 0) > 50 ? 'text-red-400' : 
+                      (enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.overall_acl_risk || 0) > 25 ? 'text-yellow-400' : 'text-green-400'
                     }`}>
-                      {(getCurrentEnhancedFrameData()?.acl_risk_factors?.overall_acl_risk || 0).toFixed(1)}%
+                      {(enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.overall_acl_risk || 0).toFixed(1)}%
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-xs">Risk Level:</span>
                     <span className={`text-xs font-semibold ${
-                      (getCurrentEnhancedFrameData()?.acl_risk_factors?.risk_level === 'HIGH') ? 'text-red-400' : 
-                      (getCurrentEnhancedFrameData()?.acl_risk_factors?.risk_level === 'MODERATE') ? 'text-yellow-400' : 'text-green-400'
+                      (enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.risk_level === 'HIGH') ? 'text-red-400' : 
+                      (enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.risk_level === 'MODERATE') ? 'text-yellow-400' : 'text-green-400'
                     }`}>
-                      {getCurrentEnhancedFrameData()?.acl_risk_factors?.risk_level || 'LOW'}
+                      {enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.risk_level || 'LOW'}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-xs">Knee Angle:</span>
                     <span className="text-cyan-400 text-xs font-mono">
-                      {(getCurrentEnhancedFrameData()?.acl_risk_factors?.knee_angle_risk || 0).toFixed(1)}%
+                      {(enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.knee_angle_risk || 0).toFixed(1)}%
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-xs">Knee Valgus:</span>
                     <span className="text-cyan-400 text-xs font-mono">
-                      {(getCurrentEnhancedFrameData()?.acl_risk_factors?.knee_valgus_risk || 0).toFixed(1)}%
+                      {(enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.knee_valgus_risk || 0).toFixed(1)}%
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-xs">Landing:</span>
                     <span className="text-cyan-400 text-xs font-mono">
-                      {(getCurrentEnhancedFrameData()?.acl_risk_factors?.landing_mechanics_risk || 0).toFixed(1)}%
+                      {(enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.landing_mechanics_risk || 0).toFixed(1)}%
                     </span>
                   </div>
                 </CardContent>

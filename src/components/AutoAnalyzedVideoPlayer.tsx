@@ -1260,6 +1260,17 @@ export default function AutoAnalyzedVideoPlayer({
       try {
         streamPlayer.currentTime = time;
         console.log(`Cloudflare Stream seeked to ${time}s`);
+        
+        // Update current frame index for Cloudflare Stream
+        const currentTimeMs = time * 1000; // Convert to milliseconds
+        const closestFrameIndex = frameData.findIndex(frame => 
+          Math.abs(frame.timestamp - currentTimeMs) < 50 // 50ms tolerance
+        );
+        
+        if (closestFrameIndex !== -1) {
+          setCurrentFrameIndex(closestFrameIndex);
+          console.log('Cloudflare Stream frame index updated:', closestFrameIndex);
+        }
       } catch (error) {
         console.error('Error seeking Cloudflare Stream player:', error);
       }
@@ -1596,6 +1607,21 @@ export default function AutoAnalyzedVideoPlayer({
                             // Handle time updates for Cloudflare Stream
                             if (player.currentTime !== undefined) {
                               setCurrentTime(player.currentTime);
+                              
+                              // Update current frame index based on video time
+                              const currentTimeMs = player.currentTime * 1000; // Convert to milliseconds
+                              const closestFrameIndex = frameData.findIndex(frame => 
+                                Math.abs(frame.timestamp - currentTimeMs) < 50 // 50ms tolerance
+                              );
+                              
+                              if (closestFrameIndex !== -1 && closestFrameIndex !== currentFrameIndex) {
+                                setCurrentFrameIndex(closestFrameIndex);
+                                console.log('Cloudflare Stream frame update:', {
+                                  time: player.currentTime,
+                                  frameIndex: closestFrameIndex,
+                                  frameNumber: closestFrameIndex + 1
+                                });
+                              }
                             }
                           });
                           player.play().catch(() => {

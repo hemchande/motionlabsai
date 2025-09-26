@@ -1612,8 +1612,8 @@ export default function AutoAnalyzedVideoPlayer({
                       }}
                     />
                       
-                      {/* Persistent frame number display for Cloudflare Stream - moved down */}
-                      <div className="absolute bottom-20 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
+                      {/* Persistent frame number display for Cloudflare Stream - at bottom */}
+                      <div className="absolute bottom-4 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
                         <div className="text-white text-lg font-bold">
                           Frame {currentFrameIndex + 1} / {frameData.length}
                         </div>
@@ -1715,8 +1715,8 @@ export default function AutoAnalyzedVideoPlayer({
                         </div>
                       </div>
                       
-                      {/* Persistent frame number display on video - moved down */}
-                      <div className="absolute bottom-20 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
+                      {/* Persistent frame number display on video - at bottom */}
+                      <div className="absolute bottom-4 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
                         <div className="text-white text-lg font-bold">
                           Frame {currentFrameIndex + 1} / {frameData.length}
                         </div>

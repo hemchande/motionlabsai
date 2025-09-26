@@ -1698,151 +1698,46 @@ export default function AutoAnalyzedVideoPlayer({
                 </div>
               )}
 
-              {/* Real-time Frame-by-Frame Metrics Overlay */}
-              <div className="absolute top-4 left-4 bg-black bg-opacity-85 rounded-lg p-4 text-white max-w-sm">
-                <div className="mb-2">
-                  <h4 className="text-xs font-semibold text-gray-300 mb-2">LIVE FRAME ANALYSIS</h4>
-                  <div className="text-xs text-gray-400 mb-2">
-                    Frame: {currentFrameIndex + 1} / {frameData.length} | Time: {formatTime(currentTime)}
-                  </div>
-                  
-                  {/* Frame Navigation Controls */}
-                  <div className="flex items-center space-x-1 mb-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={goToPreviousFrame}
-                      disabled={currentFrameIndex <= 0}
-                      className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50 p-1 h-6 w-6"
-                    >
-                      <ChevronLeft className="h-3 w-3" />
-                    </Button>
-                    <span className="text-xs text-gray-300 px-1">
-                      {currentFrameIndex + 1}
-                    </span>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={goToNextFrame}
-                      disabled={currentFrameIndex >= frameData.length - 1}
-                      className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50 p-1 h-6 w-6"
-                    >
-                      <ChevronRight className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Use current frame data for statistics */}
-                {frameData[currentFrameIndex] ? (
-                  <div className="space-y-2 text-xs">
-                    {/* Joint Angles */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">L Knee:</span>
-                        <span className="text-cyan-400">{frameData[currentFrameIndex].metrics?.left_knee_angle?.toFixed(0) || 'N/A'}°</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">R Knee:</span>
-                        <span className="text-cyan-400">{frameData[currentFrameIndex].metrics?.right_knee_angle?.toFixed(0) || 'N/A'}°</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">L Hip:</span>
-                        <span className="text-cyan-400">{frameData[currentFrameIndex].metrics?.left_hip_angle?.toFixed(0) || 'N/A'}°</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">R Hip:</span>
-                        <span className="text-cyan-400">{frameData[currentFrameIndex].metrics?.right_hip_angle?.toFixed(0) || 'N/A'}°</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">L Elbow:</span>
-                        <span className="text-cyan-400">{frameData[currentFrameIndex].metrics?.left_elbow_angle?.toFixed(0) || 'N/A'}°</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">R Elbow:</span>
-                        <span className="text-cyan-400">{frameData[currentFrameIndex].metrics?.right_elbow_angle?.toFixed(0) || 'N/A'}°</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">L Shoulder:</span>
-                        <span className="text-cyan-400">{frameData[currentFrameIndex].metrics?.left_shoulder_angle?.toFixed(0) || 'N/A'}°</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">R Shoulder:</span>
-                        <span className="text-cyan-400">{frameData[currentFrameIndex].metrics?.right_shoulder_angle?.toFixed(0) || 'N/A'}°</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">Split Angle:</span>
-                        <span className="text-cyan-400">{frameData[currentFrameIndex].metrics?.split_angle?.toFixed(0) || 'N/A'}°</span>
-                      </div>
-                    </div>
-                    
-                    {/* Movement Metrics */}
-                    <div className="border-t border-gray-600 pt-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">Elevation:</span>
-                        <span className="text-yellow-400">{frameData[currentFrameIndex].metrics?.angle_of_elevation?.toFixed(1) || 'N/A'}°</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">Flight Time:</span>
-                        <span className="text-yellow-400">{frameData[currentFrameIndex].metrics?.flight_time?.toFixed(2) || 'N/A'}s</span>
-                      </div>
-                    </div>
-                    
-                    {/* ACL Risk */}
-                    <div className="border-t border-gray-600 pt-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-300">ACL Risk:</span>
-                        <span className={`${frameData[currentFrameIndex].metrics?.acl_risk && frameData[currentFrameIndex].metrics.acl_risk > 50 ? 'text-red-400' : 'text-green-400'}`}>
-                          {frameData[currentFrameIndex].metrics?.acl_risk?.toFixed(0) || 'N/A'}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-xs text-gray-400">
-                    No frame data available
-                  </div>
-                )}
-              </div>
 
               {/* Video Controls - Only Fullscreen Button */}
               <div className="absolute bottom-4 right-4">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={toggleFullscreen}
-                  className="text-white hover:bg-white hover:bg-opacity-20"
-                  title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-                >
-                  {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-                </Button>
-              </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={toggleFullscreen}
+                    className="text-white hover:bg-white hover:bg-opacity-20"
+                    title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                  >
+                    {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
+                  </Button>
+                </div>
 
-              {/* Frame-by-Frame Controls - Moved further down above risk bar */}
-              <div className="absolute bottom-24 left-4 right-4 flex items-center justify-center space-x-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={goToPreviousFrame}
-                  disabled={currentFrameIndex <= 0}
-                  className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
-                >
-                  <StepBack className="h-3 w-3" />
-                </Button>
-                <span className="text-white text-xs px-2">
-                  Frame: {currentFrameIndex + 1} / {frameData.length}
-                </span>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={goToNextFrame}
-                  disabled={currentFrameIndex >= frameData.length - 1}
-                  className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
-                >
-                  <StepForward className="h-3 w-3" />
-                </Button>
-                <span className="text-white text-xs px-2">
+              {/* Frame-by-Frame Controls - Moved even further down */}
+              <div className="absolute bottom-32 left-4 right-4 flex items-center justify-center space-x-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={goToPreviousFrame}
+                    disabled={currentFrameIndex <= 0}
+                    className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
+                  >
+                    <StepBack className="h-3 w-3" />
+                  </Button>
+                  <span className="text-white text-xs px-2">
+                    Frame: {currentFrameIndex + 1} / {frameData.length}
+                  </span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={goToNextFrame}
+                    disabled={currentFrameIndex >= frameData.length - 1}
+                    className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
+                  >
+                    <StepForward className="h-3 w-3" />
+                  </Button>
+                  <span className="text-white text-xs px-2">
                   {frameData.length > 0 ? `Frame Time: ${formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}` : ''}
-                </span>
+                  </span>
               </div>
             </div>
             
@@ -1859,6 +1754,98 @@ export default function AutoAnalyzedVideoPlayer({
 
             {/* Real-time Analytics Panels - Right Side */}
             <div className="lg:col-span-1 space-y-4">
+              {/* Frame Information Panel */}
+              <Card className="bg-gray-900 text-white border-gray-700">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold text-gray-300">Frame Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400 text-xs">Frame:</span>
+                    <span className="text-cyan-400 text-xs font-mono">
+                      {currentFrameIndex + 1} / {frameData.length}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400 text-xs">Time:</span>
+                    <span className="text-cyan-400 text-xs font-mono">
+                      {formatTime(currentTime)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400 text-xs">Frame Time:</span>
+                    <span className="text-cyan-400 text-xs font-mono">
+                      {frameData.length > 0 ? formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000) : '0:00'}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Joint Angles Panel */}
+              <Card className="bg-gray-900 text-white border-gray-700">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold text-gray-300">Joint Angles</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400 text-xs">L Knee:</span>
+                      <span className="text-cyan-400 text-xs font-mono">
+                        {frameData[currentFrameIndex]?.metrics?.left_knee_angle?.toFixed(0) || 'N/A'}°
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400 text-xs">R Knee:</span>
+                      <span className="text-cyan-400 text-xs font-mono">
+                        {frameData[currentFrameIndex]?.metrics?.right_knee_angle?.toFixed(0) || 'N/A'}°
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400 text-xs">L Hip:</span>
+                      <span className="text-cyan-400 text-xs font-mono">
+                        {frameData[currentFrameIndex]?.metrics?.left_hip_angle?.toFixed(0) || 'N/A'}°
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400 text-xs">R Hip:</span>
+                      <span className="text-cyan-400 text-xs font-mono">
+                        {frameData[currentFrameIndex]?.metrics?.right_hip_angle?.toFixed(0) || 'N/A'}°
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400 text-xs">L Elbow:</span>
+                      <span className="text-cyan-400 text-xs font-mono">
+                        {frameData[currentFrameIndex]?.metrics?.left_elbow_angle?.toFixed(0) || 'N/A'}°
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400 text-xs">R Elbow:</span>
+                      <span className="text-cyan-400 text-xs font-mono">
+                        {frameData[currentFrameIndex]?.metrics?.right_elbow_angle?.toFixed(0) || 'N/A'}°
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400 text-xs">L Shoulder:</span>
+                      <span className="text-cyan-400 text-xs font-mono">
+                        {frameData[currentFrameIndex]?.metrics?.left_shoulder_angle?.toFixed(0) || 'N/A'}°
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400 text-xs">R Shoulder:</span>
+                      <span className="text-cyan-400 text-xs font-mono">
+                        {frameData[currentFrameIndex]?.metrics?.right_shoulder_angle?.toFixed(0) || 'N/A'}°
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400 text-xs">Split Angle:</span>
+                      <span className="text-cyan-400 text-xs font-mono">
+                        {frameData[currentFrameIndex]?.metrics?.split_angle?.toFixed(0) || 'N/A'}°
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Movement Analysis Panel */}
               <Card className="bg-gray-900 text-white border-gray-700">
                 <CardHeader className="pb-3">
@@ -1881,6 +1868,12 @@ export default function AutoAnalyzedVideoPlayer({
                     <span className="text-gray-400 text-xs">Forward Lean:</span>
                     <span className="text-cyan-400 text-xs font-mono">
                       {enhancedFrameData[currentFrameIndex] ? enhancedFrameData[currentFrameIndex].forward_lean_angle.toFixed(1) : '0.0'}°
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400 text-xs">Flight Time:</span>
+                    <span className="text-yellow-400 text-xs font-mono">
+                      {frameData[currentFrameIndex]?.metrics?.flight_time?.toFixed(2) || 'N/A'}s
                     </span>
                   </div>
                 </CardContent>

@@ -307,8 +307,6 @@ export default function AutoAnalyzedVideoPlayer({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [frameStepInterval, setFrameStepInterval] = useState<NodeJS.Timeout | null>(null)
-  const [isFrameStepping, setIsFrameStepping] = useState(false)
-  const [frameCallbackId, setFrameCallbackId] = useState<number | null>(null)
   
   // Analytics cache state
   const [analyticsCache, setAnalyticsCache] = useState<Map<string, { data: any; timestamp: number }>>(new Map())
@@ -1032,18 +1030,15 @@ export default function AutoAnalyzedVideoPlayer({
   // Cleanup effect to prevent AbortError when component unmounts
   useEffect(() => {
     return () => {
-      // Stop frame stepping
-      stopFrameStepping()
+      // Clear frame timestep interval
+      if (frameStepInterval) {
+        clearInterval(frameStepInterval);
+      }
       
       const video = videoRef.current
       if (video && typeof video.pause === 'function') {
         try {
-          // Cancel any pending frame callbacks
-          if (frameCallbackId && typeof video.cancelVideoFrameCallback === 'function') {
-            video.cancelVideoFrameCallback(frameCallbackId)
-          }
-          
-          // Pause and reset video to prevent AbortError
+        // Pause and reset video to prevent AbortError
           video.pause();
           video.currentTime = 0;
           video.src = '';
@@ -1053,7 +1048,7 @@ export default function AutoAnalyzedVideoPlayer({
         }
       }
     }
-  }, [frameCallbackId])
+  }, [frameStepInterval])
 
   // Handle video loading errors
   useEffect(() => {
@@ -1362,121 +1357,49 @@ export default function AutoAnalyzedVideoPlayer({
     }
   }
 
-  // Frame stepping functions using requestVideoFrameCallback
-  const startFrameStepping = () => {
-    if (frameData.length === 0) return
-    
-    const video = videoRef.current
-    if (!video || typeof video.requestVideoFrameCallback !== 'function') {
-      console.warn('requestVideoFrameCallback not supported, falling back to interval method')
-      startFrameSteppingInterval()
-      return
+  // Frame timestep progression functions
+  const startFrameTimesteps = () => {
+    if (frameStepInterval) {
+      clearInterval(frameStepInterval)
     }
-    
-    setIsFrameStepping(true)
-    
-    // Set video to play at normal speed for frame callback
-    video.muted = true
-    video.playbackRate = 1.0
-    
-    const onFrame = (now: number, metadata: any) => {
-      if (!isFrameStepping) return
-      
-      // Get precise media time from metadata
-      const mediaTime = metadata.mediaTime || video.currentTime
-      
-      // Find the closest frame index based on media time
-      const closestFrameIndex = frameData.findIndex(frame => {
-        const frameTime = frame.timestamp / 1000 // Convert to seconds
-        return Math.abs(frameTime - mediaTime) < 0.05 // 50ms tolerance
-      })
-      
-      if (closestFrameIndex !== -1 && closestFrameIndex !== currentFrameIndex) {
-        setCurrentFrameIndex(closestFrameIndex)
-        console.log(`Frame callback: mediaTime=${mediaTime.toFixed(3)}s, frame=${closestFrameIndex + 1}/${frameData.length}`)
-      }
-      
-      // Check if we've reached the end
-      if (mediaTime >= (frameData[frameData.length - 1]?.timestamp || 0) / 1000) {
-        stopFrameStepping()
-        return
-      }
-      
-      // Request next frame callback
-      if (isFrameStepping) {
-        const callbackId = video.requestVideoFrameCallback(onFrame)
-        setFrameCallbackId(callbackId)
-      }
-    }
-    
-    // Start the frame callback chain
-    const callbackId = video.requestVideoFrameCallback(onFrame)
-    setFrameCallbackId(callbackId)
-    
-    // Start video playback
-    video.play().catch(console.error)
-    
-    console.log('Frame stepping started with requestVideoFrameCallback')
-  }
-
-  // Fallback interval-based method for browsers without requestVideoFrameCallback
-  const startFrameSteppingInterval = () => {
-    setIsFrameStepping(true)
-    
-    const fps = 30
-    const frameDuration = 1000 / fps // milliseconds per frame
     
     const interval = setInterval(() => {
       setCurrentFrameIndex(prevIndex => {
         const nextIndex = prevIndex + 1
-        
         if (nextIndex >= frameData.length) {
-          stopFrameStepping()
+          // Reached end, stop progression
+          clearInterval(interval)
+          setFrameStepInterval(null)
           return prevIndex
         }
         
+        // Seek to next frame
         if (frameData[nextIndex]) {
-          const frameTime = frameData[nextIndex].timestamp / 1000
+          const frameTime = frameData[nextIndex].timestamp / 1000 // Convert to seconds
           seekToTime(frameTime)
         }
         
         return nextIndex
       })
-    }, frameDuration)
+    }, 100) // 100ms between frames (10 FPS)
     
     setFrameStepInterval(interval)
-    console.log('Frame stepping started with interval fallback')
+    console.log('Started frame timestep progression')
   }
 
-  const stopFrameStepping = () => {
-    const video = videoRef.current
-    
-    // Cancel frame callback if active
-    if (frameCallbackId && video && typeof video.cancelVideoFrameCallback === 'function') {
-      video.cancelVideoFrameCallback(frameCallbackId)
-      setFrameCallbackId(null)
-    }
-    
-    // Clear interval if active
+  const stopFrameTimesteps = () => {
     if (frameStepInterval) {
       clearInterval(frameStepInterval)
       setFrameStepInterval(null)
+      console.log('Stopped frame timestep progression')
     }
-    
-    // Pause video
-    if (video) {
-      video.pause()
-    }
-    
-    setIsFrameStepping(false)
-    console.log('Frame stepping stopped')
   }
 
-  const toggleFrameStepping = () => {
-    if (isFrameStepping) {
-      stopFrameStepping()
+  const toggleFrameTimesteps = () => {
+    if (frameStepInterval) {
+      stopFrameTimesteps()
     } else {
-      startFrameStepping()
+      startFrameTimesteps()
     }
   }
 
@@ -1656,7 +1579,7 @@ export default function AutoAnalyzedVideoPlayer({
           <div>
             <h3 className="text-lg font-semibold">AI Video Analysis</h3>
             <p className="text-xs text-gray-500 mt-1">
-              Click video to advance frame-by-frame • Right-click to go back • Use ← → arrow keys • Click play button for precise frame stepping (uses requestVideoFrameCallback) • Spacebar to play/pause • F for fullscreen
+              Click video to advance frame-by-frame • Right-click to go back • Use ← → arrow keys • Click play button for frame timesteps • Spacebar to play/pause • F for fullscreen
             </p>
           </div>
                   <div className="flex items-center space-x-2">
@@ -1914,7 +1837,7 @@ export default function AutoAnalyzedVideoPlayer({
                     variant="ghost" 
                     size="sm" 
                     onClick={goToPreviousFrame}
-                    disabled={currentFrameIndex <= 0 || isFrameStepping}
+                    disabled={currentFrameIndex <= 0}
                     className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
                   >
                     <StepBack className="h-3 w-3" />
@@ -1926,7 +1849,7 @@ export default function AutoAnalyzedVideoPlayer({
                     variant="ghost" 
                     size="sm" 
                     onClick={goToNextFrame}
-                    disabled={currentFrameIndex >= frameData.length - 1 || isFrameStepping}
+                    disabled={currentFrameIndex >= frameData.length - 1}
                     className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
                   >
                     <StepForward className="h-3 w-3" />
@@ -1934,16 +1857,16 @@ export default function AutoAnalyzedVideoPlayer({
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={toggleFrameStepping}
-                    className={`text-white hover:bg-white hover:bg-opacity-20 ${isFrameStepping ? 'bg-red-600 bg-opacity-50' : 'bg-green-600 bg-opacity-50'}`}
-                    title={isFrameStepping ? "Stop frame stepping" : "Start frame stepping"}
+                    onClick={toggleFrameTimesteps}
+                    className={`text-white hover:bg-white hover:bg-opacity-20 ${frameStepInterval ? 'bg-blue-600 bg-opacity-50' : ''}`}
+                    title={frameStepInterval ? "Stop frame timesteps" : "Start frame timesteps"}
                   >
-                    {isFrameStepping ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                    {frameStepInterval ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                   </Button>
                   <span className="text-white text-xs px-2">
                   {frameData.length > 0 ? `Frame Time: ${formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}` : ''}
                   </span>
-              </div>
+                </div>
             </div>
             
             {/* Risk Timeline Component - Moved further down */}

@@ -403,6 +403,10 @@ export default function AutoAnalyzedVideoPlayer({
 
   // Auto-load video when download URL is ready (same as HTML file)
   useEffect(() => {
+    console.log('🎬 ===== DOWNLOAD URL USEEFFECT TRIGGERED =====');
+    console.log('🎬 cloudflareDownloadUrl:', cloudflareDownloadUrl);
+    console.log('🎬 videoRef.current:', videoRef.current);
+    
     if (cloudflareDownloadUrl && videoRef.current) {
       console.log('🎬 ===== DOWNLOAD URL UPDATED =====');
       console.log('🎬 New download URL:', cloudflareDownloadUrl);
@@ -410,16 +414,26 @@ export default function AutoAnalyzedVideoPlayer({
       
       // Remove crossorigin attribute (same as HTML file)
       videoRef.current.removeAttribute('crossorigin');
+      console.log('🎬 Removed crossorigin attribute');
       
       // Set the new source and reload (same as HTML file)
       const videoSource = document.getElementById('videoSource') as HTMLSourceElement;
+      console.log('🎬 videoSource element:', videoSource);
+      
       if (videoSource) {
         videoSource.src = cloudflareDownloadUrl;
         videoRef.current.load();
         console.log('🎬 Video source set to:', cloudflareDownloadUrl);
+        console.log('🎬 Video load() called');
+      } else {
+        console.log('🎬 ❌ videoSource element not found!');
       }
       
       console.log('🎬 ================================');
+    } else {
+      console.log('🎬 ⚠️ Conditions not met for auto-loading video');
+      if (!cloudflareDownloadUrl) console.log('🎬 - No cloudflareDownloadUrl');
+      if (!videoRef.current) console.log('🎬 - No videoRef.current');
     }
   }, [cloudflareDownloadUrl]);
 
@@ -473,7 +487,9 @@ export default function AutoAnalyzedVideoPlayer({
         const downloadUrl = data.result.default.url;
         console.log(`✅ Download URL found: ${downloadUrl}`, 'success');
         console.log('🎬 Setting cloudflareDownloadUrl state to:', downloadUrl);
+        console.log('🎬 About to call setCloudflareDownloadUrl...');
         setCloudflareDownloadUrl(downloadUrl);
+        console.log('🎬 setCloudflareDownloadUrl called successfully');
         return downloadUrl;
       } else {
         console.log('⚠️ No download URL available yet');

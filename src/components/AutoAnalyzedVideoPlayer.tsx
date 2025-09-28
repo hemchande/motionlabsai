@@ -171,6 +171,7 @@ export default function AutoAnalyzedVideoPlayer({
   onVideoAnalyzed
 }: AutoAnalyzedVideoPlayerProps) {
   // Debug logging
+  console.log('🎬 ===== AUTOANALYZEDVIDEOPLAYER COMPONENT LOADED =====');
   console.log('AutoAnalyzedVideoPlayer props:', {
     videoUrl,
     videoName,
@@ -180,6 +181,7 @@ export default function AutoAnalyzedVideoPlayer({
     analyticsId,
     analyticsUrl
   });
+  console.log('🎬 ===================================================');
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)

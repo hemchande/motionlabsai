@@ -395,12 +395,24 @@ export default function AutoAnalyzedVideoPlayer({
     console.log('🎬 =====================================');
   }, [cloudflareVideoId, isCloudflareStream]);
 
-  // Log when download URL changes (but don't auto-load to avoid CORS)
+  // Auto-load video when download URL is ready (same as HTML file)
   useEffect(() => {
-    if (cloudflareDownloadUrl) {
+    if (cloudflareDownloadUrl && videoRef.current) {
       console.log('🎬 ===== DOWNLOAD URL UPDATED =====');
       console.log('🎬 New download URL:', cloudflareDownloadUrl);
-      console.log('🎬 Use "Try Proxy Load" button to load video with download URL');
+      console.log('🎬 Auto-loading video with download URL (same as HTML file)...');
+      
+      // Remove crossorigin attribute (same as HTML file)
+      videoRef.current.removeAttribute('crossorigin');
+      
+      // Set the new source and reload (same as HTML file)
+      const videoSource = document.getElementById('videoSource') as HTMLSourceElement;
+      if (videoSource) {
+        videoSource.src = cloudflareDownloadUrl;
+        videoRef.current.load();
+        console.log('🎬 Video source set to:', cloudflareDownloadUrl);
+      }
+      
       console.log('🎬 ================================');
     }
   }, [cloudflareDownloadUrl]);
@@ -487,21 +499,18 @@ export default function AutoAnalyzedVideoPlayer({
     }
   };
 
-  // Try direct video load (bypass CORS by removing crossorigin)
-  const tryProxyVideoLoad = (downloadUrl: string) => {
+  // Try direct video load (same as HTML file tryDirectVideo function)
+  const tryDirectVideoLoad = (downloadUrl: string) => {
     try {
-      console.log('🎬 Trying direct video load (CORS bypass)...');
+      console.log('🎬 Trying direct video load...');
       const video = videoRef.current;
       const videoSource = document.getElementById('videoSource') as HTMLSourceElement;
       
       if (video && videoSource) {
         // Remove crossorigin attribute (same as HTML file)
         video.removeAttribute('crossorigin');
-        
-        // Set the download URL directly
         videoSource.src = downloadUrl;
         video.load();
-        
         console.log('🎬 Video source set to:', downloadUrl);
       }
     } catch (error) {
@@ -2016,7 +2025,7 @@ export default function AutoAnalyzedVideoPlayer({
                       style={{ width: '100%', height: '100%' }}
                     >
                       <source 
-                        src={actualVideoUrl || ""} 
+                        src={cloudflareDownloadUrl || actualVideoUrl || ""} 
                         type="video/mp4" 
                         id="videoSource"
                       />
@@ -2117,14 +2126,14 @@ export default function AutoAnalyzedVideoPlayer({
                     >
                             Test Download URL
                   </Button>
-                  <Button 
+                          <Button 
                             variant="outline" 
-                    size="sm" 
-                            onClick={() => tryProxyVideoLoad(cloudflareDownloadUrl)}
+                            size="sm"
+                            onClick={() => tryDirectVideoLoad(cloudflareDownloadUrl)}
                             className="text-white border-white hover:bg-white hover:text-black"
-                  >
-                            Try Proxy Load
-                  </Button>
+                          >
+                            Try Direct Video Load
+                          </Button>
                         </>
                       )}
                     </>

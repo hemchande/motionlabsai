@@ -495,7 +495,7 @@ export default function AutoAnalyzedVideoPlayer({
         console.log(`❌ Download URL not accessible: ${response.status}`, 'error');
       }
     } catch (error) {
-      console.log(`❌ Download URL test failed: ${error.message}`, 'error');
+      console.log(`❌ Download URL test failed: ${error instanceof Error ? error.message : String(error)}`, 'error');
     }
   };
 
@@ -1868,7 +1868,7 @@ export default function AutoAnalyzedVideoPlayer({
                       ) : (
                         // Fallback to iframe with proper styling
                         <div style={{ position: 'relative', paddingTop: '177.77777777777777%' }}>
-                          <iframe
+                    <iframe
                             src={getCloudflareIframeUrl(cloudflareVideoId) || cloudflareStreamUrl || ''}
                             loading="lazy"
                             style={{ 
@@ -1879,21 +1879,21 @@ export default function AutoAnalyzedVideoPlayer({
                               height: '100%', 
                               width: '100%' 
                             }}
-                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                            allowFullScreen={true}
-                  onLoad={() => {
+                      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                      allowFullScreen={true}
+                      onLoad={() => {
                     console.log('🎬 ===== CLOUDFLARE IFRAME LOADED =====');
                     console.log('🎬 Iframe src:', getCloudflareIframeUrl(cloudflareVideoId) || cloudflareStreamUrl);
                     console.log('🎬 Cloudflare Video ID:', cloudflareVideoId);
                     console.log('🎬 =====================================');
-                    setLoading(false);
-                  }}
-                            onError={() => {
+                        setLoading(false);
+                      }}
+                      onError={() => {
                               console.error('❌ Cloudflare Stream iframe load error');
-                              setError('Failed to load Cloudflare Stream video');
-                              setLoading(false);
-                            }}
-                          />
+                        setError('Failed to load Cloudflare Stream video');
+                        setLoading(false);
+                      }}
+                    />
                         </div>
                       )}
                       
@@ -1952,12 +1952,6 @@ export default function AutoAnalyzedVideoPlayer({
                           console.log('Video aspect ratio:', aspectRatio, 'Dimensions:', video.videoWidth, 'x', video.videoHeight);
                         }
                       }}
-                    >
-                      <source 
-                        src={cloudflareDownloadUrl || actualVideoUrl || ""} 
-                        type="video/mp4" 
-                        id="videoSource"
-                      />
                       onError={(e) => {
                         console.error('Video load error:', e);
                         console.error('Video URL:', actualVideoUrl);
@@ -2061,52 +2055,52 @@ export default function AutoAnalyzedVideoPlayer({
 
               {/* Video Controls - Only Fullscreen Button */}
               <div className="absolute bottom-4 right-4">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
                     onClick={toggleFullscreen}
                     className="text-white hover:bg-white hover:bg-opacity-20"
                     title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
                   >
                     {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-                  </Button>
+                    </Button>
                 </div>
-
+                
               {/* Cloudflare Download Controls */}
               {isCloudflareStream && cloudflareVideoId && (
                 <div className="absolute top-4 right-4 flex flex-col space-y-2">
-                  <Button 
+                    <Button 
                     variant="outline" 
-                    size="sm"
+                      size="sm" 
                     onClick={() => enableCloudflareDownload(cloudflareVideoId)}
                     disabled={downloadEnabled}
                     className="text-white border-white hover:bg-white hover:text-black"
-                  >
+                    >
                     {downloadEnabled ? 'Download Enabled' : 'Enable Download'}
                   </Button>
                   {downloadEnabled && (
                     <>
-                      <Button 
+                    <Button 
                         variant="outline" 
-                        size="sm"
+                      size="sm" 
                         onClick={() => checkCloudflareDownloadStatus(cloudflareVideoId)}
                         className="text-white border-white hover:bg-white hover:text-black"
-                      >
+                    >
                         Get Download URL
-                      </Button>
+                    </Button>
                       {cloudflareDownloadUrl && (
-                        <Button 
+                    <Button 
                           variant="outline" 
-                          size="sm"
+                      size="sm" 
                           onClick={() => testDownloadUrlAccessibility(cloudflareDownloadUrl)}
                           className="text-white border-white hover:bg-white hover:text-black"
-                        >
+                    >
                           Test Download URL
-                        </Button>
+                  </Button>
                       )}
                     </>
                   )}
-                </div>
+                  </div>
               )}
 
               {/* Frame-by-Frame Controls - Moved to very bottom */}

@@ -319,9 +319,10 @@ export default function AutoAnalyzedVideoPlayer({
   useEffect(() => {
     setError(null);
     setLoading(true);
-    console.log('Video URL changed to:', actualVideoUrl);
-    console.log('Is Cloudflare Stream:', isCloudflareStream);
-    console.log('Cloudflare Stream URL:', cloudflareStreamUrl);
+    console.log('🎬 Video URL changed to:', actualVideoUrl);
+    console.log('🎬 Is Cloudflare Stream:', isCloudflareStream);
+    console.log('🎬 Cloudflare Stream URL:', cloudflareStreamUrl);
+    console.log('🎬 Video element ref:', videoRef.current);
     
     // Test if the video URL is accessible
     if (actualVideoUrl) {
@@ -1689,6 +1690,7 @@ export default function AutoAnalyzedVideoPlayer({
                       onLoadedData={() => {
                         console.log('🎬 Video loaded successfully (same as HTML file)');
                         console.log('🎬 Video URL:', actualVideoUrl);
+                        console.log('🎬 Video element:', videoRef.current);
                         setLoading(false);
                         // Calculate and set video aspect ratio
                         if (videoRef.current) {
@@ -1701,7 +1703,10 @@ export default function AutoAnalyzedVideoPlayer({
                       onError={(e) => {
                         console.error('🎬 Video element onError triggered:', e);
                         console.error('🎬 Video URL:', actualVideoUrl);
-                        // The main error handling is in the useEffect above
+                        console.error('🎬 Video element:', videoRef.current);
+                        console.error('🎬 Video error details:', videoRef.current?.error);
+                        setError('Video failed to load');
+                        setLoading(false);
                       }}
                       onCanPlay={() => {
                         console.log('🎬 Video can play');
@@ -1709,6 +1714,7 @@ export default function AutoAnalyzedVideoPlayer({
                       }}
                       onLoadStart={() => {
                         console.log('🎬 Video load started');
+                        console.log('🎬 Video URL at load start:', actualVideoUrl);
                         setLoading(true);
                       }}
                       onPlay={() => {
@@ -1721,7 +1727,17 @@ export default function AutoAnalyzedVideoPlayer({
                       }}
                       onTimeUpdate={handleTimeUpdate}
                     >
-                      <source src={actualVideoUrl || ''} type="video/mp4" />
+                      <source 
+                        src={actualVideoUrl || ''} 
+                        type="video/mp4" 
+                        onError={(e) => {
+                          console.error('🎬 Source element error:', e);
+                          console.error('🎬 Source src:', actualVideoUrl);
+                        }}
+                        onLoad={() => {
+                          console.log('🎬 Source element loaded successfully');
+                        }}
+                      />
                       Your browser does not support the video tag.
                     </video>
                     

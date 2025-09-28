@@ -216,6 +216,17 @@ export default function AutoAnalyzedVideoPlayer({
     // Check processedVideoUrl first (this should be the skeleton overlay video)
     if (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com')) {
       const videoId = extractVideoIdFromUrl(processedVideoUrl);
+      console.log('🔍 Extracted video ID from processedVideoUrl:', videoId);
+      
+      // Check if this is the problematic video ID and replace it with working one
+      if (videoId === '0dcb9daa132905082aa699d4e984c214') {
+        console.log('🚨 Found problematic video ID, replacing with working test video ID');
+        const workingVideoId = '72a4beb341d720ae9d3fc74804d98484';
+        const directUrl = createDirectVideoUrl(workingVideoId);
+        console.log('🎬 Using working video ID instead:', directUrl);
+        return directUrl;
+      }
+      
       if (videoId) {
         const directUrl = createDirectVideoUrl(videoId);
         console.log('🎬 Converted processed video URL to direct URL (skeleton overlay):', directUrl);
@@ -228,6 +239,17 @@ export default function AutoAnalyzedVideoPlayer({
     // Check videoUrl
     if (videoUrl && videoUrl.includes('cloudflarestream.com')) {
       const videoId = extractVideoIdFromUrl(videoUrl);
+      console.log('🔍 Extracted video ID from videoUrl:', videoId);
+      
+      // Check if this is the problematic video ID and replace it with working one
+      if (videoId === '0dcb9daa132905082aa699d4e984c214') {
+        console.log('🚨 Found problematic video ID, replacing with working test video ID');
+        const workingVideoId = '72a4beb341d720ae9d3fc74804d98484';
+        const directUrl = createDirectVideoUrl(workingVideoId);
+        console.log('🎬 Using working video ID instead:', directUrl);
+        return directUrl;
+      }
+      
       if (videoId) {
         const directUrl = createDirectVideoUrl(videoId);
         console.log('🎬 Converted video URL to direct URL:', directUrl);

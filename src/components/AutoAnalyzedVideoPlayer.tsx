@@ -210,25 +210,18 @@ export default function AutoAnalyzedVideoPlayer({
       return `https://customer-cxebs7nmdazhytrk.cloudflarestream.com/${videoId}/downloads/default.mp4`;
     };
     
-    // For testing, ALWAYS use the exact working URL from the HTML file
-    const testVideoUrl = 'https://customer-cxebs7nmdazhytrk.cloudflarestream.com/72a4beb341d720ae9d3fc74804d98484/downloads/default.mp4';
-    console.log('🧪 FORCING test video URL (same as working HTML):', testVideoUrl);
     console.log('🔍 Debug - processedVideoUrl:', processedVideoUrl);
     console.log('🔍 Debug - videoUrl:', videoUrl);
     
-    // TEMPORARILY DISABLE dynamic URL selection to test with known working URL
-    return testVideoUrl;
-    
-    /*
-    // Check processedVideoUrl first
+    // Check processedVideoUrl first (this should be the skeleton overlay video)
     if (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com')) {
       const videoId = extractVideoIdFromUrl(processedVideoUrl);
       if (videoId) {
         const directUrl = createDirectVideoUrl(videoId);
-        console.log('🎬 Converted processed video URL to direct URL:', directUrl);
+        console.log('🎬 Converted processed video URL to direct URL (skeleton overlay):', directUrl);
         return directUrl;
       }
-      console.log('🎬 Using Cloudflare Stream processed video URL as-is:', processedVideoUrl);
+      console.log('🎬 Using Cloudflare Stream processed video URL as-is (skeleton overlay):', processedVideoUrl);
       return processedVideoUrl;
     }
     
@@ -244,23 +237,19 @@ export default function AutoAnalyzedVideoPlayer({
       return videoUrl;
     }
     
+    // Fallback to test URL if no Cloudflare Stream URLs found
+    const testVideoUrl = 'https://customer-cxebs7nmdazhytrk.cloudflarestream.com/72a4beb341d720ae9d3fc74804d98484/downloads/default.mp4';
+    console.log('🎬 No Cloudflare Stream URLs found, using test URL:', testVideoUrl);
     return testVideoUrl;
-    */
   }, [videoUrl, processedVideoUrl]);
 
   const actualVideoUrl = React.useMemo(() => {
-    // FORCE use of test URL for debugging - same as HTML file
-    const testVideoUrl = 'https://customer-cxebs7nmdazhytrk.cloudflarestream.com/72a4beb341d720ae9d3fc74804d98484/downloads/default.mp4';
-    console.log('🧪 FORCING actualVideoUrl to test URL:', testVideoUrl);
     console.log('🔍 Debug - cloudflareStreamUrl:', cloudflareStreamUrl);
     console.log('🔍 Debug - processedVideoFilename:', processedVideoFilename);
     console.log('🔍 Debug - videoName:', videoName);
     console.log('🔍 Debug - videoUrl:', videoUrl);
     console.log('🔍 Debug - sessionId:', sessionId);
     
-    return testVideoUrl;
-    
-    /*
     // Priority 1: If we have a Cloudflare Stream URL (converted to direct video), use it
     if (cloudflareStreamUrl) {
       console.log('🎬 Using Cloudflare Stream direct video URL:', cloudflareStreamUrl);
@@ -268,18 +257,23 @@ export default function AutoAnalyzedVideoPlayer({
       return cloudflareStreamUrl;
     }
     
-    // Priority 2: If we have a processed video filename, use backend API
+    // Priority 2: If we have a processed video filename, use backend API (this should be the skeleton overlay video)
     if (processedVideoFilename) {
-      return `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(processedVideoFilename)}`;
+      const processedUrl = `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(processedVideoFilename)}`;
+      console.log('🎬 Using processed video filename (skeleton overlay):', processedUrl);
+      return processedUrl;
     }
     
     // Priority 3: If we have a video name, use backend API
     if (videoName) {
-      return `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(videoName)}`;
+      const videoUrl = `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(videoName)}`;
+      console.log('🎬 Using video name:', videoUrl);
+      return videoUrl;
     }
     
     // Priority 4: Fallback to the provided videoUrl if it exists and doesn't contain localhost
     if (videoUrl && !videoUrl.includes('localhost')) {
+      console.log('🎬 Using provided videoUrl:', videoUrl);
       return videoUrl;
     }
     
@@ -288,17 +282,23 @@ export default function AutoAnalyzedVideoPlayer({
       const url = new URL(videoUrl);
       const filename = url.searchParams.get('video_filename');
       if (filename) {
-        return `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(filename)}`;
+        const constructedUrl = `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(filename)}`;
+        console.log('🎬 Constructed URL from localhost videoUrl:', constructedUrl);
+        return constructedUrl;
       }
     }
     
     // Priority 6: If we have a sessionId, use the session-based video endpoint (last resort)
     if (sessionId) {
-      return `${API_BASE_URL}/getVideoFromSession/${sessionId}`;
+      const sessionUrl = `${API_BASE_URL}/getVideoFromSession/${sessionId}`;
+      console.log('🎬 Using session-based video URL:', sessionUrl);
+      return sessionUrl;
     }
     
-    return videoUrl;
-    */
+    // Fallback to test URL if nothing else works
+    const testVideoUrl = 'https://customer-cxebs7nmdazhytrk.cloudflarestream.com/72a4beb341d720ae9d3fc74804d98484/downloads/default.mp4';
+    console.log('🎬 Fallback to test URL:', testVideoUrl);
+    return testVideoUrl;
   }, [processedVideoFilename, videoName, videoUrl, sessionId, cloudflareStreamUrl]);
 
   // Store original Cloudflare Stream URLs for fallback

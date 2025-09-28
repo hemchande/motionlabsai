@@ -234,6 +234,15 @@ export default function AutoAnalyzedVideoPlayer({
       console.log('🔍 Original videoUrl:', videoUrl);
       
       if (videoId) {
+        // TEMPORARILY force use of working test video ID to test the approach
+        if (videoId === '0dcb9daa132905082aa699d4e984c214') {
+          console.log('🚨 TEMPORARILY using working test video ID instead of:', videoId);
+          const workingVideoId = '72a4beb341d720ae9d3fc74804d98484';
+          const directUrl = createDirectVideoUrl(workingVideoId);
+          console.log('🎬 Using working test video URL:', directUrl);
+          return directUrl;
+        }
+        
         const directUrl = createDirectVideoUrl(videoId);
         console.log('🎬 Converted video URL to direct URL (same as HTML file):', directUrl);
         return directUrl;

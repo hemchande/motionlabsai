@@ -1929,21 +1929,6 @@ export default function AutoAnalyzedVideoPlayer({
             {/* Video Player - Left Side */}
             <div className="lg:col-span-3">
               <div className="relative bg-black rounded-lg overflow-hidden flex items-center justify-center" style={getVideoContainerStyle()}>
-              {/* Simple video element (copied from enable_download_test.html) */}
-              <div className="video-container w-full h-full">
-                <video 
-                  id="video" 
-                  controls 
-                  width="100%" 
-                  height="100%" 
-                  style={{ background: 'black' }} 
-                  crossOrigin="anonymous" 
-                  preload="metadata"
-                >
-                  <source src="" type="video/mp4" id="videoSource" />
-                  Your browser does not support the video tag.
-                </video>
-              </div>
               {error ? (
                 <div className="text-center text-white p-6">
                   <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-500" />
@@ -2269,7 +2254,23 @@ export default function AutoAnalyzedVideoPlayer({
                 >
                   Open in New Tab
                 </button>
-                </div>
+              </div>
+
+              {/* Simple video element (copied from enable_download_test.html) */}
+              <div className="absolute top-20 right-4 w-80 h-60 bg-black rounded">
+                <video 
+                  id="video" 
+                  controls 
+                  width="100%" 
+                  height="100%" 
+                  style={{ background: 'black' }} 
+                  crossOrigin="anonymous" 
+                  preload="metadata"
+                >
+                  <source src="" type="video/mp4" id="videoSource" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
 
               {/* Frame-by-Frame Controls - Moved to very bottom */}
               <div className="absolute bottom-8 left-4 right-4 flex items-center justify-center space-x-2">

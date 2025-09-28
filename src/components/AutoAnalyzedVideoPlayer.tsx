@@ -200,26 +200,63 @@ export default function AutoAnalyzedVideoPlayer({
     return null;
   }, [videoUrl, processedVideoUrl]);
 
-  // Convert Cloudflare Stream iframe URL to direct download URL for HTML5 video
-  const cloudflareDownloadUrl = React.useMemo(() => {
-    if (cloudflareStreamUrl) {
-      // Extract video ID from iframe URL
-      const iframeUrl = cloudflareStreamUrl;
-      const videoIdMatch = iframeUrl.match(/\/iframe$/);
-      if (videoIdMatch) {
-        // Extract the video ID from the URL path
-        const urlParts = iframeUrl.split('/');
-        const videoId = urlParts[urlParts.length - 2]; // Get the part before '/iframe'
-        const accountId = urlParts[urlParts.length - 4]; // Get account ID from URL structure
+  // State for Cloudflare download URL
+  const [cloudflareDownloadUrl, setCloudflareDownloadUrl] = useState<string | null>(null);
+  const [cloudflareVideoId, setCloudflareVideoId] = useState<string | null>(null);
+  const [fetchingDownloadUrl, setFetchingDownloadUrl] = useState(false);
+
+  // Function to fetch Cloudflare Stream download URL via API
+  const fetchCloudflareDownloadUrl = async (videoId: string) => {
+    try {
+      console.log('🎬 Fetching Cloudflare Stream download URL for video ID:', videoId);
+      setFetchingDownloadUrl(true);
+      
+      // Use the backend API to fetch the download URL
+      const response = await fetch(`${API_BASE_URL}/getCloudflareDownloadUrl/${videoId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🎬 Cloudflare download URL response:', data);
         
-        // Construct direct download URL
-        const downloadUrl = `https://customer-${accountId}.cloudflarestream.com/${videoId}/downloads/default.mp4`;
-        console.log('🎬 Converted Cloudflare Stream to download URL:', downloadUrl);
-        return downloadUrl;
+        if (data.success && data.download_url) {
+          setCloudflareDownloadUrl(data.download_url);
+          console.log('✅ Cloudflare download URL fetched:', data.download_url);
+          return data.download_url;
+        } else {
+          console.error('❌ Failed to get download URL from API:', data);
+          return null;
+        }
+      } else if (response.status === 202) {
+        // Download is being processed
+        const data = await response.json();
+        console.log('⏳ Download is being processed:', data);
+        return null;
+      } else {
+        console.error('❌ API request failed:', response.status, response.statusText);
+        return null;
       }
+    } catch (error) {
+      console.error('❌ Error fetching Cloudflare download URL:', error);
+      return null;
+    } finally {
+      setFetchingDownloadUrl(false);
     }
-    return null;
-  }, [cloudflareStreamUrl]);
+  };
+
+  // Function to construct proper Cloudflare Stream iframe URL with poster
+  const getCloudflareIframeUrl = (videoId: string) => {
+    if (!cloudflareStreamUrl) return null;
+    
+    // Extract account ID from the original URL
+    const urlParts = cloudflareStreamUrl.split('/');
+    const accountId = urlParts[urlParts.length - 4]; // Get account ID from URL structure
+    
+    // Construct iframe URL with poster
+    const iframeUrl = `https://customer-${accountId}.cloudflarestream.com/${videoId}/iframe?poster=https%3A%2F%2Fcustomer-${accountId}.cloudflarestream.com%2F${videoId}%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600`;
+    
+    console.log('🎬 Constructed Cloudflare iframe URL:', iframeUrl);
+    return iframeUrl;
+  };
 
   const actualVideoUrl = React.useMemo(() => {
     // Priority 1: If we have a Cloudflare Stream download URL, use it for HTML5 video control
@@ -260,7 +297,30 @@ export default function AutoAnalyzedVideoPlayer({
     return videoUrl;
   }, [cloudflareDownloadUrl, processedVideoFilename, videoName, videoUrl, sessionId]);
 
-  // Note: No longer loading Cloudflare Stream SDK since we're using HTML5 video with direct download URLs
+  // Extract video ID from Cloudflare Stream URL and fetch download URL
+  useEffect(() => {
+    if (cloudflareStreamUrl) {
+      console.log('🎬 Processing Cloudflare Stream URL:', cloudflareStreamUrl);
+      
+      // Extract video ID from iframe URL
+      const iframeUrl = cloudflareStreamUrl;
+      const videoIdMatch = iframeUrl.match(/\/iframe$/);
+      
+      if (videoIdMatch) {
+        // Extract the video ID from the URL path
+        const urlParts = iframeUrl.split('/');
+        const videoId = urlParts[urlParts.length - 2]; // Get the part before '/iframe'
+        
+        console.log('🎬 Extracted video ID:', videoId);
+        setCloudflareVideoId(videoId);
+        
+        // Fetch the download URL
+        fetchCloudflareDownloadUrl(videoId);
+      } else {
+        console.error('❌ Could not extract video ID from Cloudflare Stream URL');
+      }
+    }
+  }, [cloudflareStreamUrl]);
 
   // Reset error state when videoUrl changes
   useEffect(() => {
@@ -1455,8 +1515,8 @@ export default function AutoAnalyzedVideoPlayer({
           (document as any).webkitExitFullscreen()
         } else if ((document as any).msExitFullscreen) {
           (document as any).msExitFullscreen()
-        }
       }
+    }
   }
 
   // Listen for fullscreen changes
@@ -1467,7 +1527,7 @@ export default function AutoAnalyzedVideoPlayer({
       
       if (fullscreenElement) {
         // Check if the video element is in fullscreen
-        isCurrentlyFullscreen = fullscreenElement === videoRef.current
+          isCurrentlyFullscreen = fullscreenElement === videoRef.current
       }
       
       console.log('Fullscreen change detected:', isCurrentlyFullscreen)
@@ -1579,8 +1639,65 @@ export default function AutoAnalyzedVideoPlayer({
                 </div>
               ) : (
                 <div className="relative">
-                  {/* Always use HTML5 video element for frame-by-frame control */}
-                  {actualVideoUrl ? (
+                  {/* Use iframe for Cloudflare Stream, HTML5 video for download URLs */}
+                  {isCloudflareStream && cloudflareVideoId && !cloudflareDownloadUrl ? (
+                    // Cloudflare Stream iframe embed with proper styling
+                    <div style={{ position: 'relative', paddingTop: '177.77777777777777%' }}>
+                    <iframe
+                        src={getCloudflareIframeUrl(cloudflareVideoId) || cloudflareStreamUrl || ''}
+                        loading="lazy"
+                        style={{ 
+                          border: 'none', 
+                          position: 'absolute', 
+                          top: 0, 
+                          left: 0, 
+                          height: '100%', 
+                          width: '100%' 
+                        }}
+                      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                      allowFullScreen={true}
+                      onLoad={() => {
+                          console.log('🎬 Cloudflare Stream iframe loaded successfully');
+                        setLoading(false);
+                      }}
+                      onError={() => {
+                          console.error('❌ Cloudflare Stream iframe load error');
+                        setError('Failed to load Cloudflare Stream video');
+                        setLoading(false);
+                      }}
+                    />
+                      
+                      {/* Loading indicator for iframe */}
+                      {loading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                          <div className="text-white text-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                            <p>Loading Cloudflare Stream...</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Download URL fetching indicator */}
+                      {fetchingDownloadUrl && (
+                        <div className="absolute top-4 left-4 bg-blue-600 bg-opacity-80 rounded-lg px-3 py-2">
+                          <div className="text-white text-sm flex items-center space-x-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            <span>Preparing frame-by-frame control...</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Persistent frame number display for iframe - below video */}
+                      <div className="absolute -bottom-16 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
+                        <div className="text-white text-lg font-bold">
+                          Frame {currentFrameIndex + 1} / {frameData.length}
+                        </div>
+                        <div className="text-gray-300 text-sm">
+                          {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
+                        </div>
+                      </div>
+                    </div>
+                  ) : actualVideoUrl ? (
                     // Regular HTML5 video element with click-to-advance
                     <div 
                       className="relative w-full h-full cursor-pointer"
@@ -1752,7 +1869,7 @@ export default function AutoAnalyzedVideoPlayer({
                   <span className="text-white text-xs px-2">
                   {frameData.length > 0 ? `Frame Time: ${formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}` : ''}
                   </span>
-                </div>
+              </div>
             </div>
             
             {/* Risk Timeline Component - Moved further down */}

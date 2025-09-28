@@ -200,49 +200,6 @@ export default function AutoAnalyzedVideoPlayer({
     return null;
   }, [videoUrl, processedVideoUrl]);
 
-  // State for Cloudflare download URL
-  const [cloudflareDownloadUrl, setCloudflareDownloadUrl] = useState<string | null>(null);
-  const [cloudflareVideoId, setCloudflareVideoId] = useState<string | null>(null);
-  const [fetchingDownloadUrl, setFetchingDownloadUrl] = useState(false);
-
-  // Function to fetch Cloudflare Stream download URL via API
-  const fetchCloudflareDownloadUrl = async (videoId: string) => {
-    try {
-      console.log('🎬 Fetching Cloudflare Stream download URL for video ID:', videoId);
-      setFetchingDownloadUrl(true);
-      
-      // Use the backend API to fetch the download URL
-      const response = await fetch(`${API_BASE_URL}/getCloudflareDownloadUrl/${videoId}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('🎬 Cloudflare download URL response:', data);
-        
-        if (data.success && data.download_url) {
-          setCloudflareDownloadUrl(data.download_url);
-          console.log('✅ Cloudflare download URL fetched:', data.download_url);
-          return data.download_url;
-        } else {
-          console.error('❌ Failed to get download URL from API:', data);
-          return null;
-        }
-      } else if (response.status === 202) {
-        // Download is being processed
-        const data = await response.json();
-        console.log('⏳ Download is being processed:', data);
-        return null;
-      } else {
-        console.error('❌ API request failed:', response.status, response.statusText);
-        return null;
-      }
-    } catch (error) {
-      console.error('❌ Error fetching Cloudflare download URL:', error);
-      return null;
-    } finally {
-      setFetchingDownloadUrl(false);
-    }
-  };
-
   // Function to construct proper Cloudflare Stream iframe URL with poster
   const getCloudflareIframeUrl = (videoId: string) => {
     if (!cloudflareStreamUrl) return null;
@@ -259,28 +216,22 @@ export default function AutoAnalyzedVideoPlayer({
   };
 
   const actualVideoUrl = React.useMemo(() => {
-    // Priority 1: If we have a Cloudflare Stream download URL, use it for HTML5 video control
-    if (cloudflareDownloadUrl) {
-      console.log('🎬 Using Cloudflare Stream download URL for HTML5 video:', cloudflareDownloadUrl);
-      return cloudflareDownloadUrl;
-    }
-    
-    // Priority 2: If we have a processed video filename, use backend API
+    // Priority 1: If we have a processed video filename, use backend API
     if (processedVideoFilename) {
       return `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(processedVideoFilename)}`;
     }
     
-    // Priority 3: If we have a video name, use backend API
+    // Priority 2: If we have a video name, use backend API
     if (videoName) {
       return `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(videoName)}`;
     }
     
-    // Priority 4: Fallback to the provided videoUrl if it exists and doesn't contain localhost
+    // Priority 3: Fallback to the provided videoUrl if it exists and doesn't contain localhost
     if (videoUrl && !videoUrl.includes('localhost')) {
       return videoUrl;
     }
     
-    // Priority 5: If videoUrl contains localhost, try to extract filename and construct proper URL
+    // Priority 4: If videoUrl contains localhost, try to extract filename and construct proper URL
     if (videoUrl && videoUrl.includes('localhost')) {
       const url = new URL(videoUrl);
       const filename = url.searchParams.get('video_filename');
@@ -289,16 +240,16 @@ export default function AutoAnalyzedVideoPlayer({
       }
     }
     
-    // Priority 6: If we have a sessionId, use the session-based video endpoint (last resort)
+    // Priority 5: If we have a sessionId, use the session-based video endpoint (last resort)
     if (sessionId) {
       return `${API_BASE_URL}/getVideoFromSession/${sessionId}`;
     }
     
     return videoUrl;
-  }, [cloudflareDownloadUrl, processedVideoFilename, videoName, videoUrl, sessionId]);
+  }, [processedVideoFilename, videoName, videoUrl, sessionId]);
 
-  // Extract video ID from Cloudflare Stream URL and fetch download URL
-  useEffect(() => {
+  // Extract video ID from Cloudflare Stream URL
+  const cloudflareVideoId = React.useMemo(() => {
     if (cloudflareStreamUrl) {
       console.log('🎬 Processing Cloudflare Stream URL:', cloudflareStreamUrl);
       
@@ -312,14 +263,13 @@ export default function AutoAnalyzedVideoPlayer({
         const videoId = urlParts[urlParts.length - 2]; // Get the part before '/iframe'
         
         console.log('🎬 Extracted video ID:', videoId);
-        setCloudflareVideoId(videoId);
-        
-        // Fetch the download URL
-        fetchCloudflareDownloadUrl(videoId);
+        return videoId;
       } else {
         console.error('❌ Could not extract video ID from Cloudflare Stream URL');
+        return null;
       }
     }
+    return null;
   }, [cloudflareStreamUrl]);
 
   // Reset error state when videoUrl changes
@@ -329,7 +279,7 @@ export default function AutoAnalyzedVideoPlayer({
     console.log('Video URL changed to:', actualVideoUrl);
     console.log('Is Cloudflare Stream:', isCloudflareStream);
     console.log('Cloudflare Stream URL:', cloudflareStreamUrl);
-    console.log('Cloudflare Download URL:', cloudflareDownloadUrl);
+    console.log('Cloudflare Video ID:', cloudflareVideoId);
     
     // Test if the video URL is accessible
     if (actualVideoUrl) {
@@ -1639,11 +1589,11 @@ export default function AutoAnalyzedVideoPlayer({
                 </div>
               ) : (
                 <div className="relative">
-                  {/* Use iframe for Cloudflare Stream, HTML5 video for download URLs */}
-                  {isCloudflareStream && cloudflareVideoId && !cloudflareDownloadUrl ? (
+                  {/* Use iframe for Cloudflare Stream, HTML5 video for other sources */}
+                  {isCloudflareStream && cloudflareVideoId ? (
                     // Cloudflare Stream iframe embed with proper styling
                     <div style={{ position: 'relative', paddingTop: '177.77777777777777%' }}>
-                    <iframe
+                      <iframe
                         src={getCloudflareIframeUrl(cloudflareVideoId) || cloudflareStreamUrl || ''}
                         loading="lazy"
                         style={{ 
@@ -1654,18 +1604,18 @@ export default function AutoAnalyzedVideoPlayer({
                           height: '100%', 
                           width: '100%' 
                         }}
-                      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                      allowFullScreen={true}
-                      onLoad={() => {
+                        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                        allowFullScreen={true}
+                        onLoad={() => {
                           console.log('🎬 Cloudflare Stream iframe loaded successfully');
-                        setLoading(false);
-                      }}
-                      onError={() => {
+                          setLoading(false);
+                        }}
+                        onError={() => {
                           console.error('❌ Cloudflare Stream iframe load error');
-                        setError('Failed to load Cloudflare Stream video');
-                        setLoading(false);
-                      }}
-                    />
+                          setError('Failed to load Cloudflare Stream video');
+                          setLoading(false);
+                        }}
+                      />
                       
                       {/* Loading indicator for iframe */}
                       {loading && (
@@ -1673,16 +1623,6 @@ export default function AutoAnalyzedVideoPlayer({
                           <div className="text-white text-center">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
                             <p>Loading Cloudflare Stream...</p>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Download URL fetching indicator */}
-                      {fetchingDownloadUrl && (
-                        <div className="absolute top-4 left-4 bg-blue-600 bg-opacity-80 rounded-lg px-3 py-2">
-                          <div className="text-white text-sm flex items-center space-x-2">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                            <span>Preparing frame-by-frame control...</span>
                           </div>
                         </div>
                       )}

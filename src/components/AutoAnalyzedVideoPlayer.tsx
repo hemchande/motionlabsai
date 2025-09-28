@@ -11,6 +11,10 @@ declare global {
 import { API_BASE_URL } from '@/lib/api'
 import { extractVideoBaseName } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
+// Cloudflare Stream API configuration
+const CLOUDFLARE_ACCOUNT_ID = 'f2b0714a082195118f53d0b8327f6635';
+const CLOUDFLARE_API_TOKEN = 'DEmkpIDn5SLgpjTOoDqYrPivnOpD9gnqbVICwzTQ';
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -280,6 +284,10 @@ export default function AutoAnalyzedVideoPlayer({
   const [cloudflarePlayer, setCloudflarePlayer] = useState<any>(null);
   const [cloudflarePlayerContainer, setCloudflarePlayerContainer] = useState<HTMLElement | null>(null);
   const [playerReady, setPlayerReady] = useState(false);
+  
+  // State for Cloudflare download URL
+  const [cloudflareDownloadUrl, setCloudflareDownloadUrl] = useState<string | null>(null);
+  const [downloadEnabled, setDownloadEnabled] = useState<boolean>(false);
 
   // Function to create Cloudflare Stream player directly
   const createCloudflarePlayer = (videoId: string) => {
@@ -378,6 +386,93 @@ export default function AutoAnalyzedVideoPlayer({
     }
   }, [cloudflareVideoId, isCloudflareStream]);
 
+  // Auto-enable downloads for Cloudflare Stream videos
+  useEffect(() => {
+    if (cloudflareVideoId && isCloudflareStream && !downloadEnabled) {
+      console.log('🎬 Auto-enabling downloads for Cloudflare video:', cloudflareVideoId);
+      enableCloudflareDownload(cloudflareVideoId).then((success) => {
+        if (success) {
+          // Check download status after enabling
+          setTimeout(() => {
+            checkCloudflareDownloadStatus(cloudflareVideoId);
+          }, 1000);
+        }
+      });
+    }
+  }, [cloudflareVideoId, isCloudflareStream, downloadEnabled]);
+
+  // Log when download URL changes
+  useEffect(() => {
+    if (cloudflareDownloadUrl) {
+      console.log('🎬 ===== DOWNLOAD URL UPDATED =====');
+      console.log('🎬 New download URL:', cloudflareDownloadUrl);
+      console.log('🎬 Video will now use download URL instead of iframe');
+      console.log('🎬 ================================');
+    }
+  }, [cloudflareDownloadUrl]);
+
+  // Enable Cloudflare Stream download
+  const enableCloudflareDownload = async (videoId: string) => {
+    try {
+      console.log('🎬 Enabling Cloudflare download for video:', videoId);
+      
+      const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/stream/${videoId}/downloads`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = await response.json();
+      console.log('🎬 Enable download response:', data);
+
+      if (data.success) {
+        console.log('✅ Download enabled successfully');
+        setDownloadEnabled(true);
+        return true;
+      } else {
+        console.error('❌ Failed to enable download:', data.errors);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error enabling download:', error);
+      return false;
+    }
+  };
+
+  // Check Cloudflare Stream download status and get URL
+  const checkCloudflareDownloadStatus = async (videoId: string) => {
+    try {
+      console.log('🎬 Checking download status for video:', videoId);
+      
+      const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/stream/${videoId}/downloads`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`
+        }
+      });
+
+      const data = await response.json();
+      console.log('🎬 Download status response:', data);
+
+      if (data.success && data.result && data.result.default) {
+        const downloadUrl = data.result.default.url;
+        console.log('✅ Download URL found:', downloadUrl);
+        console.log('🎬 Setting cloudflareDownloadUrl state to:', downloadUrl);
+        setCloudflareDownloadUrl(downloadUrl);
+        return downloadUrl;
+      } else {
+        console.log('⚠️ No download URL available yet');
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Error checking download status:', error);
+      return null;
+    }
+  };
+
   // Reset error state when videoUrl changes
   useEffect(() => {
     setError(null);
@@ -399,6 +494,11 @@ export default function AutoAnalyzedVideoPlayer({
       isCloudflareStream,
       cloudflareVideoId
     });
+    console.log('🎬 Download Status:', {
+      downloadEnabled,
+      cloudflareDownloadUrl
+    });
+    console.log('🎬 Final Video Source:', cloudflareDownloadUrl || actualVideoUrl);
     console.log('🎬 ====================================');
     
     // Test if the video URL is accessible
@@ -1791,7 +1891,7 @@ export default function AutoAnalyzedVideoPlayer({
                         </div>
                       </div>
                     </div>
-                  ) : actualVideoUrl ? (
+                  ) : (cloudflareDownloadUrl || actualVideoUrl) ? (
                     // Regular HTML5 video element with click-to-advance
                     <div 
                       className="relative w-full h-full cursor-pointer"
@@ -1805,11 +1905,11 @@ export default function AutoAnalyzedVideoPlayer({
                     <video
                       ref={videoRef}
                       className="w-full h-full max-h-[500px] object-contain"
-                      src={actualVideoUrl || undefined}
+                      src={cloudflareDownloadUrl || actualVideoUrl || undefined}
                       preload="auto"
                       playsInline
                       muted
-                      crossOrigin="anonymous"
+                      crossOrigin={cloudflareDownloadUrl ? undefined : "anonymous"}
                       onLoadedData={() => {
                         console.log('🎬 ===== VIDEO ELEMENT LOADED =====');
                         console.log('🎬 Video element src:', videoRef.current?.src);

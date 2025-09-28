@@ -1248,6 +1248,35 @@ export default function AutoAnalyzedVideoPlayer({
   }, [showSkeleton, showAngles, frameData, currentTime])
 
   const togglePlay = async () => {
+    // Check if we're using iframe (Cloudflare Stream)
+    if (cloudflareStreamUrl && cloudflareStreamUrl.includes('/iframe')) {
+      console.log('🎬 Iframe mode: Toggling play/pause via iframe');
+      
+      // For iframe videos, we need to interact with the iframe's built-in player
+      const iframe = document.getElementById('stream-player') as HTMLIFrameElement;
+      if (iframe) {
+        try {
+          // Try to access the iframe's content and control the video
+          // This is a simplified approach - in practice, Cloudflare Stream iframes
+          // have their own player controls that users need to interact with directly
+          console.log('🎬 Iframe found, but direct control is limited');
+          
+          // For now, just toggle our state and let the user use iframe controls
+          setIsPlaying(!isPlaying);
+          console.log('🎬 Iframe play state toggled to:', !isPlaying);
+        } catch (error) {
+          console.error('Error controlling iframe video:', error);
+          // Fallback: just toggle state
+          setIsPlaying(!isPlaying);
+        }
+      } else {
+        console.error('Iframe not found');
+        setIsPlaying(!isPlaying);
+      }
+      return;
+    }
+
+    // Regular video element control
     const video = videoRef.current
     if (!video || typeof video.pause !== 'function') {
       console.error('Video element not available or pause method missing');
@@ -1597,7 +1626,15 @@ export default function AutoAnalyzedVideoPlayer({
           <div>
             <h3 className="text-lg font-semibold">AI Video Analysis</h3>
             <p className="text-xs text-gray-500 mt-1">
-              Click video to advance frame-by-frame • Right-click to go back • Use ← → arrow keys • Click play button for frame timesteps • Spacebar to play/pause • F for fullscreen
+              {cloudflareStreamUrl && cloudflareStreamUrl.includes('/iframe') ? (
+                <>
+                  Cloudflare Stream: Use video controls below to play/pause • Click video to advance frames • Right-click to go back • Use ← → arrow keys • F for fullscreen
+                </>
+              ) : (
+                <>
+                  Click video to advance frame-by-frame • Right-click to go back • Use ← → arrow keys • Click play button for frame timesteps • Spacebar to play/pause • F for fullscreen
+                </>
+              )}
             </p>
           </div>
                   <div className="flex items-center space-x-2">
@@ -1684,10 +1721,19 @@ export default function AutoAnalyzedVideoPlayer({
                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="bg-black bg-opacity-60 rounded-full p-4 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center space-x-2">
                               <StepBack className="h-5 w-5 text-white" />
-                              <span className="text-white text-sm font-medium">Click to advance</span>
+                              <span className="text-white text-sm font-medium">Click to advance frame</span>
                               <StepForward className="h-5 w-5 text-white" />
                             </div>
                           </div>
+                        </div>
+                      </div>
+                      
+                      {/* Instructions for iframe video */}
+                      <div className="absolute top-4 left-4 bg-black bg-opacity-80 rounded-lg px-3 py-2 pointer-events-none">
+                        <div className="text-white text-xs">
+                          <div className="font-semibold">Cloudflare Stream Video</div>
+                          <div>Use video controls below to play/pause</div>
+                          <div>Click video to advance frames</div>
                         </div>
                       </div>
                       

@@ -186,6 +186,8 @@ export default function AutoAnalyzedVideoPlayer({
 
   const cloudflareStreamUrl = React.useMemo(() => {
     console.log('🔍 Debug Cloudflare URL conversion:', { processedVideoUrl, videoUrl });
+    console.log('🔍 Debug - processedVideoUrl type:', typeof processedVideoUrl, 'value:', processedVideoUrl);
+    console.log('🔍 Debug - videoUrl type:', typeof videoUrl, 'value:', videoUrl);
     
     const extractVideoIdFromUrl = (url: string) => {
       console.log('🔍 Processing URL:', url);
@@ -218,6 +220,7 @@ export default function AutoAnalyzedVideoPlayer({
     console.log('🔍 Debug - videoUrl:', videoUrl);
     
     // Check processedVideoUrl first (this should be the skeleton overlay video)
+    console.log('🔍 Checking processedVideoUrl:', processedVideoUrl, 'includes cloudflarestream.com:', processedVideoUrl?.includes('cloudflarestream.com'));
     if (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com')) {
       const videoId = extractVideoIdFromUrl(processedVideoUrl);
       console.log('🔍 Extracted video ID from processedVideoUrl:', videoId);
@@ -233,6 +236,7 @@ export default function AutoAnalyzedVideoPlayer({
     }
     
     // Check videoUrl (this is the correct video ID from the session)
+    console.log('🔍 Checking videoUrl:', videoUrl, 'includes cloudflarestream.com:', videoUrl?.includes('cloudflarestream.com'));
     if (videoUrl && videoUrl.includes('cloudflarestream.com')) {
       const videoId = extractVideoIdFromUrl(videoUrl);
       console.log('🔍 Extracted video ID from videoUrl:', videoId);
@@ -259,6 +263,7 @@ export default function AutoAnalyzedVideoPlayer({
     // Fallback to test URL if no Cloudflare Stream URLs found
     const testVideoUrl = 'https://customer-cxebs7nmdazhytrk.cloudflarestream.com/72a4beb341d720ae9d3fc74804d98484/downloads/default.mp4';
     console.log('🎬 No Cloudflare Stream URLs found, using test URL:', testVideoUrl);
+    console.log('🎬 This means neither processedVideoUrl nor videoUrl contained cloudflarestream.com');
     return { url: testVideoUrl, type: 'video' };
   }, [videoUrl, processedVideoUrl]);
 

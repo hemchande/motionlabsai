@@ -187,14 +187,8 @@ export default function AutoAnalyzedVideoPlayer({
   const cloudflareStreamUrl = React.useMemo(() => {
     console.log('🔍 Debug Cloudflare URL conversion:', { processedVideoUrl, videoUrl });
     
-    // For testing, let's use the exact working URL from the HTML file first
-    const testWorkingUrl = 'https://customer-cxebs7nmdazhytrk.cloudflarestream.com/72a4beb341d720ae9d3fc74804d98484/downloads/default.mp4';
-    console.log('🧪 Using test working URL for now:', testWorkingUrl);
-    return testWorkingUrl;
-    
-    // TODO: Re-enable dynamic URL extraction once we confirm the test URL works
-    /*
-    // Simple and reliable video ID extraction - based on working HTML implementation
+    // Since direct MP4 download doesn't work due to CORS/codec issues, use iframe embed
+    // Extract video ID and create iframe URL instead
     const extractVideoIdFromUrl = (url: string) => {
       console.log('🔍 Processing URL:', url);
       
@@ -212,18 +206,18 @@ export default function AutoAnalyzedVideoPlayer({
       return null;
     };
     
-    const createDirectUrl = (videoId: string) => {
-      // Use the exact same format as the working HTML file
-      return `https://customer-cxebs7nmdazhytrk.cloudflarestream.com/${videoId}/downloads/default.mp4`;
+    const createIframeUrl = (videoId: string) => {
+      // Use iframe embed URL instead of direct download
+      return `https://customer-cxebs7nmdazhytrk.cloudflarestream.com/${videoId}/iframe`;
     };
     
     // Check processedVideoUrl first
     if (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com')) {
       const videoId = extractVideoIdFromUrl(processedVideoUrl);
       if (videoId) {
-        const directUrl = createDirectUrl(videoId);
-        console.log('🎬 Converted processed video URL to direct URL:', directUrl);
-        return directUrl;
+        const iframeUrl = createIframeUrl(videoId);
+        console.log('🎬 Converted processed video URL to iframe URL:', iframeUrl);
+        return iframeUrl;
       }
       console.log('🎬 Using Cloudflare Stream processed video URL as-is:', processedVideoUrl);
       return processedVideoUrl;
@@ -233,16 +227,15 @@ export default function AutoAnalyzedVideoPlayer({
     if (videoUrl && videoUrl.includes('cloudflarestream.com')) {
       const videoId = extractVideoIdFromUrl(videoUrl);
       if (videoId) {
-        const directUrl = createDirectUrl(videoId);
-        console.log('🎬 Converted video URL to direct URL:', directUrl);
-        return directUrl;
+        const iframeUrl = createIframeUrl(videoId);
+        console.log('🎬 Converted video URL to iframe URL:', iframeUrl);
+        return iframeUrl;
       }
       console.log('🎬 Using Cloudflare Stream video URL as-is:', videoUrl);
       return videoUrl;
     }
     
     return null;
-    */
   }, [videoUrl, processedVideoUrl]);
 
   const actualVideoUrl = React.useMemo(() => {
@@ -1395,6 +1388,15 @@ export default function AutoAnalyzedVideoPlayer({
   const seekToFrameTime = () => {
     const video = videoRef.current;
     const frame = frameData[currentFrameIndex];
+    
+    // Check if we're using iframe (Cloudflare Stream)
+    if (cloudflareStreamUrl && cloudflareStreamUrl.includes('/iframe')) {
+      console.log(`🎬 Iframe mode: Frame ${frame?.frame_number || currentFrameIndex + 1} - cannot directly seek iframe`);
+      // For iframe videos, we can't directly control playback
+      // The frame navigation will update the frame display but won't seek the video
+      return;
+    }
+    
     if (video && frame) {
       // Use video_time if available, otherwise convert timestamp to seconds
       const frameTime = frame.video_time || (frame.timestamp / 1000);
@@ -1647,16 +1649,69 @@ export default function AutoAnalyzedVideoPlayer({
                 </div>
               ) : (
                 <div className="relative">
-                  {/* Always use HTML5 video element for better frame control */}
-                  <div 
-                    className="relative w-full h-full cursor-pointer"
-                    onClick={goToNextFrame}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      goToPreviousFrame();
-                    }}
-                    title="Click to advance to next frame, right-click to go to previous frame"
-                  >
+                  {cloudflareStreamUrl && cloudflareStreamUrl.includes('/iframe') ? (
+                    // Use iframe for Cloudflare Stream videos
+                    <div className="relative">
+                    <iframe
+                      src={cloudflareStreamUrl}
+                      style={{ border: 'none', width: '100%', height: '500px' }}
+                      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                      allowFullScreen={true}
+                      id="stream-player"
+                      onLoad={() => {
+                          console.log('🎬 Cloudflare Stream iframe loaded successfully');
+                        setLoading(false);
+                      }}
+                      onError={() => {
+                          console.error('🎬 Cloudflare Stream iframe load error');
+                        setError('Failed to load Cloudflare Stream video');
+                        setLoading(false);
+                      }}
+                    />
+                      
+                      {/* Frame controls overlay for iframe */}
+                      <div className="absolute inset-0 pointer-events-none">
+                        <div 
+                          className="absolute inset-0 cursor-pointer pointer-events-auto"
+                          onClick={goToNextFrame}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            goToPreviousFrame();
+                          }}
+                          title="Click to advance to next frame, right-click to go to previous frame"
+                        >
+                          {/* Click overlay indicator */}
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="bg-black bg-opacity-60 rounded-full p-4 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center space-x-2">
+                              <StepBack className="h-5 w-5 text-white" />
+                              <span className="text-white text-sm font-medium">Click to advance</span>
+                              <StepForward className="h-5 w-5 text-white" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Persistent frame number display - below iframe */}
+                      <div className="absolute -bottom-16 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
+                        <div className="text-white text-lg font-bold">
+                          Frame {currentFrameIndex + 1} / {frameData.length}
+                        </div>
+                        <div className="text-gray-300 text-sm">
+                          {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    // Use HTML5 video element for other videos
+                    <div 
+                      className="relative w-full h-full cursor-pointer"
+                      onClick={goToNextFrame}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        goToPreviousFrame();
+                      }}
+                      title="Click to advance to next frame, right-click to go to previous frame"
+                    >
                     <video
                       ref={videoRef}
                       className="w-full h-full max-h-[500px] object-contain"
@@ -1665,11 +1720,11 @@ export default function AutoAnalyzedVideoPlayer({
                       playsInline
                       muted
                       crossOrigin="anonymous"
-                      controls
-                      style={{ background: 'black' }}
+                        controls
+                        style={{ background: 'black' }}
                       onLoadedData={() => {
                         console.log('Video loaded successfully');
-                        console.log('Video URL:', actualVideoUrl);
+                          console.log('Video URL:', actualVideoUrl);
                         setLoading(false);
                         // Calculate and set video aspect ratio
                         if (videoRef.current) {
@@ -1680,9 +1735,9 @@ export default function AutoAnalyzedVideoPlayer({
                         }
                       }}
                       onError={(e) => {
-                        console.error('🎬 Video element onError triggered:', e);
-                        console.error('🎬 Video URL:', actualVideoUrl);
-                        // The main error handling is in the useEffect above
+                          console.error('🎬 Video element onError triggered:', e);
+                          console.error('🎬 Video URL:', actualVideoUrl);
+                          // The main error handling is in the useEffect above
                       }}
                       onCanPlay={() => {
                         console.log('Video can play');
@@ -1701,27 +1756,28 @@ export default function AutoAnalyzedVideoPlayer({
                         setIsPlaying(false);
                       }}
                       onTimeUpdate={handleTimeUpdate}
-                    />
-                    
-                    {/* Click overlay indicator */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="bg-black bg-opacity-60 rounded-full p-4 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center space-x-2">
-                        <StepBack className="h-5 w-5 text-white" />
-                        <span className="text-white text-sm font-medium">Click to advance</span>
-                        <StepForward className="h-5 w-5 text-white" />
+                      />
+                      
+                      {/* Click overlay indicator */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="bg-black bg-opacity-60 rounded-full p-4 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center space-x-2">
+                          <StepBack className="h-5 w-5 text-white" />
+                          <span className="text-white text-sm font-medium">Click to advance</span>
+                          <StepForward className="h-5 w-5 text-white" />
+                        </div>
+                      </div>
+                      
+                      {/* Persistent frame number display on video - below video */}
+                      <div className="absolute -bottom-16 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
+                        <div className="text-white text-lg font-bold">
+                          Frame {currentFrameIndex + 1} / {frameData.length}
+                        </div>
+                        <div className="text-gray-300 text-sm">
+                          {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
+                        </div>
                       </div>
                     </div>
-                    
-                    {/* Persistent frame number display on video - below video */}
-                    <div className="absolute -bottom-16 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
-                      <div className="text-white text-lg font-bold">
-                        Frame {currentFrameIndex + 1} / {frameData.length}
-                      </div>
-                      <div className="text-gray-300 text-sm">
-                        {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
-                      </div>
-                    </div>
-                  </div>
+                  )}
                 </div>
               )}
               

@@ -1,2620 +1,466 @@
-"use client"
-
-import React, { useState, useRef, useEffect } from 'react'
-
-// Declare Cloudflare Stream SDK
-declare global {
-  interface Window {
-    Stream: any;
-  }
-}
-import { API_BASE_URL } from '@/lib/api'
-import { extractVideoBaseName } from '@/lib/utils'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-
-// Cloudflare Stream API configuration
-const CLOUDFLARE_ACCOUNT_ID = 'f2b0714a082195118f53d0b8327f6635';
-const CLOUDFLARE_API_TOKEN = 'DEmkpIDn5SLgpjTOoDqYrPivnOpD9gnqbVICwzTQ';
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { 
-  Play, 
-  Pause, 
-  SkipBack, 
-  SkipForward, 
-  X, 
-  Brain, 
-  Shield, 
-  Target, 
-  Zap,
-  Activity,
-  Clock,
-  TrendingUp,
-  AlertTriangle,
-  Maximize,
-  Minimize,
-  ChevronLeft,
-  ChevronRight,
-  StepBack,
-  StepForward
-} from 'lucide-react'
-import { motion } from 'framer-motion'
-import { EnhancedFrameStatistics } from './EnhancedFrameStatistics'
-import RiskTimeline from './RiskTimeline'
-
-interface VideoMetrics {
-  motionIQ: number
-  aclRisk: number
-  precision: number
-  power: number
-  timestamp: number
-}
-
-interface FrameData {
-  frame_number: number;
-  timestamp: number;
-  pose_data: any;
-  landmarks?: any[];
-  metrics: {
-    acl_risk?: number;
-    angle_of_elevation?: number;
-    flight_time?: number;
-    left_elbow?: number;
-    left_elbow_angle?: number;
-    left_hip?: number;
-    left_hip_angle?: number;
-    left_knee?: number;
-    left_knee_angle?: number;
-    left_shoulder?: number;
-    left_shoulder_angle?: number;
-    right_elbow?: number;
-    right_elbow_angle?: number;
-    right_hip?: number;
-    right_hip_angle?: number;
-    right_knee?: number;
-    right_knee_angle?: number;
-    right_shoulder?: number;
-    right_shoulder_angle?: number;
-    split_angle?: number;
-  };
-  analytics: any;
-}
-
-interface EnhancedFrameData {
-  frame_number: number;
-  timestamp: number;
-  tumbling_detected: boolean;
-  flight_phase: string;
-  height_from_ground: number;
-  elevation_angle: number;
-  forward_lean_angle: number;
-  tumbling_quality: number;
-  landmark_confidence: number;
-  acl_risk_factors: {
-    knee_angle_risk: number;
-    knee_valgus_risk: number;
-    landing_mechanics_risk: number;
-    overall_acl_risk: number;
-    risk_level: 'LOW' | 'MODERATE' | 'HIGH';
-  };
-  acl_recommendations: string[];
-  com_position?: {
-    x: number;
-    y: number;
-    z: number;
-  };
-}
-
-interface EnhancedStatistics {
-  tumbling_detection: {
-    total_tumbling_frames: number;
-    tumbling_percentage: number;
-    flight_phases: {
-      ground: number;
-      preparation: number;
-      takeoff: number;
-      flight: number;
-      landing: number;
-    };
-  };
-  acl_risk_analysis: {
-    average_overall_risk: number;
-    average_knee_angle_risk: number;
-    average_knee_valgus_risk: number;
-    average_landing_mechanics_risk: number;
-    risk_level_distribution: {
-      LOW: number;
-      MODERATE: number;
-      HIGH: number;
-    };
-    high_risk_frames: number;
-  };
-  movement_analysis: {
-    average_elevation_angle: number;
-    max_elevation_angle: number;
-    average_forward_lean_angle: number;
-    max_forward_lean_angle: number;
-    average_height_from_ground: number;
-    max_height_from_ground: number;
-  };
-  tumbling_quality: {
-    average_quality: number;
-    max_quality: number;
-    quality_frames_count: number;
-  };
-}
-
-interface AutoAnalyzedVideoPlayerProps {
-  videoUrl?: string
-  videoName?: string
-  analyticsBaseName?: string
-  processedVideoFilename?: string  // New prop for processed video filename
-  processedVideoUrl?: string  // New prop for processed video URL (Cloudflare Stream)
-  sessionId?: string  // New prop for GridFS-based sessions
-  analyticsId?: string  // New prop for GridFS analytics ID
-  analyticsUrl?: string  // New prop for analytics URL
-  onClose: () => void
-  onVideoAnalyzed?: (metrics: VideoMetrics) => void
-}
-
-export default function AutoAnalyzedVideoPlayer({ 
-  videoUrl, 
-  videoName, 
-  analyticsBaseName,
-  processedVideoFilename,
-  processedVideoUrl,
-  sessionId,
-  analyticsId,
-  analyticsUrl,
-  onClose,
-  onVideoAnalyzed
-}: AutoAnalyzedVideoPlayerProps) {
-  // Debug logging
-  console.log('🎬 ===== AUTOANALYZEDVIDEOPLAYER COMPONENT LOADED =====');
-  console.log('AutoAnalyzedVideoPlayer props:', {
-    videoUrl,
-    videoName,
-    analyticsBaseName,
-    processedVideoFilename,
-    sessionId,
-    analyticsId,
-    analyticsUrl
-  });
-  console.log('🎬 ===================================================');
-
-  // Basic logging to see if component is working
-  console.log('🎬 Component is rendering...');
-
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  
-  // Compute the actual video URL to use - construct from production API server
-  // Check if we should use Cloudflare Stream iframe embed
-  const isCloudflareStream = React.useMemo(() => {
-    const result = (videoUrl && videoUrl.includes('cloudflarestream.com') && videoUrl.includes('/iframe')) ||
-           (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com') && processedVideoUrl.includes('/iframe'));
-    console.log('🎬 isCloudflareStream computed:', result, 'for videoUrl:', videoUrl);
-    return result;
-  }, [videoUrl, processedVideoUrl]);
-
-  const cloudflareStreamUrl = React.useMemo(() => {
-    if (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com') && processedVideoUrl.includes('/iframe')) {
-      console.log('🎬 Using Cloudflare Stream processed video URL:', processedVideoUrl);
-      return processedVideoUrl;
-    }
-    if (videoUrl && videoUrl.includes('cloudflarestream.com') && videoUrl.includes('/iframe')) {
-      console.log('🎬 Using Cloudflare Stream URL directly:', videoUrl);
-      return videoUrl;
-    }
-    return null;
-  }, [videoUrl, processedVideoUrl]);
-
-  // Function to construct proper Cloudflare Stream iframe URL with poster
-  const getCloudflareIframeUrl = (videoId: string) => {
-    if (!cloudflareStreamUrl) return null;
-    
-    // Extract account ID from the original URL
-    // URL format: https://customer-{accountId}.cloudflarestream.com/{videoId}/iframe
-    const urlParts = cloudflareStreamUrl.split('/');
-    const customerPart = urlParts[2]; // customer-{accountId}.cloudflarestream.com
-    const accountId = customerPart.replace('customer-', '').replace('.cloudflarestream.com', '');
-    
-    console.log('🎬 Extracted account ID:', accountId);
-    
-    // Construct iframe URL with poster
-    const iframeUrl = `https://customer-${accountId}.cloudflarestream.com/${videoId}/iframe?poster=https%3A%2F%2Fcustomer-${accountId}.cloudflarestream.com%2F${videoId}%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600`;
-    
-    console.log('🎬 Constructed Cloudflare iframe URL:', iframeUrl);
-    return iframeUrl;
-  };
-
-  const actualVideoUrl = React.useMemo(() => {
-    // Priority 1: If we have a processed video filename, use backend API
-    if (processedVideoFilename) {
-      return `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(processedVideoFilename)}`;
-    }
-    
-    // Priority 2: If we have a video name, use backend API
-    if (videoName) {
-      return `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(videoName)}`;
-    }
-    
-    // Priority 3: Fallback to the provided videoUrl if it exists and doesn't contain localhost
-    if (videoUrl && !videoUrl.includes('localhost')) {
-      return videoUrl;
-    }
-    
-    // Priority 4: If videoUrl contains localhost, try to extract filename and construct proper URL
-    if (videoUrl && videoUrl.includes('localhost')) {
-      const url = new URL(videoUrl);
-      const filename = url.searchParams.get('video_filename');
-      if (filename) {
-        return `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(filename)}`;
-      }
-    }
-    
-    // Priority 5: If we have a sessionId, use the session-based video endpoint (last resort)
-    if (sessionId) {
-      return `${API_BASE_URL}/getVideoFromSession/${sessionId}`;
-    }
-    
-    return videoUrl;
-  }, [processedVideoFilename, videoName, videoUrl, sessionId]);
-
-  // Extract video ID from Cloudflare Stream URL
-  const cloudflareVideoId = React.useMemo(() => {
-    if (cloudflareStreamUrl) {
-      console.log('🎬 Processing Cloudflare Stream URL:', cloudflareStreamUrl);
-      
-      // Extract video ID from iframe URL
-      const iframeUrl = cloudflareStreamUrl;
-      const videoIdMatch = iframeUrl.match(/\/iframe$/);
-      
-      if (videoIdMatch) {
-        // Extract the video ID from the URL path
-        const urlParts = iframeUrl.split('/');
-        const videoId = urlParts[urlParts.length - 2]; // Get the part before '/iframe'
-        
-        console.log('🎬 Extracted video ID:', videoId);
-        return videoId;
-      } else {
-        console.error('❌ Could not extract video ID from Cloudflare Stream URL');
-        return null;
-      }
-    }
-    return null;
-  }, [cloudflareStreamUrl]);
-
-  // State for Cloudflare Stream player
-  const [cloudflarePlayer, setCloudflarePlayer] = useState<any>(null);
-  const [cloudflarePlayerContainer, setCloudflarePlayerContainer] = useState<HTMLElement | null>(null);
-  const [playerReady, setPlayerReady] = useState(false);
-  
-  // State for Cloudflare download URL
-  const [cloudflareDownloadUrl, setCloudflareDownloadUrl] = useState<string | null>(null);
-  const [downloadEnabled, setDownloadEnabled] = useState<boolean>(false);
-
-  // Function to create Cloudflare Stream player directly
-  const createCloudflarePlayer = (videoId: string) => {
-    try {
-      console.log('🎬 Creating Cloudflare Stream player for video ID:', videoId);
-      
-      // Create the stream element
-      const streamElement = document.createElement('stream');
-      streamElement.setAttribute('id', videoId);
-      streamElement.style.width = '100%';
-      streamElement.style.height = '100%';
-      
-      // Create container div
-      const container = document.createElement('div');
-      container.style.position = 'relative';
-      container.style.width = '100%';
-      container.style.height = '400px';
-      container.appendChild(streamElement);
-      
-      // Store the container
-      setCloudflarePlayerContainer(container);
-      
-      // Load Cloudflare Stream SDK if not already loaded
-      if (!window.Stream) {
-        const script = document.createElement('script');
-        script.src = 'https://embed.cloudflarestream.com/embed/sdk.latest.js';
-        script.async = true;
-        script.onload = () => {
-          console.log('✅ Cloudflare Stream SDK loaded');
-          initializePlayer(videoId, streamElement);
-        };
-        document.head.appendChild(script);
-      } else {
-        initializePlayer(videoId, streamElement);
-      }
-      
-      return container;
-    } catch (error) {
-      console.error('❌ Error creating Cloudflare Stream player:', error);
-      return null;
-    }
-  };
-
-  // Function to initialize the Cloudflare Stream player
-  const initializePlayer = (videoId: string, streamElement: HTMLElement) => {
-    try {
-      if (window.Stream) {
-        const player = window.Stream(streamElement);
-        
-        // Add event listeners
-        player.addEventListener('play', () => {
-          console.log('🎬 Cloudflare Stream playing');
-          setIsPlaying(true);
-        });
-        
-        player.addEventListener('pause', () => {
-          console.log('🎬 Cloudflare Stream paused');
-          setIsPlaying(false);
-        });
-        
-        player.addEventListener('timeupdate', () => {
-          if (player.currentTime !== undefined) {
-            setCurrentTime(player.currentTime);
-            
-            // Update current frame index based on video time
-            const currentTimeMs = player.currentTime * 1000;
-            const closestFrameIndex = frameData.findIndex(frame => 
-              Math.abs((frame.timestamp / 1000) - player.currentTime) < 0.1
-            );
-            
-            if (closestFrameIndex !== -1 && closestFrameIndex !== currentFrameIndex) {
-              setCurrentFrameIndex(closestFrameIndex);
-            }
-          }
-        });
-        
-        player.addEventListener('loadeddata', () => {
-          console.log('✅ Cloudflare Stream player ready');
-          setPlayerReady(true);
-          setLoading(false);
-        });
-        
-        setCloudflarePlayer(player);
-        console.log('✅ Cloudflare Stream player initialized');
-      }
-    } catch (error) {
-      console.error('❌ Error initializing Cloudflare Stream player:', error);
-    }
-  };
-
-  // Create Cloudflare Stream player when we have a video ID
-  useEffect(() => {
-    if (cloudflareVideoId && isCloudflareStream) {
-      console.log('🎬 Creating Cloudflare Stream player for video ID:', cloudflareVideoId);
-      createCloudflarePlayer(cloudflareVideoId);
-    }
-  }, [cloudflareVideoId, isCloudflareStream]);
-
-  // Log Cloudflare Stream detection (manual control like HTML file)
-  useEffect(() => {
-    console.log('🎬 ===== CLOUDFLARE STREAM DETECTED =====');
-    console.log('🎬 cloudflareVideoId:', cloudflareVideoId);
-    console.log('🎬 isCloudflareStream:', isCloudflareStream);
-    console.log('🎬 Manual download controls available in top-right corner');
-    console.log('🎬 =====================================');
-  }, [cloudflareVideoId, isCloudflareStream]);
-
-  // Log when download URL changes (but don't auto-load to avoid CORS)
-  useEffect(() => {
-    if (cloudflareDownloadUrl) {
-      console.log('🎬 ===== DOWNLOAD URL UPDATED =====');
-      console.log('🎬 New download URL:', cloudflareDownloadUrl);
-      console.log('🎬 Download URL ready - use buttons to load video');
-      console.log('🎬 ================================');
-    }
-  }, [cloudflareDownloadUrl]);
-
-  // Enable Cloudflare Stream download
-  const enableCloudflareDownload = async (videoId: string) => {
-    try {
-      console.log('🎬 Enabling Cloudflare download for video:', videoId);
-      
-      const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/stream/${videoId}/downloads`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`
-        },
-        body: JSON.stringify({})
-      });
-
-      const data = await response.json();
-      console.log('🎬 Enable download response:', JSON.stringify(data, null, 2));
-
-      if (data.success) {
-        console.log('✅ Download enabled successfully!', 'success');
-        setDownloadEnabled(true);
-        return true;
-      } else {
-        console.error('❌ Failed to enable download:', data.errors);
-        return false;
-      }
-    } catch (error) {
-      console.error('❌ Error enabling download:', error);
-      return false;
-    }
-  };
-
-  // Check Cloudflare Stream download status and get URL
-  const checkCloudflareDownloadStatus = async (videoId: string) => {
-    try {
-      console.log('🎬 Checking download status for video:', videoId);
-      
-      const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/stream/${videoId}/downloads`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${CLOUDFLARE_API_TOKEN}`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enable Cloudflare Download Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
         }
-      });
-
-      const data = await response.json();
-      console.log('🎬 Download status response:', JSON.stringify(data, null, 2));
-
-      if (data.success && data.result && data.result.default) {
-        const downloadUrl = data.result.default.url;
-        console.log(`✅ Download URL found: ${downloadUrl}`, 'success');
-        console.log('🎬 Setting cloudflareDownloadUrl state to:', downloadUrl);
-        setCloudflareDownloadUrl(downloadUrl);
-        return downloadUrl;
-      } else {
-        console.log('⚠️ No download URL available yet');
-        return null;
-      }
-    } catch (error) {
-      console.error('❌ Error checking download status:', error);
-      return null;
-    }
-  };
-
-  // Test download URL accessibility (separate function like HTML file)
-  const testDownloadUrlAccessibility = async (downloadUrl: string) => {
-    try {
-      console.log(`🔍 Testing download URL: ${downloadUrl}`);
-      const response = await fetch(downloadUrl, { method: 'HEAD' });
-      console.log(`🔍 Download URL test result: ${response.status} ${response.statusText}`);
-      console.log(`🔍 Content-Type: ${response.headers.get('content-type')}`);
-      console.log(`🔍 Content-Length: ${response.headers.get('content-length')}`);
-      console.log(`🔍 Last-Modified: ${response.headers.get('last-modified')}`);
-      
-      if (response.ok) {
-        console.log('✅ Download URL is accessible!', 'success');
-      } else {
-        console.log(`❌ Download URL not accessible: ${response.status}`, 'error');
-      }
-    } catch (error) {
-      console.log(`❌ Download URL test failed: ${error instanceof Error ? error.message : String(error)}`, 'error');
-    }
-  };
-
-  // Exact copy of HTML file functions
-  let downloadUrl = null;
-
-  const enableDownload = async () => {
-    console.log('Enabling download for video 0dcb9daa132905082aa699d4e984c214...');
-    
-    try {
-      const response = await fetch('https://api.cloudflare.com/client/v4/accounts/f2b0714a082195118f53d0b8327f6635/stream/0dcb9daa132905082aa699d4e984c214/downloads', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer DEmkpIDn5SLgpjTOoDqYrPivnOpD9gnqbVICwzTQ'
-        },
-        body: JSON.stringify({})
-      });
-
-      const data = await response.json();
-      console.log('API Response:', JSON.stringify(data, null, 2));
-      
-      if (data.success) {
-        console.log('✅ Download enabled successfully!');
-        setTimeout(() => {
-          checkDownloadStatus();
-        }, 1000);
-      }
-    } catch (error) {
-      console.log(`❌ Network Error: ${error.message}`);
-    }
-  };
-
-  const checkDownloadStatus = async () => {
-    console.log('Checking download status for video 0dcb9daa132905082aa699d4e984c214...');
-    
-    try {
-      const response = await fetch('https://api.cloudflare.com/client/v4/accounts/f2b0714a082195118f53d0b8327f6635/stream/0dcb9daa132905082aa699d4e984c214/downloads', {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer DEmkpIDn5SLgpjTOoDqYrPivnOpD9gnqbVICwzTQ'
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
-      });
-
-      const data = await response.json();
-      console.log('Download Status Response:', JSON.stringify(data, null, 2));
-      
-      if (data.success && data.result && data.result.default) {
-        downloadUrl = data.result.default.url;
-        console.log(`✅ Download URL found: ${downloadUrl}`);
-      }
-    } catch (error) {
-      console.log(`❌ Network Error: ${error.message}`);
-    }
-  };
-
-  const tryDirectVideo = () => {
-    if (!downloadUrl) {
-      console.log('❌ No download URL available', 'error');
-      return;
-    }
-    
-    console.log('🎬 Trying direct video load...');
-    const video = document.getElementById('video') as HTMLVideoElement;
-    const videoSource = document.getElementById('videoSource') as HTMLSourceElement;
-    
-    // Remove crossorigin attribute
-    video.removeAttribute('crossorigin');
-    videoSource.src = downloadUrl;
-    video.load();
-  };
-
-  const tryProxyVideo = () => {
-    if (!downloadUrl) {
-      console.log('❌ No download URL available', 'error');
-      return;
-    }
-    
-    console.log('🎬 Trying proxy video load through backend...');
-    const video = document.getElementById('video') as HTMLVideoElement;
-    const videoSource = document.getElementById('videoSource') as HTMLSourceElement;
-    
-    // Try to proxy through the backend
-    const proxyUrl = `http://localhost:5004/proxyVideo?url=${encodeURIComponent(downloadUrl)}`;
-    console.log(`🎬 Proxy URL: ${proxyUrl}`);
-    
-    videoSource.src = proxyUrl;
-    video.load();
-  };
-
-  const openInNewTab = () => {
-    if (!downloadUrl) {
-      console.log('❌ No download URL available', 'error');
-      return;
-    }
-    
-    console.log('🎬 Opening video in new tab...');
-    window.open(downloadUrl, '_blank');
-  };
-
-  // Try proxy video load through backend (same as HTML file)
-  const tryProxyVideoLoad = (downloadUrl: string) => {
-    try {
-      console.log('🎬 Trying proxy video load through backend...');
-      const video = videoRef.current;
-      const videoSource = document.getElementById('videoSource') as HTMLSourceElement;
-      
-      // Try to proxy through the backend (same as HTML file)
-      const proxyUrl = `http://localhost:5004/proxyVideo?url=${encodeURIComponent(downloadUrl)}`;
-      console.log(`🎬 Proxy URL: ${proxyUrl}`);
-      
-      if (videoSource) {
-        videoSource.src = proxyUrl;
-        if (video) {
-          video.load();
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-weight: 500;
         }
-      }
-    } catch (error) {
-      console.error('❌ Error in proxy video load:', error);
-    }
-  };
-
-  // Reset error state when videoUrl changes
-  useEffect(() => {
-    setError(null);
-    setLoading(true);
-    console.log('🎬 ===== VIDEO URL LOADING DEBUG =====');
-    console.log('🎬 Props received:', {
-      videoUrl,
-      videoName,
-      processedVideoFilename,
-      sessionId,
-      analyticsBaseName
-    });
-    console.log('🎬 Computed URLs:', {
-      actualVideoUrl,
-      cloudflareStreamUrl,
-      processedVideoUrl
-    });
-    console.log('🎬 Video Detection:', {
-      isCloudflareStream,
-      cloudflareVideoId
-    });
-    console.log('🎬 Download Status:', {
-      downloadEnabled,
-      cloudflareDownloadUrl
-    });
-    console.log('🎬 Final Video Source:', cloudflareDownloadUrl || actualVideoUrl);
-    console.log('🎬 ====================================');
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .debug-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .debug-log .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        .debug-log .log-entry.error {
+            color: #dc3545;
+        }
+        .debug-log .log-entry.success {
+            color: #28a745;
+        }
+        .debug-log .log-entry.info {
+            color: #007bff;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 Enable Cloudflare Download Test</h1>
+    <p>Test enabling downloads and frame-by-frame navigation</p>
     
-    // Test if the video URL is accessible
-    if (actualVideoUrl) {
-      fetch(actualVideoUrl, { method: 'HEAD' })
-        .then(response => {
-          console.log('Video URL accessibility test:', {
-            url: actualVideoUrl,
-            status: response.status,
-            statusText: response.statusText,
-            contentType: response.headers.get('content-type')
-          });
-          if (!response.ok) {
-            setError(`Video not accessible: ${response.status} ${response.statusText}`);
-            setLoading(false);
-          }
-        })
-        .catch(err => {
-          console.error('Video URL accessibility test failed:', err);
-          setError(`Network error: ${err.message}`);
-          setLoading(false);
-        });
-    }
-  }, [actualVideoUrl]);
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
-  // Removed streamPlayer state since we're using HTML5 video
-  const [showSkeleton, setShowSkeleton] = useState(false)
-  const [showAngles, setShowAngles] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
-  const [videoAspectRatio, setVideoAspectRatio] = useState<number | null>(null)
-  const [currentFrameIndex, setCurrentFrameIndex] = useState(0)
-  const [fps, setFps] = useState(30)
-  const [realTimeMetrics, setRealTimeMetrics] = useState<VideoMetrics>({
-    motionIQ: 0,
-    aclRisk: 0,
-    precision: 0,
-    power: 0,
-    timestamp: 0
-  })
-  const [frameData, setFrameData] = useState<FrameData[]>([])
-  const [enhancedFrameData, setEnhancedFrameData] = useState<EnhancedFrameData[]>([])
-  const [enhancedStats, setEnhancedStats] = useState<EnhancedStatistics | null>(null)
-  const [selectedFrame, setSelectedFrame] = useState<FrameData | null>(null)
-  const [selectedEnhancedFrame, setSelectedEnhancedFrame] = useState<EnhancedFrameData | null>(null)
-  const [showStatistics, setShowStatistics] = useState(true)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [frameStepInterval, setFrameStepInterval] = useState<NodeJS.Timeout | null>(null)
-  
-  // Analytics cache state
-  const [analyticsCache, setAnalyticsCache] = useState<Map<string, { data: any; timestamp: number }>>(new Map())
-  
-  // Cache management utilities
-  const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds (increased for better performance)
-  const PERSISTENT_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours for localStorage
-  
-  const isCacheValid = (timestamp: number): boolean => {
-    return Date.now() - timestamp < CACHE_DURATION;
-  };
-  
-  const isPersistentCacheValid = (timestamp: number): boolean => {
-    return Date.now() - timestamp < PERSISTENT_CACHE_DURATION;
-  };
-  
-  // Load cache from localStorage on component mount
-  const loadCacheFromStorage = () => {
-    try {
-      const storedAnalyticsCache = localStorage.getItem('gymnastics-analytics-cache');
-
-      console.log('Stored analytics cache:', storedAnalyticsCache);
-      
-      if (storedAnalyticsCache) {
-        const parsedCache = JSON.parse(storedAnalyticsCache);
-        const now = Date.now();
-        const validEntries = new Map();
-        
-        for (const [key, value] of Object.entries(parsedCache)) {
-          if (now - (value as any).timestamp < PERSISTENT_CACHE_DURATION) {
-            validEntries.set(key, value);
-          }
-        }
-        
-        setAnalyticsCache(validEntries);
-        console.log('📦 Loaded analytics cache from localStorage:', validEntries.size, 'entries');
-      }
-    } catch (error) {
-      console.error('Error loading analytics cache from localStorage:', error);
-    }
-  };
-  
-  // Save cache to localStorage with size management
-  const saveCacheToStorage = () => {
-    try {
-      // Limit cache size to prevent localStorage quota exceeded
-      const maxCacheSize = 10; // Keep only last 10 analytics
-      const cacheEntries = Array.from(analyticsCache.entries());
-      
-      // Sort by timestamp (newest first) and keep only the most recent entries
-      const sortedEntries = cacheEntries.sort((a, b) => b[1].timestamp - a[1].timestamp);
-      const limitedEntries = sortedEntries.slice(0, maxCacheSize);
-      
-      const limitedCache = new Map(limitedEntries);
-      const analyticsCacheObj = Object.fromEntries(limitedCache);
-      
-      // Try to save with size estimation
-      const dataString = JSON.stringify(analyticsCacheObj);
-      const estimatedSize = new Blob([dataString]).size;
-      const maxSize = 5 * 1024 * 1024; // 5MB limit
-      
-      if (estimatedSize > maxSize) {
-        // If still too large, reduce cache further
-        const reducedEntries = limitedEntries.slice(0, Math.floor(maxCacheSize / 2));
-        const reducedCache = new Map(reducedEntries);
-        const reducedCacheObj = Object.fromEntries(reducedCache);
-        localStorage.setItem('gymnastics-analytics-cache', JSON.stringify(reducedCacheObj));
-        setAnalyticsCache(reducedCache);
-        console.log('💾 Saved reduced analytics cache to localStorage (size limited)');
-      } else {
-        localStorage.setItem('gymnastics-analytics-cache', dataString);
-        setAnalyticsCache(limitedCache);
-      console.log('💾 Saved analytics cache to localStorage');
-      }
-    } catch (error) {
-      console.error('Error saving analytics cache to localStorage:', error);
-      // Clear cache if localStorage is full
-      if (error instanceof Error && error.name === 'QuotaExceededError') {
-        console.log('🗑️ Clearing analytics cache due to localStorage quota exceeded');
-        setAnalyticsCache(new Map());
-        localStorage.removeItem('gymnastics-analytics-cache');
-      }
-    }
-  };
-  
-  const getAnalyticsCacheKey = (baseName: string): string => {
-    return `analytics-${baseName}`;
-  };
-  
-  const getCachedAnalytics = (baseName: string): any | null => {
-    const cacheKey = getAnalyticsCacheKey(baseName);
-    const cached = analyticsCache.get(cacheKey);
-    
-    if (cached && isCacheValid(cached.timestamp)) {
-      console.log('🎯 Using cached analytics data for:', baseName);
-      return cached.data;
-    }
-    
-    return null;
-  };
-  
-  const cacheAnalytics = (baseName: string, data: any): void => {
-    const cacheKey = getAnalyticsCacheKey(baseName);
-    setAnalyticsCache(prev => new Map(prev).set(cacheKey, { 
-      data, 
-      timestamp: Date.now() 
-    }));
-    console.log('✅ Cached analytics data for:', baseName);
-  };
-
-  // Video time update handler
-  const handleTimeUpdate = () => {
-    const video = videoRef.current
-    if (!video || typeof video.currentTime !== 'number') {
-      console.warn('Video element not ready or currentTime not available');
-      return;
-    }
-    
-    setCurrentTime(video.currentTime)
-    
-    // Debug frame data availability
-    if (video.currentTime % 2 < 0.1) { 
-      console.log(frameData)// Log every 2 seconds
-      console.log('🎬 Video time update:', {
-        currentTime: video.currentTime,
-        frameDataLength: frameData.length,
-        enhancedFrameDataLength: enhancedFrameData.length,
-        selectedFrame: selectedFrame?.frame_number,
-        selectedEnhancedFrame: selectedEnhancedFrame?.frame_number
-      });
-    }
-    
-    // Update real-time metrics based on current frame
-    const currentFrame = frameData.find(frame => 
-      Math.abs((frame.timestamp / 1000) - video.currentTime) < 0.1
-    )
-    
-    // Update current frame index for frame-by-frame navigation
-    if (currentFrame) {
-      const frameIndex = frameData.findIndex(frame => frame.frame_number === currentFrame.frame_number)
-      if (frameIndex !== -1) {
-        setCurrentFrameIndex(frameIndex)
-      }
-      
-      if (video.currentTime % 2 < 0.1) { // Log every 2 seconds
-        console.log('🎯 Found current frame:', {
-          frameNumber: currentFrame.frame_number,
-          timestamp: currentFrame.timestamp,
-          frameIndex: frameIndex,
-          metrics: currentFrame.metrics
-        });
-      }
-    } else {
-      if (video.currentTime % 2 < 0.1) { // Log every 2 seconds
-        console.log('❌ No current frame found for time:', video.currentTime);
-        if (frameData.length > 0) {
-          console.log('📊 Frame data range:', {
-            firstFrameTime: frameData[0].timestamp,
-            lastFrameTime: frameData[frameData.length - 1].timestamp,
-            firstFrameNumber: frameData[0].frame_number,
-            lastFrameNumber: frameData[frameData.length - 1].frame_number
-          });
-        }
-      }
-    }
-    
-    // Debug logging
-    if (video.currentTime % 1 < 0.1) { // Log every second
-      console.log('Video time:', video.currentTime, 'Frame data length:', frameData.length)
-      if (frameData.length > 0) {
-        console.log('First frame timestamp:', frameData[0].timestamp, 'Last frame timestamp:', frameData[frameData.length - 1].timestamp)
-      }
-      if (currentFrame) {
-        console.log('Found current frame:', currentFrame.frame_number, 'at time:', currentFrame.timestamp)
-      } else {
-        console.log('No current frame found for time:', video.currentTime)
-      }
-    }
-    
-    if (currentFrame) {
-      // Update current frame metrics for top-left display
-      setSelectedFrame(currentFrame)
-      
-      // Find the corresponding enhanced frame data
-      const currentEnhancedFrame = enhancedFrameData.find(frame => 
-        Math.abs((frame.timestamp / 1000) - video.currentTime) < 0.1
-      )
-      
-      // Debug logging
-      if (video.currentTime % 1 < 0.1) { // Log every second
-        console.log('Enhanced frame data length:', enhancedFrameData.length)
-        if (enhancedFrameData.length > 0) {
-          console.log('First enhanced frame sample:', enhancedFrameData[0])
-        }
-        if (currentEnhancedFrame) {
-          console.log('Found enhanced frame for time:', video.currentTime, currentEnhancedFrame)
-        } else {
-          console.log('No enhanced frame found for time:', video.currentTime)
-        }
-      }
-      
-      setSelectedEnhancedFrame(currentEnhancedFrame || null)
-      
-      // Extract ACL risk from the correct data structure
-      const aclRisk = (currentFrame.metrics as any)?.tumbling_metrics?.acl_risk_factors?.overall_acl_risk || 
-                      currentFrame.metrics?.acl_risk || 0
-      
-      const newMetrics: VideoMetrics = {
-        motionIQ: Math.max(0, 100 - aclRisk * 0.8),
-        aclRisk: aclRisk,
-        precision: Math.max(0, 100 - aclRisk * 0.6),
-        power: Math.max(0, 100 - aclRisk * 0.4),
-        timestamp: video.currentTime
-      }
-      setRealTimeMetrics(newMetrics)
-      onVideoAnalyzed?.(newMetrics)
-    }
-  }
-
-  // Load frame data from JSON - same approach as InteractiveVideoPlayer
-  useEffect(() => {
-    const loadFrameData = async () => {
-      try {
-        setError(null);
-        
-        // Extract the base video name from the filename
-        let baseName: string;
-        
-        console.log('🔍 Extracting base name from props:', {
-          processedVideoFilename,
-          analyticsBaseName,
-          videoName
-        });
-        
-        // For per-frame statistics, use the processed video filename if available
-        if (processedVideoFilename) {
-          baseName = extractVideoBaseName(processedVideoFilename);
-          console.log('✅ Using processed video filename for per-frame stats:', processedVideoFilename);
-          console.log('✅ Extracted base name:', baseName);
-        } else if (analyticsBaseName) {
-          // Fallback to analyticsBaseName (this is the analytics filename, not ideal)
-          baseName = analyticsBaseName;
-          console.log('⚠️ Using provided analyticsBaseName (fallback):', baseName);
-        } else if (videoName) {
-          // Fallback to extracting from videoName using utility function
-          baseName = extractVideoBaseName(videoName);
-          console.log('⚠️ Using videoName fallback:', videoName);
-          console.log('⚠️ Extracted base name from videoName:', baseName);
-          
-          // Keep the api_generated_ prefix for analytics files that have it
-          // Don't remove it as the analytics files use this prefix
-        } else {
-          // If no videoName is provided, use a default
-          console.warn('❌ No videoName provided, using default baseName');
-          baseName = 'default_video';
-        }
-        
-        console.log('🎯 Final base name for analytics lookup:', baseName);
-        
-        // Check cache first
-        const cachedData = getCachedAnalytics(baseName);
-        if (cachedData) {
-          console.log('Using cached analytics data for:', baseName);
-          setFrameData(cachedData.frame_data || []);
-          setEnhancedFrameData(convertToEnhancedFrameData(cachedData.frame_data || []));
-          setEnhancedStats(cachedData.enhanced_statistics || null);
-          setLoading(false);
-          return;
-        }
-        
-        // Priority 1: Use analyticsId if available (most reliable)
-        let response;
-        if (analyticsId) {
-          console.log('Loading analytics using analyticsId:', analyticsId);
-          try {
-            response = await fetch(`${API_BASE_URL}/getAnalytics/${analyticsId}`);
-            console.log('Analytics response status:', response.status, response.statusText);
-          } catch (error) {
-            console.log('Failed to load analytics using analyticsId:', error);
-            response = null;
-          }
-        }
-        
-        // Priority 2: Use analyticsUrl if available (extract ID and construct proper URL)
-        if (!response && analyticsUrl) {
-          console.log('Loading analytics using analyticsUrl:', analyticsUrl);
-          try {
-            // Extract analytics ID from the URL to construct proper API_BASE_URL
-            const analyticsIdFromUrl = analyticsUrl.split('/').pop();
-            if (analyticsIdFromUrl) {
-              const properAnalyticsUrl = `${API_BASE_URL}/getAnalytics/${analyticsIdFromUrl}`;
-              console.log('Constructed proper analytics URL:', properAnalyticsUrl);
-              response = await fetch(properAnalyticsUrl);
-              console.log('Analytics response status:', response.status, response.statusText);
-            } else {
-              console.log('Could not extract analytics ID from URL:', analyticsUrl);
-              response = null;
-            }
-          } catch (error) {
-            console.log('Failed to load analytics using analyticsUrl:', error);
-            response = null;
-          }
-        }
-        
-        // Priority 3: Fallback to session-based lookup
-        if (!response) {
-          console.log('🔍 Trying session-based lookup for analytics...');
-          console.log('🎯 Analytics URL:', `${API_BASE_URL}/getPerFrameStatistics?video_filename=${baseName}`);
-          
-          try {
-            // First, get available sessions from the API
-            console.log('📡 Fetching sessions from:', `${API_BASE_URL}/getSessions`);
-            const sessionsResponse = await fetch(`${API_BASE_URL}/getSessions`);
-            const sessionsData = await sessionsResponse.json();
-            
-            console.log('📋 Sessions response status:', sessionsResponse.status);
-            console.log('📋 Sessions data:', sessionsData);
-            
-            if (!sessionsData.success || !sessionsData.sessions || sessionsData.sessions.length === 0) {
-              throw new Error('No sessions available');
-            }
-            
-            // Find the most recent completed session with analytics
-            const completedSessions = sessionsData.sessions.filter((session: any) => 
-              session.status === 'completed' && 
-              session.processed_video_filename && 
-              session.analytics_filename
-            );
-            
-            console.log('✅ Completed sessions found:', completedSessions.length);
-            console.log('📊 Completed sessions:', completedSessions);
-            
-            if (completedSessions.length === 0) {
-              throw new Error('No completed sessions with analytics found');
-            }
-            
-            // Sort by creation date (most recent first) and use the latest
-            completedSessions.sort((a: any, b: any) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
-            const latestSession = completedSessions[0];
-            console.log('🎯 Using latest session:', latestSession);
-            console.log('🎯 Session analytics filename:', latestSession.analytics_filename);
-            console.log('🎯 Session processed video filename:', latestSession.processed_video_filename);
-            
-            // Load analytics using the extracted base name (not the full processed filename)
-            const analyticsUrl = `${API_BASE_URL}/getPerFrameStatistics?video_filename=${baseName}`;
-            console.log('📡 Fetching analytics from:', analyticsUrl);
-            response = await fetch(analyticsUrl);
-            console.log('📊 Analytics response status:', response.status, response.statusText);
-            console.log('📊 Analytics response headers:', Object.fromEntries(response.headers.entries()));
-          } catch (error) {
-            console.log('❌ API server not available, using mock data:', error);
-            response = null;
-          }
-        }
-        
-        if (response && response.ok) {
-          const data = await response.json();
-          console.log('🔍 Received analytics data:', data);
-          console.log('📊 Response status:', response.status);
-          console.log('📋 Data keys:', Object.keys(data));
-          
-          // Handle different response formats
-          let frameData = null;
-          let enhancedAnalytics = null;
-          
-          if (data.analytics) {
-            // New format from getAnalytics endpoint
-            frameData = data.analytics;
-            console.log('✅ Using analytics from getAnalytics endpoint');
-            console.log('📈 Analytics type:', typeof frameData);
-            console.log('📈 Analytics is array:', Array.isArray(frameData));
-            if (Array.isArray(frameData)) {
-              console.log('📈 First few analytics items:', frameData.slice(0, 3));
-            }
-          } else if (data.frame_data) {
-            // Legacy format from getPerFrameStatistics endpoint
-            frameData = data.frame_data;
-            enhancedAnalytics = data.enhanced_analytics;
-            console.log('✅ Using frame_data from getPerFrameStatistics endpoint');
-            console.log('📈 Frame data type:', typeof frameData);
-            console.log('📈 Frame data is array:', Array.isArray(frameData));
-            if (Array.isArray(frameData)) {
-              console.log('📈 First few frame data items:', frameData.slice(0, 3));
-            }
-          } else {
-            console.log('❌ No frame data found in response');
-            console.log('🔍 Available data keys:', Object.keys(data));
-          }
-          
-          console.log('📊 Frame data length:', frameData?.length || 0);
-          console.log('📊 Enhanced analytics:', enhancedAnalytics);
-          
-          if (frameData && Array.isArray(frameData)) {
-            // Use all frame data, don't filter too restrictively
-            const allFrames = frameData;
-            console.log(`Found ${allFrames.length} frames in analytics data`);
-            console.log('First frame sample from API:', allFrames[0]);
-            setFrameData(allFrames);
-            
-            // Convert to enhanced frame data
-            const enhancedFrames = convertToEnhancedFrameData(allFrames);
-            console.log('Converted enhanced frames:', enhancedFrames.length);
-            console.log('First enhanced frame sample:', enhancedFrames[0]);
-            
-            // Use the enhanced frames directly - they should have the data we need
-            setEnhancedFrameData(enhancedFrames);
-            
-            // Calculate enhanced statistics
-            const stats = calculateEnhancedStats(enhancedFrames);
-            console.log('Calculated enhanced stats:', stats);
-            setEnhancedStats(stats);
-            
-            // Cache the analytics data
-            cacheAnalytics(baseName, {
-              frame_data: allFrames,
-              enhanced_statistics: stats,
-              enhanced_analytics: enhancedAnalytics
-            });
-            
-            console.log(`Loaded ${allFrames.length} frames total`);
-            console.log('First frame sample:', allFrames[0]);
-            console.log('Enhanced data sample:', enhancedFrames[0]);
-            console.log('Enhanced stats:', stats);
-          } else {
-            setFrameData([]);
-            setEnhancedFrameData([]);
-            setEnhancedStats(null);
-            setError('No frame data structure found in analytics');
-          }
-        } else {
-          console.log('❌ No analytics found or API server unavailable');
-          if (response) {
-            console.log('📊 Response status:', response.status);
-            console.log('📊 Response status text:', response.statusText);
-            try {
-              const errorData = await response.text();
-              console.log('📊 Response body:', errorData);
-            } catch (e) {
-              console.log('📊 Could not read response body:', e);
-            }
-          }
-          
-          console.log('🎭 Creating mock frame data for video playback...');
-          
-          // Create mock frame data for videos without analytics
-          const mockFrameData = createMockFrameData();
-          console.log('🎭 Created mock frame data:', mockFrameData.length, 'frames');
-          console.log('🎭 First mock frame:', mockFrameData[0]);
-          
-          setFrameData(mockFrameData);
-          setEnhancedFrameData(convertToEnhancedFrameData(mockFrameData));
-          
-          // Calculate enhanced statistics from mock data
-          const stats = calculateEnhancedStats(convertToEnhancedFrameData(mockFrameData));
-          setEnhancedStats(stats);
-          
-          // Cache the mock data as well
-          cacheAnalytics(baseName, {
-            frame_data: mockFrameData,
-            enhanced_statistics: stats,
-            enhanced_analytics: false,
-            is_mock_data: true
-          });
-          
-          setError(null); // Clear error since we have mock data
-        }
-      } catch (err) {
-        console.error('Error loading frame data:', err);
-        setError('Failed to load frame data. Using mock data for demonstration.');
-        
-        // Create mock frame data as fallback
-        const mockFrameData = createMockFrameData();
-        setFrameData(mockFrameData);
-        setEnhancedFrameData(convertToEnhancedFrameData(mockFrameData));
-        const stats = calculateEnhancedStats(convertToEnhancedFrameData(mockFrameData));
-        setEnhancedStats(stats);
-        
-        // Cache the fallback mock data
-        cacheAnalytics('fallback_video', {
-          frame_data: mockFrameData,
-          enhanced_statistics: stats,
-          enhanced_analytics: false,
-          is_mock_data: true,
-          is_fallback: true
-        });
-      } finally {
-        // Analytics loading complete
-      }
-    };
-
-    loadFrameData();
-  }, [videoName, analyticsBaseName]);
-
-  // Load cache from localStorage on component mount
-  useEffect(() => {
-    loadCacheFromStorage();
-  }, []);
-
-  // Save cache to localStorage when it changes
-  useEffect(() => {
-    if (analyticsCache.size > 0) {
-      saveCacheToStorage();
-    }
-  }, [analyticsCache]);
-
-  // Create mock frame data for videos without analytics
-  const createMockFrameData = (): FrameData[] => {
-    const mockFrames: FrameData[] = [];
-    const totalFrames = 300; // Assume 10 seconds at 30fps
-    
-    for (let i = 0; i < totalFrames; i++) {
-      const timestamp = (i / 30) * 1000; // Convert frame to milliseconds
-      
-      mockFrames.push({
-        frame_number: i + 1,
-        timestamp: timestamp,
-        pose_data: {
-          landmarks: Array(33).fill({ x: 0, y: 0, z: 0, visibility: 0.8 }),
-          confidence: 0.8
-        },
-        metrics: {
-          acl_risk: Math.random() * 30 + 10, // Random risk between 10-40
-          angle_of_elevation: Math.random() * 45, // Random angle 0-45 degrees
-          flight_time: Math.random() * 2, // Random flight time 0-2 seconds
-          left_elbow_angle: Math.random() * 180, // Random angle 0-180 degrees
-          left_hip_angle: Math.random() * 180,
-          left_knee_angle: Math.random() * 180,
-          left_shoulder_angle: Math.random() * 180,
-          right_elbow_angle: Math.random() * 180,
-          right_hip_angle: Math.random() * 180,
-          right_knee_angle: Math.random() * 180,
-          right_shoulder_angle: Math.random() * 180,
-          split_angle: Math.random() * 180
-        },
-        analytics: {
-          tumbling_detected: Math.random() > 0.7, // 30% chance of tumbling
-          flight_phase: ['ground', 'preparation', 'takeoff', 'flight', 'landing'][Math.floor(Math.random() * 5)],
-          height_from_ground: Math.random() * 2, // Random height 0-2 meters
-          elevation_angle: Math.random() * 45,
-          forward_lean_angle: Math.random() * 30,
-          tumbling_quality: Math.random() * 10,
-          landmark_confidence: 0.8,
-          acl_risk_factors: {
-            knee_angle_risk: Math.random() * 50,
-            knee_valgus_risk: Math.random() * 50,
-            landing_mechanics_risk: Math.random() * 50,
-            overall_acl_risk: Math.random() * 50,
-            risk_level: ['LOW', 'MODERATE', 'HIGH'][Math.floor(Math.random() * 3)] as 'LOW' | 'MODERATE' | 'HIGH'
-          },
-          acl_recommendations: [
-            'Maintain proper knee alignment',
-            'Focus on landing mechanics',
-            'Control descent speed'
-          ]
-        }
-      });
-    }
-    
-    console.log(`Created ${mockFrames.length} mock frames for video without analytics`);
-    return mockFrames;
-  };
-
-  // Convert regular frame data to enhanced frame data
-  const convertToEnhancedFrameData = (frames: FrameData[]): EnhancedFrameData[] => {
-    console.log('Converting frame data to enhanced format. Input frames:', frames.length);
-      
-    return frames.map((frame, index) => {
-      // Debug the first few frames to understand the data structure
-      if (index < 2) {
-        console.log(`Frame ${index} structure:`, {
-        frame_number: frame.frame_number,
-        timestamp: frame.timestamp,
-          metrics: frame.metrics,
-          analytics: frame.analytics
-        });
-      }
-      
-      // Simple direct conversion - just use whatever data is available
-      const enhancedFrame: EnhancedFrameData = {
-        frame_number: frame.frame_number,
-        timestamp: frame.timestamp,
-        
-        // Try to get tumbling data from various possible locations
-        tumbling_detected: frame.analytics?.tumbling_detected || 
-                          (frame.metrics as any)?.tumbling_metrics?.tumbling_detected || 
-                          (index > 50 && index < 200), // Fallback based on frame position
-        
-        flight_phase: frame.analytics?.flight_phase || 
-                     (frame.metrics as any)?.tumbling_metrics?.flight_phase || 
-                     (index < 50 ? 'ground' : index < 100 ? 'preparation' : index < 150 ? 'takeoff' : index < 200 ? 'flight' : 'landing'),
-        
-        height_from_ground: frame.analytics?.height_from_ground || 
-                           (frame.metrics as any)?.tumbling_metrics?.height_from_ground || 
-                           Math.max(0, Math.sin((index / 100) * Math.PI) * 0.8),
-        
-        elevation_angle: frame.analytics?.elevation_angle || 
-                        (frame.metrics as any)?.tumbling_metrics?.elevation_angle || 
-                        Math.max(0, Math.sin((index / 80) * Math.PI) * 30),
-        
-        forward_lean_angle: frame.analytics?.forward_lean_angle || 
-                           (frame.metrics as any)?.tumbling_metrics?.forward_lean_angle || 
-                           Math.max(0, Math.cos((index / 120) * Math.PI) * 20),
-        
-        tumbling_quality: frame.analytics?.tumbling_quality || 
-                         (frame.metrics as any)?.tumbling_metrics?.tumbling_quality || 
-                         Math.max(0, Math.min(100, 70 + Math.sin((index / 60) * Math.PI) * 20)),
-        
-        landmark_confidence: frame.analytics?.landmark_confidence || 
-                           (frame.metrics as any)?.tumbling_metrics?.landmark_confidence || 
-                           0.8,
-        
-        acl_risk_factors: {
-          knee_angle_risk: frame.analytics?.acl_risk_factors?.knee_angle_risk || 
-                          (frame.metrics as any)?.tumbling_metrics?.acl_risk_factors?.knee_angle_risk || 
-                          Math.max(0, Math.min(100, 20 + Math.sin((index / 90) * Math.PI) * 30)),
-          
-          knee_valgus_risk: frame.analytics?.acl_risk_factors?.knee_valgus_risk || 
-                           (frame.metrics as any)?.tumbling_metrics?.acl_risk_factors?.knee_valgus_risk || 
-                           Math.max(0, Math.min(100, 15 + Math.cos((index / 110) * Math.PI) * 25)),
-          
-          landing_mechanics_risk: frame.analytics?.acl_risk_factors?.landing_mechanics_risk || 
-                                 (frame.metrics as any)?.tumbling_metrics?.acl_risk_factors?.landing_mechanics_risk || 
-                                 Math.max(0, Math.min(100, 10 + Math.sin((index / 70) * Math.PI) * 35)),
-          
-          overall_acl_risk: frame.analytics?.acl_risk_factors?.overall_acl_risk || 
-                           (frame.metrics as any)?.tumbling_metrics?.acl_risk_factors?.overall_acl_risk || 
-                           Math.max(0, Math.min(100, 15 + Math.sin((index / 85) * Math.PI) * 25)),
-          
-          risk_level: frame.analytics?.acl_risk_factors?.risk_level || 
-                     (frame.metrics as any)?.tumbling_metrics?.acl_risk_factors?.risk_level || 
-                     (Math.random() > 0.7 ? 'HIGH' : Math.random() > 0.4 ? 'MODERATE' : 'LOW') as 'LOW' | 'MODERATE' | 'HIGH'
-        },
-        
-        acl_recommendations: frame.analytics?.acl_recommendations || 
-                           (frame.metrics as any)?.tumbling_metrics?.acl_risk_factors?.coaching_cues?.map((cue: any) => cue.cue) || 
-                           []
-      };
-      
-      // Debug the first enhanced frame
-      if (index === 0) {
-        console.log('First enhanced frame:', enhancedFrame);
-      }
-      
-      return enhancedFrame;
-    });
-  };
-
-  // Calculate enhanced statistics
-  const calculateEnhancedStats = (frames: EnhancedFrameData[]): EnhancedStatistics => {
-    const tumblingFrames = frames.filter(f => f.tumbling_detected);
-    const highRiskFrames = frames.filter(f => f.acl_risk_factors.risk_level === 'HIGH');
-    
-    return {
-      tumbling_detection: {
-        total_tumbling_frames: tumblingFrames.length,
-        tumbling_percentage: (tumblingFrames.length / frames.length) * 100,
-        flight_phases: {
-          ground: frames.filter(f => f.flight_phase === 'ground').length,
-          preparation: 0,
-          takeoff: 0,
-          flight: frames.filter(f => f.flight_phase === 'flight').length,
-          landing: 0
-        }
-      },
-      acl_risk_analysis: {
-        average_overall_risk: frames.reduce((sum, f) => sum + f.acl_risk_factors.overall_acl_risk, 0) / frames.length,
-        average_knee_angle_risk: frames.reduce((sum, f) => sum + f.acl_risk_factors.knee_angle_risk, 0) / frames.length,
-        average_knee_valgus_risk: frames.reduce((sum, f) => sum + f.acl_risk_factors.knee_valgus_risk, 0) / frames.length,
-        average_landing_mechanics_risk: frames.reduce((sum, f) => sum + f.acl_risk_factors.landing_mechanics_risk, 0) / frames.length,
-        risk_level_distribution: {
-          LOW: frames.filter(f => f.acl_risk_factors.risk_level === 'LOW').length,
-          MODERATE: frames.filter(f => f.acl_risk_factors.risk_level === 'MODERATE').length,
-          HIGH: highRiskFrames.length
-        },
-        high_risk_frames: highRiskFrames.length
-      },
-      movement_analysis: {
-        average_elevation_angle: frames.reduce((sum, f) => sum + f.elevation_angle, 0) / frames.length,
-        max_elevation_angle: Math.max(...frames.map(f => f.elevation_angle)),
-        average_forward_lean_angle: frames.reduce((sum, f) => sum + f.forward_lean_angle, 0) / frames.length,
-        max_forward_lean_angle: Math.max(...frames.map(f => f.forward_lean_angle)),
-        average_height_from_ground: frames.reduce((sum, f) => sum + f.height_from_ground, 0) / frames.length,
-        max_height_from_ground: Math.max(...frames.map(f => f.height_from_ground))
-      },
-      tumbling_quality: {
-        average_quality: frames.reduce((sum, f) => sum + f.tumbling_quality, 0) / frames.length,
-        max_quality: Math.max(...frames.map(f => f.tumbling_quality)),
-        quality_frames_count: frames.filter(f => f.tumbling_quality > 70).length
-      }
-    };
-  };
-
-  // Video event handlers
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-
-    const handleLoadedMetadata = () => {
-      setDuration(video.duration)
-    }
-
-    const handlePlay = () => setIsPlaying(true)
-    const handlePause = () => setIsPlaying(false)
-    const handleEnded = () => setIsPlaying(false)
-
-    video.addEventListener('timeupdate', handleTimeUpdate)
-    video.addEventListener('loadedmetadata', handleLoadedMetadata)
-    video.addEventListener('play', handlePlay)
-    video.addEventListener('pause', handlePause)
-    video.addEventListener('ended', handleEnded)
-
-    return () => {
-      video.removeEventListener('timeupdate', handleTimeUpdate)
-      video.removeEventListener('loadedmetadata', handleLoadedMetadata)
-      video.removeEventListener('play', handlePlay)
-      video.removeEventListener('pause', handlePause)
-      video.removeEventListener('ended', handleEnded)
-    }
-  }, [frameData, enhancedFrameData, onVideoAnalyzed])
-
-  // Cleanup effect to prevent AbortError when component unmounts
-  useEffect(() => {
-    return () => {
-      // Clear frame timestep interval
-      if (frameStepInterval) {
-        clearInterval(frameStepInterval);
-      }
-      
-      const video = videoRef.current
-      if (video && typeof video.pause === 'function') {
-        try {
-        // Pause and reset video to prevent AbortError
-          video.pause();
-          video.currentTime = 0;
-          video.src = '';
-          video.load();
-        } catch (error) {
-          console.error('Error during video cleanup:', error);
-        }
-      }
-    }
-  }, [frameStepInterval])
-
-  // Handle video loading errors
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-
-    const handleError = (e: Event) => {
-      console.error('Video error:', e)
-      setError('Failed to load video')
-    }
-
-    const handleLoadStart = () => {
-      console.log('Video loading started')
-      setLoading(true)
-      setError(null)
-    }
-
-    const handleCanPlay = () => {
-      console.log('Video can play')
-      setLoading(false)
-    }
-
-    const handleLoadedData = () => {
-      console.log('Video data loaded')
-      setLoading(false)
-    }
-
-    video.addEventListener('error', handleError)
-    video.addEventListener('loadstart', handleLoadStart)
-    video.addEventListener('canplay', handleCanPlay)
-    video.addEventListener('loadeddata', handleLoadedData)
-
-    return () => {
-      video.removeEventListener('error', handleError)
-      video.removeEventListener('loadstart', handleLoadStart)
-      video.removeEventListener('canplay', handleCanPlay)
-      video.removeEventListener('loadeddata', handleLoadedData)
-    }
-  }, [videoUrl])
-
-  // Draw skeleton overlay
-  useEffect(() => {
-    const canvas = canvasRef.current
-    const video = videoRef.current
-    if (!canvas || !video || !showSkeleton) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const drawSkeleton = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      
-      const currentFrame = frameData.find(frame => 
-        Math.abs((frame.timestamp / 1000) - currentTime) < 0.1
-      )
-      
-      if (currentFrame && currentFrame.landmarks && currentFrame.landmarks.length > 0) {
-        // Draw skeleton points
-        ctx.fillStyle = 'rgba(0, 255, 0, 0.8)'
-        currentFrame.landmarks.forEach((point: any, index: number) => {
-          if (point.visibility > 0.5) {
-            ctx.beginPath()
-            ctx.arc(point.x * canvas.width, point.y * canvas.height, 3, 0, 2 * Math.PI)
-            ctx.fill()
-          }
-        })
-        
-        // Draw connections between key points (MediaPipe pose connections)
-        ctx.strokeStyle = 'rgba(0, 255, 0, 0.6)'
-        ctx.lineWidth = 2
-        
-        // MediaPipe pose connections (33 landmarks)
-        const connections = [
-          // Face
-          [0, 1], [1, 2], [2, 3], [3, 7], [0, 4], [4, 5], [5, 6], [6, 8],
-          // Upper body
-          [9, 10], // Mouth
-          [11, 12], // Shoulders
-          [11, 13], [13, 15], // Left arm
-          [12, 14], [14, 16], // Right arm
-          [11, 23], [12, 24], // Shoulder to hip
-          [23, 24], // Hips
-          // Lower body
-          [23, 25], [25, 27], [27, 29], [29, 31], // Left leg
-          [24, 26], [26, 28], [28, 30], [30, 32], // Right leg
-        ]
-        
-        connections.forEach(([start, end]) => {
-          if (start < (currentFrame.landmarks?.length || 0) && end < (currentFrame.landmarks?.length || 0)) {
-            const startPoint = currentFrame.landmarks?.[start]
-            const endPoint = currentFrame.landmarks?.[end]
-            
-            if (startPoint && endPoint && startPoint.visibility > 0.5 && endPoint.visibility > 0.5) {
-              ctx.beginPath()
-              ctx.moveTo(startPoint.x * canvas.width, startPoint.y * canvas.height)
-              ctx.lineTo(endPoint.x * canvas.width, endPoint.y * canvas.height)
-              ctx.stroke()
-            }
-          }
-        })
-        
-        // Draw angle values on the video
-        if (currentFrame && currentFrame.metrics && showAngles) {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
-          ctx.font = '12px Arial'
-          ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)'
-          ctx.lineWidth = 2
-          
-          // Draw key angle values
-          const angles = [
-            { label: 'L Knee', value: currentFrame.metrics.left_knee_angle, x: 10, y: 30 },
-            { label: 'R Knee', value: currentFrame.metrics.right_knee_angle, x: 10, y: 50 },
-            { label: 'L Hip', value: currentFrame.metrics.left_hip_angle, x: 10, y: 70 },
-            { label: 'R Hip', value: currentFrame.metrics.right_hip_angle, x: 10, y: 90 },
-            { label: 'Elevation', value: currentFrame.metrics.angle_of_elevation, x: 10, y: 110 },
-            { label: 'ACL Risk', value: currentFrame.metrics.acl_risk, x: 10, y: 130, suffix: '%' }
-          ]
-          
-          angles.forEach(angle => {
-            if (angle.value !== undefined) {
-              const text = `${angle.label}: ${angle.value.toFixed(0)}${angle.suffix || '°'}`
-              ctx.strokeText(text, angle.x, angle.y)
-              ctx.fillText(text, angle.x, angle.y)
-            }
-          })
-        }
-      }
-    }
-
-    const interval = setInterval(drawSkeleton, 1000 / 30) // 30fps
-    return () => clearInterval(interval)
-  }, [showSkeleton, showAngles, frameData, currentTime])
-
-  const togglePlay = async () => {
-    // Check if we have a Cloudflare Stream player
-    if (cloudflarePlayer && typeof cloudflarePlayer.play === 'function') {
-      try {
-        if (isPlaying) {
-          cloudflarePlayer.pause();
-          console.log('🎬 Cloudflare Stream paused via togglePlay');
-        } else {
-          await cloudflarePlayer.play();
-          console.log('🎬 Cloudflare Stream played via togglePlay');
-        }
-      } catch (error) {
-        console.error('Error controlling Cloudflare Stream player:', error);
-      }
-      return;
-    }
-
-    // Fallback to HTML5 video element
-    const video = videoRef.current
-    if (!video || typeof video.pause !== 'function') {
-      console.error('Video element not available or pause method missing');
-      return;
-    }
-
-    if (isPlaying) {
-      try {
-        video.pause();
-        setIsPlaying(false);
-      } catch (error) {
-        console.error('Error pausing video:', error);
-        setIsPlaying(false); // Update state anyway
-      }
-    } else {
-      try {
-        // Ensure video is ready to play
-        if (video.readyState >= 2 && typeof video.play === 'function') {
-          try {
-            await video.play();
-            setIsPlaying(true);
-          } catch (error) {
-            console.error('Error playing video:', error);
-            setError('Failed to play video');
-          }
-        } else {
-          // Wait for video to be ready
-          const handleCanPlay = async () => {
-            try {
-              if (typeof video.play === 'function') {
-                await video.play();
-                setIsPlaying(true);
-              } else {
-                console.error('Video play method not available');
-                setError('Video play method not available');
-              }
-            } catch (error) {
-              console.error('Error playing video after canplay:', error)
-              if (error instanceof Error && error.name === 'AbortError') {
-                console.log('Video play was aborted (component likely unmounted)')
-                return
-              }
-              setError('Failed to play video')
-            }
-            video.removeEventListener('canplay', handleCanPlay)
-          }
-          video.addEventListener('canplay', handleCanPlay, { once: true })
-        }
-      } catch (error) {
-        console.error('Error playing video:', error)
-        // Handle AbortError specifically
-        if (error instanceof Error && error.name === 'AbortError') {
-          console.log('Video play was aborted (component likely unmounted)')
-          return // Don't set error state for AbortError
-        }
-        setError('Failed to play video')
-      }
-    }
-  }
-
-  const seekToTime = (time: number) => {
-    // Use HTML5 video element for seeking
-    if (videoRef.current) {
-      videoRef.current.currentTime = time
-      console.log(`🎬 Video seeked to ${time}s`)
-    }
-    
-      // Immediately update current time and frame analysis
-      setCurrentTime(time)
-      
-      // Find and update the current frame
-      const currentFrame = frameData.find(frame => 
-        Math.abs((frame.timestamp / 1000) - time) < 0.1
-      )
-    
-    // Find the corresponding enhanced frame data
-    const currentEnhancedFrame = enhancedFrameData.find(frame => 
-      Math.abs((frame.timestamp / 1000) - time) < 0.1
-    )
-    setSelectedEnhancedFrame(currentEnhancedFrame || null)
-      
-      if (currentFrame) {
-        // Update real-time metrics immediately
-      const aclRisk = (currentFrame.metrics as any)?.tumbling_metrics?.acl_risk_factors?.overall_acl_risk || 
-                      currentFrame.metrics?.acl_risk || 0
-      
-        setRealTimeMetrics({
-        motionIQ: Math.max(0, 100 - aclRisk * 0.8),
-        aclRisk: aclRisk,
-        precision: Math.max(0, 100 - aclRisk * 0.6),
-        power: Math.max(0, 100 - aclRisk * 0.4),
-          timestamp: time
-        })
-        
-        // Force a re-render of the frame analysis
-        console.log('Seeked to frame:', currentFrame.frame_number, 'at time:', time)
-      } else {
-        console.log('No frame found for time:', time)
-    }
-  }
-
-  // Frame-by-frame navigation functions
-  const goToPreviousFrame = () => {
-    if (currentFrameIndex > 0) {
-      const newFrameIndex = currentFrameIndex - 1
-      setCurrentFrameIndex(newFrameIndex)
-      
-      if (frameData[newFrameIndex]) {
-        const frameTime = frameData[newFrameIndex].timestamp / 1000 // Convert to seconds
-        seekToTime(frameTime)
-        console.log(`🎬 Previous frame: ${newFrameIndex + 1} at ${frameTime}s`)
-      }
-    }
-  }
-
-  const goToNextFrame = () => {
-    if (currentFrameIndex < frameData.length - 1) {
-      const newFrameIndex = currentFrameIndex + 1
-      setCurrentFrameIndex(newFrameIndex)
-      
-      if (frameData[newFrameIndex]) {
-        const frameTime = frameData[newFrameIndex].timestamp / 1000 // Convert to seconds
-        seekToTime(frameTime)
-        console.log(`🎬 Next frame: ${newFrameIndex + 1} at ${frameTime}s`)
-      }
-    }
-  }
-
-  const goToFrame = (frameIndex: number) => {
-    if (frameIndex >= 0 && frameIndex < frameData.length) {
-      setCurrentFrameIndex(frameIndex)
-      
-      if (frameData[frameIndex]) {
-        const frameTime = frameData[frameIndex].timestamp / 1000 // Convert to seconds
-        seekToTime(frameTime)
-        console.log(`🎬 Go to frame: ${frameIndex + 1} at ${frameTime}s`)
-      }
-    }
-  }
-
-  // Frame timestep progression functions
-  const startFrameTimesteps = () => {
-    if (frameStepInterval) {
-      clearInterval(frameStepInterval)
-    }
-    
-    const interval = setInterval(() => {
-      setCurrentFrameIndex(prevIndex => {
-        const nextIndex = prevIndex + 1
-        if (nextIndex >= frameData.length) {
-          // Reached end, stop progression
-          clearInterval(interval)
-          setFrameStepInterval(null)
-          return prevIndex
-        }
-        
-        // Seek to next frame
-        if (frameData[nextIndex]) {
-          const frameTime = frameData[nextIndex].timestamp / 1000 // Convert to seconds
-          seekToTime(frameTime)
-          console.log(`🎬 Frame timestep: ${nextIndex + 1} at ${frameTime}s`)
-        }
-        
-        return nextIndex
-      })
-    }, 100) // 100ms between frames (10 FPS)
-    
-    setFrameStepInterval(interval)
-    console.log('Started frame timestep progression')
-  }
-
-  const stopFrameTimesteps = () => {
-    if (frameStepInterval) {
-      clearInterval(frameStepInterval)
-      setFrameStepInterval(null)
-      console.log('Stopped frame timestep progression')
-    }
-  }
-
-  const toggleFrameTimesteps = () => {
-    if (frameStepInterval) {
-      stopFrameTimesteps()
-    } else {
-      startFrameTimesteps()
-    }
-  }
-
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60)
-    const seconds = Math.floor(time % 60)
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`
-  }
-
-  // Calculate optimal video container dimensions
-  const getVideoContainerStyle = () => {
-    if (!videoAspectRatio) {
-      return { width: '100%', height: '500px' }
-    }
-
-    const containerWidth = 800 // Approximate width of the video container
-    const containerHeight = 500 // Fixed height
-    const containerAspectRatio = containerWidth / containerHeight
-
-    let optimalWidth = containerWidth
-    let optimalHeight = containerHeight
-
-    if (videoAspectRatio > containerAspectRatio) {
-      // Video is wider than container - fit to width
-      optimalHeight = containerWidth / videoAspectRatio
-    } else {
-      // Video is taller than container - fit to height
-      optimalWidth = containerHeight * videoAspectRatio
-    }
-
-    return {
-      width: `${optimalWidth}px`,
-      height: `${optimalHeight}px`,
-      maxWidth: '100%',
-      maxHeight: '500px'
-    }
-  }
-
-
-  const toggleFullscreen = () => {
-    console.log('Toggling fullscreen, current state:', isFullscreen)
-    console.log('Using HTML5 video fullscreen')
-
-    // Handle HTML5 video fullscreen
-      const videoElement = videoRef.current
-      if (!videoElement) {
-        console.error('Video element not available for fullscreen')
-        return
-      }
-
-      if (!isFullscreen) {
-        // Enter fullscreen
-        console.log('Entering video fullscreen...')
-        if (videoElement.requestFullscreen) {
-          videoElement.requestFullscreen().catch(err => {
-            console.error('Error entering fullscreen:', err)
-          })
-        } else if ((videoElement as any).webkitRequestFullscreen) {
-          (videoElement as any).webkitRequestFullscreen()
-        } else if ((videoElement as any).msRequestFullscreen) {
-          (videoElement as any).msRequestFullscreen()
-        } else {
-          console.error('Fullscreen API not supported')
-        }
-      } else {
-        // Exit fullscreen
-        console.log('Exiting video fullscreen...')
-        if (document.exitFullscreen) {
-          document.exitFullscreen().catch(err => {
-            console.error('Error exiting fullscreen:', err)
-          })
-        } else if ((document as any).webkitExitFullscreen) {
-          (document as any).webkitExitFullscreen()
-        } else if ((document as any).msExitFullscreen) {
-          (document as any).msExitFullscreen()
-      }
-    }
-  }
-
-  // Listen for fullscreen changes
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      const fullscreenElement = document.fullscreenElement
-      let isCurrentlyFullscreen = false
-      
-      if (fullscreenElement) {
-        // Check if the video element is in fullscreen
-          isCurrentlyFullscreen = fullscreenElement === videoRef.current
-      }
-      
-      console.log('Fullscreen change detected:', isCurrentlyFullscreen)
-      console.log('Fullscreen element:', fullscreenElement)
-      setIsFullscreen(isCurrentlyFullscreen)
-    }
-
-    document.addEventListener('fullscreenchange', handleFullscreenChange)
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange)
-    document.addEventListener('msfullscreenchange', handleFullscreenChange)
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange)
-      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
-      document.removeEventListener('msfullscreenchange', handleFullscreenChange)
-    }
-  }, [])
-
-  // Keyboard shortcuts for frame-by-frame navigation
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Only handle keyboard shortcuts when the video player is open and focused
-      if (event.target === document.body || (event.target as HTMLElement)?.closest('.video-player-container')) {
-        switch (event.key) {
-          case 'ArrowLeft':
-            event.preventDefault()
-            goToPreviousFrame()
-            break
-          case 'ArrowRight':
-            event.preventDefault()
-            goToNextFrame()
-            break
-          case ' ':
-            event.preventDefault()
-            togglePlay()
-            break
-          case 'f':
-          case 'F':
-            event.preventDefault()
-            toggleFullscreen()
-            break
-        }
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [currentFrameIndex, frameData.length])
-
-  return (
-    <div ref={containerRef} className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 pt-16 video-player-container">
-      <div className="bg-white rounded-lg w-full max-w-7xl max-h-[85vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b bg-white sticky top-0 z-10">
-          <div>
-            <h3 className="text-lg font-semibold">AI Video Analysis</h3>
-            <p className="text-xs text-gray-500 mt-1">
-              Click video to advance frame-by-frame • Right-click to go back • Use ← → arrow keys • Click play button for frame timesteps • Spacebar to play/pause • F for fullscreen
-            </p>
-          </div>
-                  <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="sm" onClick={onClose}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
+    <div class="container">
+        <h2>📹 Step 1: Enable Download</h2>
+        <div id="status1" class="status info">
+            Ready to enable download for video...
         </div>
-
-        <div className="p-4 pb-8 space-y-6">
-          {/* Video Player with Analytics Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Video Player - Left Side */}
-            <div className="lg:col-span-3">
-              <div className="relative bg-black rounded-lg overflow-hidden flex items-center justify-center" style={getVideoContainerStyle()}>
-              {error ? (
-                <div className="text-center text-white p-6">
-                  <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-500" />
-                  <h3 className="text-lg font-semibold mb-2">Video Load Error</h3>
-                  <p className="text-sm text-gray-300 mb-4">{error}</p>
-                  <p className="text-xs text-gray-400 mb-4">Video URL: {actualVideoUrl}</p>
-                  <div className="space-y-2">
-                    <Button 
-                      onClick={() => {
-                        setError(null);
-                        setLoading(true);
-                        // Try to reload the video
-                        if (videoRef.current) {
-                          videoRef.current.load();
-                        }
-                      }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white mr-2"
-                    >
-                      Retry Loading
-                    </Button>
-                    <Button 
-                      onClick={() => {
-                        // Try opening the video in a new tab
-                        if (actualVideoUrl) {
-                        window.open(actualVideoUrl, '_blank');
-                        }
-                      }}
-                      variant="outline"
-                      className="border-white text-white hover:bg-white hover:text-black"
-                    >
-                      Open in New Tab
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="relative">
-                  {/* Use Cloudflare Stream player or iframe fallback */}
-                  {isCloudflareStream && cloudflareVideoId ? (
-                    <div className="relative">
-                      {cloudflarePlayerContainer ? (
-                        // Use Cloudflare Stream player
-                        <div 
-                          ref={(el) => {
-                            if (el && cloudflarePlayerContainer && !el.contains(cloudflarePlayerContainer)) {
-                              el.appendChild(cloudflarePlayerContainer);
-                            }
-                          }}
-                          className="relative w-full h-full"
-                          style={{ minHeight: '400px' }}
-                        />
-                      ) : (
-                        // Fallback to iframe with proper styling
-                        <div style={{ position: 'relative', paddingTop: '177.77777777777777%' }}>
-                    <iframe
-                            src={getCloudflareIframeUrl(cloudflareVideoId) || cloudflareStreamUrl || ''}
-                            loading="lazy"
-                            style={{ 
-                              border: 'none', 
-                              position: 'absolute', 
-                              top: 0, 
-                              left: 0, 
-                              height: '100%', 
-                              width: '100%' 
-                            }}
-                      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                      allowFullScreen={true}
-                      onLoad={() => {
-                    console.log('🎬 ===== CLOUDFLARE IFRAME LOADED =====');
-                    console.log('🎬 Iframe src:', getCloudflareIframeUrl(cloudflareVideoId) || cloudflareStreamUrl);
-                    console.log('🎬 Cloudflare Video ID:', cloudflareVideoId);
-                    console.log('🎬 =====================================');
-                        setLoading(false);
-                      }}
-                      onError={() => {
-                              console.error('❌ Cloudflare Stream iframe load error');
-                        setError('Failed to load Cloudflare Stream video');
-                        setLoading(false);
-                      }}
-                    />
-                        </div>
-                      )}
-                      
-                      {/* Loading indicator */}
-                      {loading && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                          <div className="text-white text-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                            <p>Loading Cloudflare Stream...</p>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Persistent frame number display - below video */}
-                      <div className="absolute -bottom-16 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
-                        <div className="text-white text-lg font-bold">
-                          Frame {currentFrameIndex + 1} / {frameData.length}
-                        </div>
-                        <div className="text-gray-300 text-sm">
-                          {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
-                        </div>
-                      </div>
-                      
-                      {/* Hidden video element for download URL loading */}
-                      <video
-                        ref={videoRef}
-                        style={{ display: 'none' }}
-                        preload="auto"
-                        playsInline
-                        muted
-                        crossOrigin={cloudflareDownloadUrl ? undefined : "anonymous"}
-                      >
-                        <source 
-                          src={cloudflareDownloadUrl || actualVideoUrl || ""} 
-                          type="video/mp4" 
-                          id="videoSource"
-                        />
-                        Your browser does not support the video tag.
-                      </video>
-                    </div>
-                  ) : (
-                    // Simple video element (copied from enable_download_test.html)
-                    <div className="video-container">
-                      <video 
-                        id="video" 
-                        controls 
-                        width="100%" 
-                        height="400" 
-                        style={{ background: 'black' }} 
-                        crossOrigin="anonymous" 
-                        preload="metadata"
-                      >
-                        <source src="" type="video/mp4" id="videoSource" />
-                        Your browser does not support the video tag.
-                      </video>
-                    </div>
-                  ) : (
-                    // Regular HTML5 video element with click-to-advance
-                    <div 
-                      className="relative w-full h-full cursor-pointer"
-                      onClick={goToNextFrame}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        goToPreviousFrame();
-                      }}
-                      title="Click to advance to next frame, right-click to go to previous frame"
-                    >
-                    <video
-                      ref={videoRef}
-                      className="w-full h-full max-h-[500px] object-contain"
-                      preload="auto"
-                      playsInline
-                      muted
-                      crossOrigin={cloudflareDownloadUrl ? undefined : "anonymous"}
-                      onLoadedData={() => {
-                        console.log('🎬 ===== VIDEO ELEMENT LOADED =====');
-                        console.log('🎬 Video element src:', videoRef.current?.src);
-                        console.log('🎬 Video element currentSrc:', videoRef.current?.currentSrc);
-                        console.log('🎬 Video element duration:', videoRef.current?.duration);
-                        console.log('🎬 Video element readyState:', videoRef.current?.readyState);
-                        console.log('🎬 Video element networkState:', videoRef.current?.networkState);
-                        console.log('🎬 ================================');
-                        setLoading(false);
-                        // Calculate and set video aspect ratio
-                        if (videoRef.current) {
-                          const video = videoRef.current;
-                          const aspectRatio = video.videoWidth / video.videoHeight;
-                          setVideoAspectRatio(aspectRatio);
-                          console.log('Video aspect ratio:', aspectRatio, 'Dimensions:', video.videoWidth, 'x', video.videoHeight);
-                        }
-                      }}
-                      onError={(e) => {
-                        console.error('Video load error:', e);
-                        console.error('Video URL:', actualVideoUrl);
-                        console.error('Video element error:', e.currentTarget?.error);
-                        console.error('Error details:', {
-                          code: e.currentTarget?.error?.code,
-                          message: e.currentTarget?.error?.message,
-                          networkState: e.currentTarget?.networkState,
-                          readyState: e.currentTarget?.readyState
-                        });
-                        
-                        const errorCode = e.currentTarget?.error?.code;
-                        let errorMessage = 'Unknown video error';
-                        
-                        switch (errorCode) {
-                          case 1:
-                            errorMessage = 'Video loading aborted';
-                            break;
-                          case 2:
-                            errorMessage = 'Network error while loading video';
-                            break;
-                          case 3:
-                            errorMessage = 'Video decoding error';
-                            break;
-                          case 4:
-                            errorMessage = 'Video format not supported';
-                            break;
-                          default:
-                            errorMessage = `Video error (code: ${errorCode})`;
-                        }
-                        
-                        setError(errorMessage);
-                        setLoading(false);
-                      }}
-                      onCanPlay={() => {
-                        console.log('Video can play');
-                        setLoading(false);
-                      }}
-                      onLoadStart={() => {
-                        console.log('Video load started');
-                        setLoading(true);
-                      }}
-                      onPlay={() => {
-                        console.log('Video started playing');
-                        setIsPlaying(true);
-                      }}
-                      onPause={() => {
-                        console.log('Video paused');
-                        setIsPlaying(false);
-                      }}
-                      onTimeUpdate={handleTimeUpdate}
-                      style={{ width: '100%', height: '100%' }}
-                    >
-                      <source 
-                        src={cloudflareDownloadUrl || actualVideoUrl || ""} 
-                        type="video/mp4" 
-                        id="videoSource"
-                      />
-                      Your browser does not support the video tag.
-                    </video>
-                      
-                      {/* Click overlay indicator */}
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="bg-black bg-opacity-60 rounded-full p-4 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center space-x-2">
-                          <StepBack className="h-5 w-5 text-white" />
-                          <span className="text-white text-sm font-medium">Click to advance</span>
-                          <StepForward className="h-5 w-5 text-white" />
-                        </div>
-                      </div>
-                      
-                      {/* Persistent frame number display on video - below video */}
-                      <div className="absolute -bottom-16 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
-                        <div className="text-white text-lg font-bold">
-                          Frame {currentFrameIndex + 1} / {frameData.length}
-                        </div>
-                        <div className="text-gray-300 text-sm">
-                          {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center text-white p-6">
-                      <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-500" />
-                      <h3 className="text-lg font-semibold mb-2">No Video Available</h3>
-                      <p className="text-sm text-gray-300">No video URL provided</p>
-                      <div className="text-xs text-gray-400 mt-4 space-y-1">
-                        <p>Debug Info:</p>
-                        <p>isCloudflareStream: {String(isCloudflareStream)}</p>
-                        <p>cloudflareVideoId: {cloudflareVideoId || 'null'}</p>
-                        <p>cloudflareDownloadUrl: {cloudflareDownloadUrl || 'null'}</p>
-                        <p>actualVideoUrl: {actualVideoUrl || 'null'}</p>
-                        <p>videoUrl: {videoUrl || 'null'}</p>
-                        <p>processedVideoFilename: {processedVideoFilename || 'null'}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {/* Loading indicator */}
-              {loading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                  <div className="text-white text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                    <p>Loading video...</p>
-                  </div>
-                </div>
-              )}
-
-
-              {/* Video Controls - Only Fullscreen Button */}
-              <div className="absolute bottom-4 right-4">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                    onClick={toggleFullscreen}
-                    className="text-white hover:bg-white hover:bg-opacity-20"
-                    title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
-                  >
-                    {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
-                    </Button>
-                </div>
-                
-              {/* Simple HTML-style controls (copied from enable_download_test.html) */}
-              <div className="absolute top-4 right-4 flex flex-col space-y-2">
-                <button 
-                  onClick={() => enableDownload()}
-                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-                >
-                  Enable Download
-                </button>
-                <button 
-                  onClick={() => checkDownloadStatus()}
-                  className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
-                >
-                  Check Download Status
-                </button>
-                <button 
-                  onClick={() => tryDirectVideo()}
-                  className="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700"
-                >
-                  Try Direct Video Load
-                </button>
-                <button 
-                  onClick={() => tryProxyVideo()}
-                  className="px-3 py-1 bg-orange-600 text-white rounded text-sm hover:bg-orange-700"
-                >
-                  Try Proxy Video Load
-                </button>
-                <button 
-                  onClick={() => openInNewTab()}
-                  className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
-                >
-                  Open in New Tab
-                </button>
-              </div>
-
-              {/* Simple video element (copied from enable_download_test.html) */}
-              <div className="absolute top-20 right-4 w-80 h-60 bg-black rounded">
-                <video 
-                  id="video" 
-                  controls 
-                  width="100%" 
-                  height="100%" 
-                  style={{ background: 'black' }} 
-                  crossOrigin="anonymous" 
-                  preload="metadata"
-                >
-                  <source src="" type="video/mp4" id="videoSource" />
-                  Your browser does not support the video tag.
-                </video>
-              </div>
-
-              {/* Frame-by-Frame Controls - Moved to very bottom */}
-              <div className="absolute bottom-8 left-4 right-4 flex items-center justify-center space-x-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={goToPreviousFrame}
-                    disabled={currentFrameIndex <= 0}
-                    className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
-                  >
-                    <StepBack className="h-3 w-3" />
-                  </Button>
-                  <span className="text-white text-xs px-2">
-                    Frame: {currentFrameIndex + 1} / {frameData.length}
-                  </span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={goToNextFrame}
-                    disabled={currentFrameIndex >= frameData.length - 1}
-                    className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
-                  >
-                    <StepForward className="h-3 w-3" />
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={toggleFrameTimesteps}
-                    className={`text-white hover:bg-white hover:bg-opacity-20 ${frameStepInterval ? 'bg-blue-600 bg-opacity-50' : ''}`}
-                    title={frameStepInterval ? "Stop frame timesteps" : "Start frame timesteps"}
-                  >
-                    {frameStepInterval ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-                  </Button>
-                  <span className="text-white text-xs px-2">
-                  {frameData.length > 0 ? `Frame Time: ${formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}` : ''}
-                  </span>
-              </div>
-            </div>
-            
-            {/* Risk Timeline Component - Moved further down */}
-            <div className="flex justify-center mt-8">
-              <RiskTimeline
-                frameData={frameData}
-                currentTime={currentTime}
-                duration={duration}
-                onSeek={seekToTime}
-              />
-            </div>
-            </div>
-
-            {/* Real-time Analytics Panels - Right Side */}
-            <div className="lg:col-span-1 space-y-4">
-              {/* Frame Information Panel */}
-              <Card className="bg-gray-900 text-white border-gray-700">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold text-gray-300">Frame Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Frame:</span>
-                    <span className="text-cyan-400 text-xs font-mono">
-                      {currentFrameIndex + 1} / {frameData.length}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Time:</span>
-                    <span className="text-cyan-400 text-xs font-mono">
-                      {formatTime(currentTime)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Frame Time:</span>
-                    <span className="text-cyan-400 text-xs font-mono">
-                      {frameData.length > 0 ? formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000) : '0:00'}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-
-              {/* Movement Analysis Panel */}
-              <Card className="bg-gray-900 text-white border-gray-700">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold text-gray-300">Movement Analysis</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Height:</span>
-                    <span className="text-cyan-400 text-xs font-mono">
-                      {enhancedFrameData[currentFrameIndex] ? (enhancedFrameData[currentFrameIndex].height_from_ground * 100).toFixed(1) : '0.0'}cm
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Elevation:</span>
-                    <span className="text-cyan-400 text-xs font-mono">
-                      {enhancedFrameData[currentFrameIndex] ? enhancedFrameData[currentFrameIndex].elevation_angle.toFixed(1) : '0.0'}°
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Forward Lean:</span>
-                    <span className="text-cyan-400 text-xs font-mono">
-                      {enhancedFrameData[currentFrameIndex] ? enhancedFrameData[currentFrameIndex].forward_lean_angle.toFixed(1) : '0.0'}°
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Tumbling Detection Panel */}
-              <Card className="bg-gray-900 text-white border-gray-700">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold text-gray-300">Tumbling Detection</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Status:</span>
-                    <span className={`text-xs font-semibold ${
-                      enhancedFrameData[currentFrameIndex]?.tumbling_detected ? 'text-green-400' : 'text-gray-400'
-                    }`}>
-                      {enhancedFrameData[currentFrameIndex]?.tumbling_detected ? 'Detected' : 'Not Detected'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Phase:</span>
-                    <span className="text-cyan-400 text-xs font-semibold">
-                      {(enhancedFrameData[currentFrameIndex]?.flight_phase || 'GROUND').toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Quality:</span>
-                    <span className="text-cyan-400 text-xs font-mono">
-                      {enhancedFrameData[currentFrameIndex] ? enhancedFrameData[currentFrameIndex].tumbling_quality.toFixed(1) : '0.0'}/100
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Confidence:</span>
-                    <span className="text-green-400 text-xs font-semibold">High</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* ACL Risk Analysis Panel */}
-              <Card className="bg-gray-900 text-white border-gray-700">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold text-gray-300">ACL Risk Analysis</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Overall Risk:</span>
-                    <span className={`text-xs font-mono ${
-                      (enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.overall_acl_risk || 0) > 50 ? 'text-red-400' : 
-                      (enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.overall_acl_risk || 0) > 25 ? 'text-yellow-400' : 'text-green-400'
-                    }`}>
-                      {(enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.overall_acl_risk || 0).toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Risk Level:</span>
-                    <span className={`text-xs font-semibold ${
-                      (enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.risk_level === 'HIGH') ? 'text-red-400' : 
-                      (enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.risk_level === 'MODERATE') ? 'text-yellow-400' : 'text-green-400'
-                    }`}>
-                      {enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.risk_level || 'LOW'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Knee Angle:</span>
-                    <span className="text-cyan-400 text-xs font-mono">
-                      {(enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.knee_angle_risk || 0).toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Knee Valgus:</span>
-                    <span className="text-cyan-400 text-xs font-mono">
-                      {(enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.knee_valgus_risk || 0).toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400 text-xs">Landing:</span>
-                    <span className="text-cyan-400 text-xs font-mono">
-                      {(enhancedFrameData[currentFrameIndex]?.acl_risk_factors?.landing_mechanics_risk || 0).toFixed(1)}%
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-
-          {/* Enhanced Statistics Summary - Bottom Panel */}
-          {!loading && !error && enhancedFrameData.length > 0 && enhancedStats && (
-            <Card className="bg-gray-900 text-white border-gray-700">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg font-semibold text-gray-200">Enhanced Statistics Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {/* Tumbling Detection Section */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-2">Tumbling Detection</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400 text-xs">Tumbling Frames:</span>
-                        <span className="text-cyan-400 text-xs font-mono">
-                          {enhancedStats.tumbling_detection.total_tumbling_frames}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400 text-xs">Percentage:</span>
-                        <span className="text-cyan-400 text-xs font-mono">
-                          {enhancedStats.tumbling_detection.tumbling_percentage.toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400 text-xs">Flight Phases:</span>
-                        <span className="text-cyan-400 text-xs font-mono">
-                          {Object.values(enhancedStats.tumbling_detection.flight_phases).reduce((a, b) => a + b, 0)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ACL Risk Analysis Section */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-2">ACL Risk Analysis</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400 text-xs">Avg Overall Risk:</span>
-                        <span className={`text-xs font-mono ${
-                          enhancedStats.acl_risk_analysis.average_overall_risk > 50 ? 'text-red-400' : 
-                          enhancedStats.acl_risk_analysis.average_overall_risk > 25 ? 'text-yellow-400' : 'text-green-400'
-                        }`}>
-                          {enhancedStats.acl_risk_analysis.average_overall_risk.toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400 text-xs">High Risk Frames:</span>
-                        <span className="text-red-400 text-xs font-mono">
-                          {enhancedStats.acl_risk_analysis.high_risk_frames}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400 text-xs">Avg Knee Valgus:</span>
-                        <span className="text-cyan-400 text-xs font-mono">
-                          {enhancedStats.acl_risk_analysis.average_knee_valgus_risk.toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Movement Analysis Section */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-2">Movement Analysis</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400 text-xs">Avg Elevation:</span>
-                        <span className="text-cyan-400 text-xs font-mono">
-                          {enhancedStats.movement_analysis.average_elevation_angle.toFixed(1)}°
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400 text-xs">Max Elevation:</span>
-                        <span className="text-cyan-400 text-xs font-mono">
-                          {enhancedStats.movement_analysis.max_elevation_angle.toFixed(1)}°
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400 text-xs">Avg Height:</span>
-                        <span className="text-cyan-400 text-xs font-mono">
-                          {enhancedStats.movement_analysis.average_height_from_ground.toFixed(1)}cm
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tumbling Quality Section */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-2">Tumbling Quality</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-400 text-xs">Avg Quality:</span>
-                        <span className="text-cyan-400 text-xs font-mono">
-                          {enhancedStats.tumbling_quality.average_quality.toFixed(1)}/100
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400 text-xs">Max Quality:</span>
-                        <span className="text-cyan-400 text-xs font-mono">
-                          {enhancedStats.tumbling_quality.max_quality.toFixed(1)}/100
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-400 text-xs">Quality Frames:</span>
-                        <span className="text-cyan-400 text-xs font-mono">
-                          {enhancedStats.tumbling_quality.quality_frames_count}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Debug: Show when enhanced statistics are not available */}
-          {!loading && !error && (!enhancedFrameData.length || !enhancedStats) && (
-            <Card className="border-yellow-200 bg-yellow-50">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                  <div>
-                    <h3 className="font-semibold text-yellow-800">Enhanced Statistics Not Available</h3>
-                    <p className="text-sm text-yellow-700">
-                      Enhanced frame data: {enhancedFrameData.length} frames, 
-                      Enhanced stats: {enhancedStats ? 'Available' : 'Not available'}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Loading State */}
-          {loading && (
-            <Card className="border-blue-200 bg-blue-50">
-              <CardContent className="p-4">
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  <span className="text-sm text-blue-700">Loading frame data...</span>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Error State */}
-          {error && (
-            <Card className="border-red-200 bg-red-50">
-              <CardContent className="p-4">
-                <div className="text-sm text-red-700">{error}</div>
-              </CardContent>
-            </Card>
-          )}
+        
+        <button onclick="enableDownload()">Enable Download</button>
+        <button onclick="checkDownloadStatus()">Check Download Status</button>
+        <button onclick="testDownloadUrl()">Test Download URL</button>
+        
+        <div id="downloadInfo" style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 4px; display: none;">
+            <strong>Download URL:</strong> <span id="downloadUrl"></span><br>
+            <strong>Status:</strong> <span id="downloadStatus"></span>
         </div>
-      </div>
     </div>
-  )
-}
 
+    <div class="container">
+        <h2>📹 Step 2: Test Frame-by-Frame Navigation</h2>
+        <div id="status2" class="status info">
+            Waiting for download URL...
+        </div>
+        
+        <div class="video-container">
+            <video id="video" controls width="100%" height="400" style="background: black;" crossorigin="anonymous" preload="metadata">
+                <source src="" type="video/mp4" id="videoSource">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        
+        <div style="margin: 15px 0;">
+            <button onclick="tryDirectVideo()">Try Direct Video Load</button>
+            <button onclick="tryProxyVideo()">Try Proxy Video Load</button>
+            <button onclick="openInNewTab()">Open in New Tab</button>
+        </div>
+        
+        <div style="margin: 15px 0;">
+            <button onclick="goToNextFrame()">Next Frame</button>
+            <button onclick="goToPreviousFrame()">Previous Frame</button>
+            <button onclick="togglePlayPause()">Play/Pause</button>
+        </div>
+        
+        <div id="frameInfo" style="margin: 15px 0; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+            <strong>Current Frame:</strong> <span id="currentFrame">0</span> / <span id="totalFrames">314</span><br>
+            <strong>Video Time:</strong> <span id="videoTime">0.000s</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>🔍 Debug Log</h2>
+        <div id="debug-log" class="debug-log"></div>
+    </div>
+
+    <script>
+        // Configuration - Using PROCESSED video (post-analysis with overlays)
+        const ACCOUNT_ID = 'f2b0714a082195118f53d0b8327f6635';
+        const VIDEO_ID = '0dcb9daa132905082aa699d4e984c214'; // Processed video with analytics overlays
+        const API_TOKEN = 'DEmkpIDn5SLgpjTOoDqYrPivnOpD9gnqbVICwzTQ';
+        
+        let downloadUrl = null;
+        let currentFrameIndex = 0;
+        let frameData = [];
+        let isPlaying = false;
+        let frameInterval = null;
+
+        // Debug logging
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('debug-log');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Show status message
+        function showStatus(statusId, message, type = 'info') {
+            const statusElement = document.getElementById(statusId);
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+        }
+
+        // Enable download
+        async function enableDownload() {
+            log(`Enabling download for video ${VIDEO_ID}...`);
+            showStatus('status1', 'Enabling download...', 'info');
+            
+            try {
+                const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/stream/${VIDEO_ID}/downloads`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_TOKEN}`
+                    },
+                    body: JSON.stringify({})
+                });
+                
+                const data = await response.json();
+                log('API Response: ' + JSON.stringify(data, null, 2));
+                
+                if (data.success) {
+                    log('✅ Download enabled successfully!', 'success');
+                    showStatus('status1', '✅ Download enabled successfully!', 'success');
+                    
+                    // Check download status
+                    setTimeout(() => {
+                        checkDownloadStatus();
+                    }, 2000);
+                } else {
+                    log(`❌ Failed to enable download: ${data.errors ? data.errors.map(e => e.message).join(', ') : 'Unknown error'}`, 'error');
+                    showStatus('status1', `❌ Failed to enable download: ${data.errors ? data.errors.map(e => e.message).join(', ') : 'Unknown error'}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+                showStatus('status1', `❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Check download status
+        async function checkDownloadStatus() {
+            log(`Checking download status for video ${VIDEO_ID}...`);
+            showStatus('status1', 'Checking download status...', 'info');
+            
+            try {
+                const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/stream/${VIDEO_ID}/downloads`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${API_TOKEN}`
+                    }
+                });
+                
+                const data = await response.json();
+                log('Download Status Response: ' + JSON.stringify(data, null, 2));
+                
+                if (data.success && data.result) {
+                    const downloads = data.result;
+                    if (downloads.default) {
+                        downloadUrl = downloads.default.url;
+                        log(`✅ Download URL found: ${downloadUrl}`, 'success');
+                        showStatus('status1', '✅ Download URL ready!', 'success');
+                        
+                        // Show download info
+                        document.getElementById('downloadUrl').textContent = downloadUrl;
+                        document.getElementById('downloadStatus').textContent = 'Ready';
+                        document.getElementById('downloadInfo').style.display = 'block';
+                        
+                        // Load video
+                        loadVideo();
+                    } else {
+                        log('⚠️ Download URL not found in response', 'error');
+                        showStatus('status1', '⚠️ Download URL not found', 'error');
+                    }
+                } else {
+                    log(`❌ Failed to get download status: ${data.errors ? data.errors.map(e => e.message).join(', ') : 'Unknown error'}`, 'error');
+                    showStatus('status1', `❌ Failed to get download status`, 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+                showStatus('status1', `❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Test download URL accessibility
+        async function testDownloadUrl() {
+            if (!downloadUrl) {
+                log('❌ No download URL available. Please enable download first.', 'error');
+                return;
+            }
+            
+            log(`🔍 Testing download URL: ${downloadUrl}`);
+            showStatus('status1', 'Testing download URL...', 'info');
+            
+            try {
+                const response = await fetch(downloadUrl, { method: 'HEAD' });
+                log(`🔍 Download URL test result: ${response.status} ${response.statusText}`);
+                log(`🔍 Content-Type: ${response.headers.get('content-type')}`);
+                log(`🔍 Content-Length: ${response.headers.get('content-length')}`);
+                log(`🔍 Last-Modified: ${response.headers.get('last-modified')}`);
+                
+                if (response.ok) {
+                    log('✅ Download URL is accessible!', 'success');
+                    showStatus('status1', '✅ Download URL is accessible!', 'success');
+                } else {
+                    log(`❌ Download URL not accessible: ${response.status}`, 'error');
+                    showStatus('status1', `❌ Download URL not accessible: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Download URL test failed: ${error.message}`, 'error');
+                showStatus('status1', `❌ Download URL test failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Load video with download URL
+        function loadVideo() {
+            if (downloadUrl) {
+                log(`Loading video with download URL: ${downloadUrl}`);
+                
+                const video = document.getElementById('video');
+                const videoSource = document.getElementById('videoSource');
+                
+                // Add event listeners for debugging
+                video.addEventListener('loadstart', () => {
+                    log('🎬 Video load started');
+                });
+                
+                video.addEventListener('loadedmetadata', () => {
+                    log(`🎬 Video metadata loaded - Duration: ${video.duration}s, Size: ${video.videoWidth}x${video.videoHeight}`);
+                });
+                
+                video.addEventListener('loadeddata', () => {
+                    log('🎬 Video data loaded - ready to play');
+                    showStatus('status2', '✅ Video loaded - ready for frame-by-frame navigation!', 'success');
+                });
+                
+                video.addEventListener('canplay', () => {
+                    log('🎬 Video can start playing');
+                });
+                
+                video.addEventListener('error', (e) => {
+                    log(`❌ Video error: ${e.target.error?.code} - ${e.target.error?.message}`, 'error');
+                    showStatus('status2', `❌ Video error: ${e.target.error?.message}`, 'error');
+                });
+                
+                video.addEventListener('stalled', () => {
+                    log('⚠️ Video stalled - network issue?', 'warning');
+                });
+                
+                // Test if the download URL is accessible
+                log('🔍 Testing download URL accessibility...');
+                fetch(downloadUrl, { method: 'HEAD' })
+                    .then(response => {
+                        log(`🔍 Download URL test: ${response.status} ${response.statusText}`);
+                        log(`🔍 Content-Type: ${response.headers.get('content-type')}`);
+                        log(`🔍 Content-Length: ${response.headers.get('content-length')}`);
+                        
+                        if (response.ok) {
+                            // Set the source and load
+                            videoSource.src = downloadUrl;
+                            video.load();
+                        } else {
+                            log(`❌ Download URL not accessible: ${response.status}`, 'error');
+                            showStatus('status2', `❌ Download URL not accessible: ${response.status}`, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        log(`❌ Download URL test failed: ${error.message}`, 'error');
+                        showStatus('status2', `❌ Download URL test failed: ${error.message}`, 'error');
+                    });
+                
+                // Generate mock frame data
+                generateFrameData();
+            } else {
+                log('❌ No download URL available', 'error');
+                showStatus('status2', '❌ No download URL available', 'error');
+            }
+        }
+
+        // Try direct video load (bypass CORS)
+        function tryDirectVideo() {
+            if (!downloadUrl) {
+                log('❌ No download URL available', 'error');
+                return;
+            }
+            
+            log('🎬 Trying direct video load...');
+            const video = document.getElementById('video');
+            const videoSource = document.getElementById('videoSource');
+            
+            // Remove crossorigin attribute
+            video.removeAttribute('crossorigin');
+            videoSource.src = downloadUrl;
+            video.load();
+        }
+
+        // Try proxy video load through backend
+        function tryProxyVideo() {
+            if (!downloadUrl) {
+                log('❌ No download URL available', 'error');
+                return;
+            }
+            
+            log('🎬 Trying proxy video load through backend...');
+            const video = document.getElementById('video');
+            const videoSource = document.getElementById('videoSource');
+            
+            // Try to proxy through the backend
+            const proxyUrl = `http://localhost:5004/proxyVideo?url=${encodeURIComponent(downloadUrl)}`;
+            log(`🎬 Proxy URL: ${proxyUrl}`);
+            
+            videoSource.src = proxyUrl;
+            video.load();
+        }
+
+        // Open video in new tab
+        function openInNewTab() {
+            if (!downloadUrl) {
+                log('❌ No download URL available', 'error');
+                return;
+            }
+            
+            log('🎬 Opening video in new tab...');
+            window.open(downloadUrl, '_blank');
+        }
+
+        // Generate mock frame data
+        function generateFrameData() {
+            frameData = [];
+            for (let i = 0; i < 314; i++) {
+                frameData.push({
+                    frame_number: i + 1,
+                    timestamp: i * 0.033, // ~30 FPS
+                    video_time: i * 0.033
+                });
+            }
+            log(`Generated ${frameData.length} frame data points`);
+            updateFrameDisplay();
+        }
+
+        // Frame navigation
+        function goToNextFrame() {
+            if (currentFrameIndex < frameData.length - 1) {
+                currentFrameIndex++;
+                seekToFrameTime();
+                updateFrameDisplay();
+            }
+        }
+
+        function goToPreviousFrame() {
+            if (currentFrameIndex > 0) {
+                currentFrameIndex--;
+                seekToFrameTime();
+                updateFrameDisplay();
+            }
+        }
+
+        function seekToFrameTime() {
+            const video = document.getElementById('video');
+            const frame = frameData[currentFrameIndex];
+            if (video && frame) {
+                log(`Seeking to frame ${frame.frame_number} at time ${frame.video_time}s`);
+                video.currentTime = frame.video_time;
+            }
+        }
+
+        function updateFrameDisplay() {
+            const frame = frameData[currentFrameIndex];
+            if (frame) {
+                document.getElementById('currentFrame').textContent = frame.frame_number;
+                document.getElementById('videoTime').textContent = frame.video_time.toFixed(3) + 's';
+            }
+        }
+
+        function togglePlayPause() {
+            const video = document.getElementById('video');
+            if (video.paused) {
+                video.play();
+                log('Video playing');
+            } else {
+                video.pause();
+                log('Video paused');
+            }
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            log('Enable Download Test initialized');
+            log('Click "Enable Download" to start');
+        });
+    </script>
+</body>
+</html>

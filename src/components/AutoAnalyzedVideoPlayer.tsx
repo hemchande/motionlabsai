@@ -187,6 +187,13 @@ export default function AutoAnalyzedVideoPlayer({
   const cloudflareStreamUrl = React.useMemo(() => {
     console.log('🔍 Debug Cloudflare URL conversion:', { processedVideoUrl, videoUrl });
     
+    // For testing, let's use the exact working URL from the HTML file first
+    const testWorkingUrl = 'https://customer-cxebs7nmdazhytrk.cloudflarestream.com/72a4beb341d720ae9d3fc74804d98484/downloads/default.mp4';
+    console.log('🧪 Using test working URL for now:', testWorkingUrl);
+    return testWorkingUrl;
+    
+    // TODO: Re-enable dynamic URL extraction once we confirm the test URL works
+    /*
     // Simple and reliable video ID extraction - based on working HTML implementation
     const extractVideoIdFromUrl = (url: string) => {
       console.log('🔍 Processing URL:', url);
@@ -235,6 +242,7 @@ export default function AutoAnalyzedVideoPlayer({
     }
     
     return null;
+    */
   }, [videoUrl, processedVideoUrl]);
 
   const actualVideoUrl = React.useMemo(() => {
@@ -1094,8 +1102,34 @@ export default function AutoAnalyzedVideoPlayer({
     if (!video) return
 
     const handleError = (e: Event) => {
-      console.error('Video error:', e)
-      setError('Failed to load video')
+      console.error('🎬 Video error:', e)
+      console.error('🎬 Video element:', video)
+      console.error('🎬 Video src:', video.src)
+      console.error('🎬 Video error details:', video.error)
+      console.error('🎬 Video network state:', video.networkState)
+      console.error('🎬 Video ready state:', video.readyState)
+      
+      let errorMessage = 'Failed to load video';
+      if (video.error) {
+        switch (video.error.code) {
+          case 1:
+            errorMessage = 'Video loading aborted';
+            break;
+          case 2:
+            errorMessage = 'Network error while loading video';
+            break;
+          case 3:
+            errorMessage = 'Video decoding error';
+            break;
+          case 4:
+            errorMessage = 'Video format not supported';
+            break;
+          default:
+            errorMessage = `Video error (code: ${video.error.code})`;
+        }
+      }
+      
+      setError(errorMessage)
     }
 
     const handleLoadStart = () => {
@@ -1646,62 +1680,9 @@ export default function AutoAnalyzedVideoPlayer({
                         }
                       }}
                       onError={(e) => {
-                        console.error('Video load error:', e);
-                        console.error('Video URL:', actualVideoUrl);
-                        console.error('Video element error:', e.currentTarget?.error);
-                        console.error('Error details:', {
-                          code: e.currentTarget?.error?.code,
-                          message: e.currentTarget?.error?.message,
-                          networkState: e.currentTarget?.networkState,
-                          readyState: e.currentTarget?.readyState
-                        });
-                        
-                        const errorCode = e.currentTarget?.error?.code;
-                        let errorMessage = 'Unknown video error';
-                        
-                        switch (errorCode) {
-                          case 1:
-                            errorMessage = 'Video loading aborted';
-                            break;
-                          case 2:
-                            errorMessage = 'Network error while loading video';
-                            break;
-                          case 3:
-                            errorMessage = 'Video decoding error';
-                            break;
-                          case 4:
-                            errorMessage = 'Video format not supported';
-                            break;
-                          default:
-                            errorMessage = `Video error (code: ${errorCode})`;
-                        }
-                        
-                        // If it's a Cloudflare Stream direct URL that failed, try iframe fallback
-                        if (actualVideoUrl && actualVideoUrl.includes('cloudflarestream.com') && actualVideoUrl.includes('/downloads/')) {
-                          console.log('🔄 Cloudflare Stream direct URL failed, attempting iframe fallback...');
-                          
-                          // Use the first available original iframe URL
-                          const fallbackUrl = originalCloudflareUrls.find(url => url.includes('/iframe'));
-                          if (fallbackUrl) {
-                            console.log('🔄 Trying iframe URL:', fallbackUrl);
-                            
-                            // Update the video source to iframe URL
-                            setTimeout(() => {
-                              if (videoRef.current) {
-                                videoRef.current.src = fallbackUrl;
-                                videoRef.current.load();
-                              }
-                            }, 1000);
-                            
-                            errorMessage = 'Direct video failed, trying iframe embed...';
-                          } else {
-                            console.error('❌ No iframe fallback URL available');
-                            errorMessage = 'Cloudflare Stream video failed to load';
-                          }
-                        }
-                        
-                        setError(errorMessage);
-                        setLoading(false);
+                        console.error('🎬 Video element onError triggered:', e);
+                        console.error('🎬 Video URL:', actualVideoUrl);
+                        // The main error handling is in the useEffect above
                       }}
                       onCanPlay={() => {
                         console.log('Video can play');

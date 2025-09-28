@@ -183,6 +183,9 @@ export default function AutoAnalyzedVideoPlayer({
   });
   console.log('🎬 ===================================================');
 
+  // Basic logging to see if component is working
+  console.log('🎬 Component is rendering...');
+
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -190,8 +193,10 @@ export default function AutoAnalyzedVideoPlayer({
   // Compute the actual video URL to use - construct from production API server
   // Check if we should use Cloudflare Stream iframe embed
   const isCloudflareStream = React.useMemo(() => {
-    return (videoUrl && videoUrl.includes('cloudflarestream.com') && videoUrl.includes('/iframe')) ||
+    const result = (videoUrl && videoUrl.includes('cloudflarestream.com') && videoUrl.includes('/iframe')) ||
            (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com') && processedVideoUrl.includes('/iframe'));
+    console.log('🎬 isCloudflareStream computed:', result, 'for videoUrl:', videoUrl);
+    return result;
   }, [videoUrl, processedVideoUrl]);
 
   const cloudflareStreamUrl = React.useMemo(() => {

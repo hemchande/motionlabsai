@@ -245,6 +245,7 @@ export default function AutoAnalyzedVideoPlayer({
     // Priority 1: If we have a Cloudflare Stream URL (converted to direct video), use it
     if (cloudflareStreamUrl) {
       console.log('🎬 Using Cloudflare Stream direct video URL:', cloudflareStreamUrl);
+      console.log('🎬 URL type check:', typeof cloudflareStreamUrl, 'Length:', cloudflareStreamUrl.length);
       return cloudflareStreamUrl;
     }
     
@@ -304,13 +305,15 @@ export default function AutoAnalyzedVideoPlayer({
     
     // Test if the video URL is accessible
     if (actualVideoUrl) {
+      console.log('🔍 Testing video URL accessibility:', actualVideoUrl);
       fetch(actualVideoUrl, { method: 'HEAD' })
         .then(response => {
-          console.log('Video URL accessibility test:', {
+          console.log('🎬 Video URL accessibility test result:', {
             url: actualVideoUrl,
             status: response.status,
             statusText: response.statusText,
-            contentType: response.headers.get('content-type')
+            contentType: response.headers.get('content-type'),
+            contentLength: response.headers.get('content-length')
           });
           if (!response.ok) {
             setError(`Video not accessible: ${response.status} ${response.statusText}`);
@@ -318,7 +321,7 @@ export default function AutoAnalyzedVideoPlayer({
           }
         })
         .catch(err => {
-          console.error('Video URL accessibility test failed:', err);
+          console.error('🎬 Video URL accessibility test failed:', err);
           setError(`Network error: ${err.message}`);
           setLoading(false);
         });
@@ -1658,11 +1661,9 @@ export default function AutoAnalyzedVideoPlayer({
                     <video
                       ref={videoRef}
                       className="w-full h-full max-h-[500px] object-contain"
-                      src={actualVideoUrl || undefined}
                       preload="auto"
                       playsInline
                       muted
-                      crossOrigin="anonymous"
                       controls
                       style={{ background: 'black' }}
                       onLoadedData={() => {
@@ -1699,7 +1700,10 @@ export default function AutoAnalyzedVideoPlayer({
                         setIsPlaying(false);
                       }}
                       onTimeUpdate={handleTimeUpdate}
-                    />
+                    >
+                      <source src={actualVideoUrl || ''} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
                     
                     {/* Click overlay indicator - same as HTML file */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

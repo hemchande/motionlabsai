@@ -278,6 +278,7 @@ export default function AutoAnalyzedVideoPlayer({
 
   // State for Cloudflare Stream player
   const [cloudflarePlayer, setCloudflarePlayer] = useState<any>(null);
+  const [cloudflarePlayerContainer, setCloudflarePlayerContainer] = useState<HTMLElement | null>(null);
   const [playerReady, setPlayerReady] = useState(false);
 
   // Function to create Cloudflare Stream player directly
@@ -297,6 +298,9 @@ export default function AutoAnalyzedVideoPlayer({
       container.style.width = '100%';
       container.style.height = '400px';
       container.appendChild(streamElement);
+      
+      // Store the container
+      setCloudflarePlayerContainer(container);
       
       // Load Cloudflare Stream SDK if not already loaded
       if (!window.Stream) {
@@ -370,11 +374,7 @@ export default function AutoAnalyzedVideoPlayer({
   useEffect(() => {
     if (cloudflareVideoId && isCloudflareStream) {
       console.log('🎬 Creating Cloudflare Stream player for video ID:', cloudflareVideoId);
-      const playerContainer = createCloudflarePlayer(cloudflareVideoId);
-      if (playerContainer) {
-        // Store the container for rendering
-        setCloudflarePlayer(playerContainer);
-      }
+      createCloudflarePlayer(cloudflareVideoId);
     }
   }, [cloudflareVideoId, isCloudflareStream]);
 
@@ -1714,12 +1714,12 @@ export default function AutoAnalyzedVideoPlayer({
                   {/* Use Cloudflare Stream player or iframe fallback */}
                   {isCloudflareStream && cloudflareVideoId ? (
                     <div className="relative">
-                      {cloudflarePlayer ? (
+                      {cloudflarePlayerContainer ? (
                         // Use Cloudflare Stream player
                         <div 
                           ref={(el) => {
-                            if (el && cloudflarePlayer && !el.contains(cloudflarePlayer)) {
-                              el.appendChild(cloudflarePlayer);
+                            if (el && cloudflarePlayerContainer && !el.contains(cloudflarePlayerContainer)) {
+                              el.appendChild(cloudflarePlayerContainer);
                             }
                           }}
                           className="relative w-full h-full"

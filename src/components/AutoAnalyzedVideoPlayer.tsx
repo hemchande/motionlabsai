@@ -494,52 +494,101 @@ export default function AutoAnalyzedVideoPlayer({
     }
   };
 
-  // Try direct video load (same as HTML file tryDirectVideo function)
-  const tryDirectVideoLoad = (downloadUrl: string) => {
+  // Exact copy of HTML file functions
+  let downloadUrl = null;
+
+  const enableDownload = async () => {
+    console.log('Enabling download for video 0dcb9daa132905082aa699d4e984c214...');
+    
     try {
-      console.log('🎬 Trying direct video load (same as HTML file)...');
-      console.log('🎬 Download URL:', downloadUrl);
-      console.log('🎬 cloudflareDownloadUrl:', cloudflareDownloadUrl);
-      console.log('🎬 actualVideoUrl:', actualVideoUrl);
+      const response = await fetch('https://api.cloudflare.com/client/v4/accounts/f2b0714a082195118f53d0b8327f6635/stream/0dcb9daa132905082aa699d4e984c214/downloads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer DEmkpIDn5SLgpjTOoDqYrPivnOpD9gnqbVICwzTQ'
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = await response.json();
+      console.log('API Response:', JSON.stringify(data, null, 2));
       
-      const video = videoRef.current;
-      const videoSource = document.getElementById('videoSource') as HTMLSourceElement;
-      
-      console.log('🎬 Video element found:', !!video);
-      console.log('🎬 Video source found:', !!videoSource);
-      
-      if (!video || !videoSource) {
-        console.error('❌ Video element or source not found');
-        console.error('❌ Video ref:', video);
-        console.error('❌ Video source element:', videoSource);
-        return;
+      if (data.success) {
+        console.log('✅ Download enabled successfully!');
+        setTimeout(() => {
+          checkDownloadStatus();
+        }, 1000);
       }
-      
-      // Remove crossorigin attribute (same as HTML file)
-      video.removeAttribute('crossorigin');
-      
-      // Set the source and load (same as HTML file)
-      videoSource.src = downloadUrl;
-      video.load();
-      
-      console.log('🎬 Direct video load attempted');
-      console.log('🎬 Note: CORS errors are expected but video should still load');
-      
-      // Add event listeners to see if video actually loads despite CORS error
-      video.addEventListener('loadstart', () => {
-        console.log('🎬 Video load started (despite CORS error)');
-      });
-      
-      video.addEventListener('canplay', () => {
-        console.log('🎬 Video can play (CORS error ignored)');
-      });
-      
-      video.addEventListener('error', (e) => {
-        console.log('🎬 Video error event (expected due to CORS):', e);
-      });
     } catch (error) {
-      console.error('❌ Error in direct video load:', error);
+      console.log(`❌ Network Error: ${error.message}`);
     }
+  };
+
+  const checkDownloadStatus = async () => {
+    console.log('Checking download status for video 0dcb9daa132905082aa699d4e984c214...');
+    
+    try {
+      const response = await fetch('https://api.cloudflare.com/client/v4/accounts/f2b0714a082195118f53d0b8327f6635/stream/0dcb9daa132905082aa699d4e984c214/downloads', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer DEmkpIDn5SLgpjTOoDqYrPivnOpD9gnqbVICwzTQ'
+        }
+      });
+
+      const data = await response.json();
+      console.log('Download Status Response:', JSON.stringify(data, null, 2));
+      
+      if (data.success && data.result && data.result.default) {
+        downloadUrl = data.result.default.url;
+        console.log(`✅ Download URL found: ${downloadUrl}`);
+      }
+    } catch (error) {
+      console.log(`❌ Network Error: ${error.message}`);
+    }
+  };
+
+  const tryDirectVideo = () => {
+    if (!downloadUrl) {
+      console.log('❌ No download URL available', 'error');
+      return;
+    }
+    
+    console.log('🎬 Trying direct video load...');
+    const video = document.getElementById('video') as HTMLVideoElement;
+    const videoSource = document.getElementById('videoSource') as HTMLSourceElement;
+    
+    // Remove crossorigin attribute
+    video.removeAttribute('crossorigin');
+    videoSource.src = downloadUrl;
+    video.load();
+  };
+
+  const tryProxyVideo = () => {
+    if (!downloadUrl) {
+      console.log('❌ No download URL available', 'error');
+      return;
+    }
+    
+    console.log('🎬 Trying proxy video load through backend...');
+    const video = document.getElementById('video') as HTMLVideoElement;
+    const videoSource = document.getElementById('videoSource') as HTMLSourceElement;
+    
+    // Try to proxy through the backend
+    const proxyUrl = `http://localhost:5004/proxyVideo?url=${encodeURIComponent(downloadUrl)}`;
+    console.log(`🎬 Proxy URL: ${proxyUrl}`);
+    
+    videoSource.src = proxyUrl;
+    video.load();
+  };
+
+  const openInNewTab = () => {
+    if (!downloadUrl) {
+      console.log('❌ No download URL available', 'error');
+      return;
+    }
+    
+    console.log('🎬 Opening video in new tab...');
+    window.open(downloadUrl, '_blank');
   };
 
   // Try proxy video load through backend (same as HTML file)
@@ -1999,15 +2048,23 @@ export default function AutoAnalyzedVideoPlayer({
                         Your browser does not support the video tag.
                       </video>
                     </div>
-                  ) : (() => {
-                    console.log('🎬 ===== CONDITIONAL RENDERING CHECK =====');
-                    console.log('🎬 isCloudflareStream:', isCloudflareStream);
-                    console.log('🎬 cloudflareDownloadUrl:', cloudflareDownloadUrl);
-                    console.log('🎬 actualVideoUrl:', actualVideoUrl);
-                    console.log('🎬 Condition result:', isCloudflareStream || cloudflareDownloadUrl || actualVideoUrl);
-                    console.log('🎬 =====================================');
-                    return isCloudflareStream || cloudflareDownloadUrl || actualVideoUrl;
-                  })() ? (
+                  ) : (
+                    // Simple video element (copied from enable_download_test.html)
+                    <div className="video-container">
+                      <video 
+                        id="video" 
+                        controls 
+                        width="100%" 
+                        height="400" 
+                        style={{ background: 'black' }} 
+                        crossOrigin="anonymous" 
+                        preload="metadata"
+                      >
+                        <source src="" type="video/mp4" id="videoSource" />
+                        Your browser does not support the video tag.
+                      </video>
+                    </div>
+                  ) : (
                     // Regular HTML5 video element with click-to-advance
                     <div 
                       className="relative w-full h-full cursor-pointer"
@@ -2165,60 +2222,39 @@ export default function AutoAnalyzedVideoPlayer({
                     </Button>
                 </div>
                 
-              {/* Cloudflare Download Controls */}
-              {isCloudflareStream && cloudflareVideoId && (
-                <div className="absolute top-4 right-4 flex flex-col space-y-2">
-                    <Button 
-                    variant="outline" 
-                      size="sm" 
-                    onClick={() => enableCloudflareDownload(cloudflareVideoId)}
-                    disabled={downloadEnabled}
-                    className="text-white border-white hover:bg-white hover:text-black"
-                    >
-                    {downloadEnabled ? 'Download Enabled' : 'Enable Download'}
-                    </Button>
-                  {downloadEnabled && (
-                    <>
-                    <Button 
-                        variant="outline" 
-                      size="sm" 
-                        onClick={() => checkCloudflareDownloadStatus(cloudflareVideoId)}
-                        className="text-white border-white hover:bg-white hover:text-black"
-                    >
-                        Get Download URL
-                  </Button>
-                      {cloudflareDownloadUrl && (
-                        <>
-                    <Button 
-                            variant="outline" 
-                      size="sm" 
-                            onClick={() => testDownloadUrlAccessibility(cloudflareDownloadUrl)}
-                            className="text-white border-white hover:bg-white hover:text-black"
-                    >
-                            Test Download URL
-                    </Button>
-                    <Button 
-                            variant="outline" 
-                      size="sm" 
-                            onClick={() => tryDirectVideoLoad(cloudflareDownloadUrl)}
-                            className="text-white border-white hover:bg-white hover:text-black"
-                    >
-                            Load Direct Video
-                  </Button>
-                  <Button 
-                            variant="outline" 
-                    size="sm" 
-                            onClick={() => tryProxyVideoLoad(cloudflareDownloadUrl)}
-                            className="text-white border-white hover:bg-white hover:text-black"
-                  >
-                            Load Proxy Video
-                  </Button>
-                        </>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
+              {/* Simple HTML-style controls (copied from enable_download_test.html) */}
+              <div className="absolute top-4 right-4 flex flex-col space-y-2">
+                <button 
+                  onClick={() => enableDownload()}
+                  className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                >
+                  Enable Download
+                </button>
+                <button 
+                  onClick={() => checkDownloadStatus()}
+                  className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                >
+                  Check Download Status
+                </button>
+                <button 
+                  onClick={() => tryDirectVideo()}
+                  className="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700"
+                >
+                  Try Direct Video Load
+                </button>
+                <button 
+                  onClick={() => tryProxyVideo()}
+                  className="px-3 py-1 bg-orange-600 text-white rounded text-sm hover:bg-orange-700"
+                >
+                  Try Proxy Video Load
+                </button>
+                <button 
+                  onClick={() => openInNewTab()}
+                  className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
+                >
+                  Open in New Tab
+                </button>
+              </div>
 
               {/* Frame-by-Frame Controls - Moved to very bottom */}
               <div className="absolute bottom-8 left-4 right-4 flex items-center justify-center space-x-2">

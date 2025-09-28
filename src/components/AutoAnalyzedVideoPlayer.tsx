@@ -171,6 +171,7 @@ export default function AutoAnalyzedVideoPlayer({
   onVideoAnalyzed
 }: AutoAnalyzedVideoPlayerProps) {
   // Debug logging
+  console.log('🎬 ===== AUTOANALYZEDVIDEOPLAYER LOADED =====');
   console.log('AutoAnalyzedVideoPlayer props:', {
     videoUrl,
     videoName,
@@ -180,6 +181,7 @@ export default function AutoAnalyzedVideoPlayer({
     analyticsId,
     analyticsUrl
   });
+  console.log('🎬 ==========================================');
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -388,12 +390,16 @@ export default function AutoAnalyzedVideoPlayer({
 
   // Log Cloudflare Stream detection (manual control like HTML file)
   useEffect(() => {
-    console.log('🎬 ===== CLOUDFLARE STREAM DETECTED =====');
+    console.log('🎬 ===== CLOUDFLARE STREAM DETECTION =====');
+    console.log('🎬 videoUrl:', videoUrl);
+    console.log('🎬 cloudflareStreamUrl:', cloudflareStreamUrl);
     console.log('🎬 cloudflareVideoId:', cloudflareVideoId);
     console.log('🎬 isCloudflareStream:', isCloudflareStream);
+    console.log('🎬 downloadEnabled:', downloadEnabled);
+    console.log('🎬 cloudflareDownloadUrl:', cloudflareDownloadUrl);
     console.log('🎬 Manual download controls available in top-right corner');
     console.log('🎬 =====================================');
-  }, [cloudflareVideoId, isCloudflareStream]);
+  }, [videoUrl, cloudflareStreamUrl, cloudflareVideoId, isCloudflareStream, downloadEnabled, cloudflareDownloadUrl]);
 
   // Auto-load video when download URL is ready (same as HTML file)
   useEffect(() => {

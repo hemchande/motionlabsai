@@ -407,8 +407,11 @@ export default function AutoAnalyzedVideoPlayer({
       videoRef.current.removeAttribute('crossorigin');
       
       // Set the new source and reload (same as HTML file)
-      videoRef.current.src = cloudflareDownloadUrl;
-      videoRef.current.load();
+      const videoSource = document.getElementById('videoSource') as HTMLSourceElement;
+      if (videoSource) {
+        videoSource.src = cloudflareDownloadUrl;
+        videoRef.current.load();
+      }
       
       console.log('🎬 ================================');
     }
@@ -1928,7 +1931,6 @@ export default function AutoAnalyzedVideoPlayer({
                     <video
                       ref={videoRef}
                       className="w-full h-full max-h-[500px] object-contain"
-                      src={cloudflareDownloadUrl || actualVideoUrl || undefined}
                       preload="auto"
                       playsInline
                       muted
@@ -1950,6 +1952,12 @@ export default function AutoAnalyzedVideoPlayer({
                           console.log('Video aspect ratio:', aspectRatio, 'Dimensions:', video.videoWidth, 'x', video.videoHeight);
                         }
                       }}
+                    >
+                      <source 
+                        src={cloudflareDownloadUrl || actualVideoUrl || ""} 
+                        type="video/mp4" 
+                        id="videoSource"
+                      />
                       onError={(e) => {
                         console.error('Video load error:', e);
                         console.error('Video URL:', actualVideoUrl);
@@ -2002,7 +2010,14 @@ export default function AutoAnalyzedVideoPlayer({
                       }}
                       onTimeUpdate={handleTimeUpdate}
                       style={{ width: '100%', height: '100%' }}
-                    />
+                    >
+                      <source 
+                        src={cloudflareDownloadUrl || actualVideoUrl || ""} 
+                        type="video/mp4" 
+                        id="videoSource"
+                      />
+                      Your browser does not support the video tag.
+                    </video>
                       
                       {/* Click overlay indicator */}
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

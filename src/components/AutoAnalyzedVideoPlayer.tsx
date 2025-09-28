@@ -2,12 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 
-// Declare Cloudflare Stream SDK
-declare global {
-  interface Window {
-    Stream: any;
-  }
-}
+// Cloudflare Stream SDK declaration removed - using direct video URLs now
 import { API_BASE_URL } from '@/lib/api'
 import { extractVideoBaseName } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -189,11 +184,25 @@ export default function AutoAnalyzedVideoPlayer({
   }, [videoUrl, processedVideoUrl]);
 
   const cloudflareStreamUrl = React.useMemo(() => {
-    if (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com') && processedVideoUrl.includes('/iframe')) {
+    if (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com')) {
+      // Convert iframe URL to direct video URL for better control
+      if (processedVideoUrl.includes('/iframe')) {
+        const videoId = processedVideoUrl.split('/').slice(-2, -1)[0]; // Extract video ID
+        const directUrl = `https://customer-cxebs7nmdazhytrk.cloudflarestream.com/${videoId}/downloads/default.mp4`;
+        console.log('🎬 Converted Cloudflare Stream iframe to direct video URL:', directUrl);
+        return directUrl;
+      }
       console.log('🎬 Using Cloudflare Stream processed video URL:', processedVideoUrl);
       return processedVideoUrl;
     }
-    if (videoUrl && videoUrl.includes('cloudflarestream.com') && videoUrl.includes('/iframe')) {
+    if (videoUrl && videoUrl.includes('cloudflarestream.com')) {
+      // Convert iframe URL to direct video URL for better control
+      if (videoUrl.includes('/iframe')) {
+        const videoId = videoUrl.split('/').slice(-2, -1)[0]; // Extract video ID
+        const directUrl = `https://customer-cxebs7nmdazhytrk.cloudflarestream.com/${videoId}/downloads/default.mp4`;
+        console.log('🎬 Converted Cloudflare Stream iframe to direct video URL:', directUrl);
+        return directUrl;
+      }
       console.log('🎬 Using Cloudflare Stream URL directly:', videoUrl);
       return videoUrl;
     }
@@ -201,27 +210,28 @@ export default function AutoAnalyzedVideoPlayer({
   }, [videoUrl, processedVideoUrl]);
 
   const actualVideoUrl = React.useMemo(() => {
-    // If we have a Cloudflare Stream URL, we'll use iframe embed instead
-    if (isCloudflareStream) {
-      return null; // We'll use iframe instead
+    // Priority 1: If we have a Cloudflare Stream URL (converted to direct video), use it
+    if (cloudflareStreamUrl) {
+      console.log('🎬 Using Cloudflare Stream direct video URL:', cloudflareStreamUrl);
+      return cloudflareStreamUrl;
     }
     
-    // Priority 1: If we have a processed video filename, use backend API
+    // Priority 2: If we have a processed video filename, use backend API
     if (processedVideoFilename) {
       return `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(processedVideoFilename)}`;
     }
     
-    // Priority 2: If we have a video name, use backend API
+    // Priority 3: If we have a video name, use backend API
     if (videoName) {
       return `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(videoName)}`;
     }
     
-    // Priority 3: Fallback to the provided videoUrl if it exists and doesn't contain localhost
+    // Priority 4: Fallback to the provided videoUrl if it exists and doesn't contain localhost
     if (videoUrl && !videoUrl.includes('localhost')) {
       return videoUrl;
     }
     
-    // Priority 4: If videoUrl contains localhost, try to extract filename and construct proper URL
+    // Priority 5: If videoUrl contains localhost, try to extract filename and construct proper URL
     if (videoUrl && videoUrl.includes('localhost')) {
       const url = new URL(videoUrl);
       const filename = url.searchParams.get('video_filename');
@@ -230,26 +240,15 @@ export default function AutoAnalyzedVideoPlayer({
       }
     }
     
-    // Priority 5: If we have a sessionId, use the session-based video endpoint (last resort)
+    // Priority 6: If we have a sessionId, use the session-based video endpoint (last resort)
     if (sessionId) {
       return `${API_BASE_URL}/getVideoFromSession/${sessionId}`;
     }
     
     return videoUrl;
-  }, [processedVideoFilename, videoName, videoUrl, sessionId, isCloudflareStream]);
+  }, [processedVideoFilename, videoName, videoUrl, sessionId, cloudflareStreamUrl]);
 
-  // Load Cloudflare Stream SDK
-  useEffect(() => {
-    if (isCloudflareStream && cloudflareStreamUrl) {
-      // Load the Cloudflare Stream SDK if not already loaded
-      if (!window.Stream) {
-        const script = document.createElement('script');
-        script.src = 'https://embed.cloudflarestream.com/embed/sdk.latest.js';
-        script.async = true;
-        document.head.appendChild(script);
-      }
-    }
-  }, [isCloudflareStream, cloudflareStreamUrl]);
+  // Note: Cloudflare Stream SDK loading removed since we're using direct video URLs
 
   // Reset error state when videoUrl changes
   useEffect(() => {
@@ -284,7 +283,6 @@ export default function AutoAnalyzedVideoPlayer({
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
-  const [streamPlayer, setStreamPlayer] = useState<any>(null)
   const [showSkeleton, setShowSkeleton] = useState(false)
   const [showAngles, setShowAngles] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -1183,23 +1181,6 @@ export default function AutoAnalyzedVideoPlayer({
   }, [showSkeleton, showAngles, frameData, currentTime])
 
   const togglePlay = async () => {
-    // Check if we have a Cloudflare Stream player
-    if (streamPlayer) {
-      try {
-        if (isPlaying) {
-          streamPlayer.pause();
-          console.log('Cloudflare Stream paused via togglePlay');
-        } else {
-          await streamPlayer.play();
-          console.log('Cloudflare Stream played via togglePlay');
-        }
-      } catch (error) {
-        console.error('Error controlling Cloudflare Stream player:', error);
-      }
-      return;
-    }
-
-    // Fallback to regular video element
     const video = videoRef.current
     if (!video || typeof video.pause !== 'function') {
       console.error('Video element not available or pause method missing');
@@ -1210,6 +1191,7 @@ export default function AutoAnalyzedVideoPlayer({
       try {
         video.pause();
         setIsPlaying(false);
+        console.log('🎬 Video paused');
       } catch (error) {
         console.error('Error pausing video:', error);
         setIsPlaying(false); // Update state anyway
@@ -1221,6 +1203,7 @@ export default function AutoAnalyzedVideoPlayer({
           try {
             await video.play();
             setIsPlaying(true);
+            console.log('🎬 Video playing');
           } catch (error) {
             console.error('Error playing video:', error);
             setError('Failed to play video');
@@ -1232,6 +1215,7 @@ export default function AutoAnalyzedVideoPlayer({
               if (typeof video.play === 'function') {
                 await video.play();
                 setIsPlaying(true);
+                console.log('🎬 Video playing after canplay event');
               } else {
                 console.error('Video play method not available');
                 setError('Video play method not available');
@@ -1261,50 +1245,34 @@ export default function AutoAnalyzedVideoPlayer({
   }
 
   const seekToTime = (time: number) => {
-    // Check if we have a Cloudflare Stream player
-    if (streamPlayer) {
-      try {
-        streamPlayer.currentTime = time;
-        console.log(`Cloudflare Stream seeked to ${time}s`);
-        
-        // Update current frame index for Cloudflare Stream
-        const currentTimeMs = time * 1000; // Convert to milliseconds
-        const closestFrameIndex = frameData.findIndex(frame => 
-          Math.abs(frame.timestamp - currentTimeMs) < 50 // 50ms tolerance
-        );
-        
-        if (closestFrameIndex !== -1) {
-          setCurrentFrameIndex(closestFrameIndex);
-          console.log('Cloudflare Stream frame index updated:', closestFrameIndex);
-        }
-      } catch (error) {
-        console.error('Error seeking Cloudflare Stream player:', error);
-      }
+    const video = videoRef.current;
+    if (!video) {
+      console.error('Video element not available for seeking');
+      return;
     }
     
-    // Also handle regular video element
-    if (videoRef.current) {
-      videoRef.current.currentTime = time
-    }
+    try {
+      video.currentTime = time;
+      console.log(`🎬 Video seeked to ${time}s`);
     
       // Immediately update current time and frame analysis
-      setCurrentTime(time)
+      setCurrentTime(time);
       
       // Find and update the current frame
       const currentFrame = frameData.find(frame => 
-        Math.abs(frame.timestamp - time) < 0.1
-      )
+        Math.abs(frame.timestamp - time * 1000) < 50 // Convert to milliseconds with 50ms tolerance
+      );
     
     // Find the corresponding enhanced frame data
     const currentEnhancedFrame = enhancedFrameData.find(frame => 
-      Math.abs(frame.timestamp - time) < 0.1
-    )
-    setSelectedEnhancedFrame(currentEnhancedFrame || null)
+        Math.abs(frame.timestamp - time * 1000) < 50 // Convert to milliseconds with 50ms tolerance
+      );
+      setSelectedEnhancedFrame(currentEnhancedFrame || null);
       
       if (currentFrame) {
         // Update real-time metrics immediately
       const aclRisk = (currentFrame.metrics as any)?.tumbling_metrics?.acl_risk_factors?.overall_acl_risk || 
-                      currentFrame.metrics?.acl_risk || 0
+                        currentFrame.metrics?.acl_risk || 0;
       
         setRealTimeMetrics({
         motionIQ: Math.max(0, 100 - aclRisk * 0.8),
@@ -1312,12 +1280,15 @@ export default function AutoAnalyzedVideoPlayer({
         precision: Math.max(0, 100 - aclRisk * 0.6),
         power: Math.max(0, 100 - aclRisk * 0.4),
           timestamp: time
-        })
+        });
         
         // Force a re-render of the frame analysis
-        console.log('Seeked to frame:', currentFrame.frame_number, 'at time:', time)
+        console.log('🎯 Seeked to frame:', currentFrame.frame_number, 'at time:', time);
       } else {
-        console.log('No frame found for time:', time)
+        console.log('❌ No frame found for time:', time);
+      }
+    } catch (error) {
+      console.error('Error seeking video:', error);
     }
   }
 
@@ -1328,7 +1299,8 @@ export default function AutoAnalyzedVideoPlayer({
       setCurrentFrameIndex(newFrameIndex)
       
       if (frameData[newFrameIndex]) {
-        const frameTime = frameData[newFrameIndex].timestamp
+        const frameTime = frameData[newFrameIndex].timestamp / 1000 // Convert to seconds
+        console.log('🎬 Going to previous frame:', newFrameIndex + 1, 'at time:', frameTime);
         seekToTime(frameTime)
       }
     }
@@ -1340,7 +1312,8 @@ export default function AutoAnalyzedVideoPlayer({
       setCurrentFrameIndex(newFrameIndex)
       
       if (frameData[newFrameIndex]) {
-        const frameTime = frameData[newFrameIndex].timestamp
+        const frameTime = frameData[newFrameIndex].timestamp / 1000 // Convert to seconds
+        console.log('🎬 Going to next frame:', newFrameIndex + 1, 'at time:', frameTime);
         seekToTime(frameTime)
       }
     }
@@ -1351,7 +1324,8 @@ export default function AutoAnalyzedVideoPlayer({
       setCurrentFrameIndex(frameIndex)
       
       if (frameData[frameIndex]) {
-        const frameTime = frameData[frameIndex].timestamp
+        const frameTime = frameData[frameIndex].timestamp / 1000 // Convert to seconds
+        console.log('🎬 Going to frame:', frameIndex + 1, 'at time:', frameTime);
         seekToTime(frameTime)
       }
     }
@@ -1441,35 +1415,8 @@ export default function AutoAnalyzedVideoPlayer({
 
   const toggleFullscreen = () => {
     console.log('Toggling fullscreen, current state:', isFullscreen)
-    console.log('Is Cloudflare Stream:', isCloudflareStream)
-    console.log('Stream player available:', !!streamPlayer)
-
-    if (isCloudflareStream && streamPlayer) {
-      // Handle Cloudflare Stream fullscreen
-      try {
-        if (!isFullscreen) {
-          console.log('Entering Cloudflare Stream fullscreen...')
-          // Cloudflare Stream has its own fullscreen method
-          if (streamPlayer.requestFullscreen) {
-            streamPlayer.requestFullscreen()
-          } else {
-            // Fallback to iframe fullscreen
-            const iframe = document.getElementById('stream-player') as HTMLIFrameElement
-            if (iframe && iframe.requestFullscreen) {
-              iframe.requestFullscreen()
-            }
-          }
-        } else {
-          console.log('Exiting Cloudflare Stream fullscreen...')
-          if (document.exitFullscreen) {
-            document.exitFullscreen()
-          }
-        }
-      } catch (error) {
-        console.error('Error with Cloudflare Stream fullscreen:', error)
-      }
-    } else {
-      // Handle regular HTML5 video fullscreen
+    
+    // Handle HTML5 video fullscreen
       const videoElement = videoRef.current
       if (!videoElement) {
         console.error('Video element not available for fullscreen')
@@ -1501,7 +1448,6 @@ export default function AutoAnalyzedVideoPlayer({
           (document as any).webkitExitFullscreen()
         } else if ((document as any).msExitFullscreen) {
           (document as any).msExitFullscreen()
-        }
       }
     }
   }
@@ -1510,17 +1456,7 @@ export default function AutoAnalyzedVideoPlayer({
   useEffect(() => {
     const handleFullscreenChange = () => {
       const fullscreenElement = document.fullscreenElement
-      let isCurrentlyFullscreen = false
-      
-      if (fullscreenElement) {
-        // Check if either the video element or the iframe is in fullscreen
-        if (isCloudflareStream) {
-          const iframe = document.getElementById('stream-player') as HTMLIFrameElement
-          isCurrentlyFullscreen = fullscreenElement === iframe || fullscreenElement === videoRef.current
-        } else {
-          isCurrentlyFullscreen = fullscreenElement === videoRef.current
-        }
-      }
+      const isCurrentlyFullscreen = fullscreenElement === videoRef.current
       
       console.log('Fullscreen change detected:', isCurrentlyFullscreen)
       console.log('Fullscreen element:', fullscreenElement)
@@ -1536,7 +1472,7 @@ export default function AutoAnalyzedVideoPlayer({
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange)
       document.removeEventListener('msfullscreenchange', handleFullscreenChange)
     }
-  }, [isCloudflareStream])
+  }, [])
 
   // Keyboard shortcuts for frame-by-frame navigation
   useEffect(() => {
@@ -1631,86 +1567,16 @@ export default function AutoAnalyzedVideoPlayer({
                 </div>
               ) : (
                 <div className="relative">
-                  {isCloudflareStream && cloudflareStreamUrl ? (
-                    // Cloudflare Stream iframe embed
-                    <div className="relative">
-                    <iframe
-                      src={cloudflareStreamUrl}
-                      style={{ border: 'none', width: '100%', height: '500px' }}
-                      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                      allowFullScreen={true}
-                      id="stream-player"
-                      onLoad={() => {
-                        console.log('Cloudflare Stream iframe loaded successfully');
-                        setLoading(false);
-                        // Initialize Cloudflare Stream player
-                        if (window.Stream) {
-                          const player = window.Stream(document.getElementById('stream-player'));
-                          setStreamPlayer(player); // Store player reference
-                          player.addEventListener('play', () => {
-                            console.log('Cloudflare Stream playing!');
-                            setIsPlaying(true);
-                          });
-                          player.addEventListener('pause', () => {
-                            console.log('Cloudflare Stream paused');
-                            setIsPlaying(false);
-                          });
-                          player.addEventListener('timeupdate', () => {
-                            // Handle time updates for Cloudflare Stream
-                            if (player.currentTime !== undefined) {
-                              setCurrentTime(player.currentTime);
-                              
-                              // Update current frame index based on video time
-                              const currentTimeMs = player.currentTime * 1000; // Convert to milliseconds
-                              const closestFrameIndex = frameData.findIndex(frame => 
-                                Math.abs(frame.timestamp - currentTimeMs) < 50 // 50ms tolerance
-                              );
-                              
-                              if (closestFrameIndex !== -1 && closestFrameIndex !== currentFrameIndex) {
-                                setCurrentFrameIndex(closestFrameIndex);
-                                console.log('Cloudflare Stream frame update:', {
-                                  time: player.currentTime,
-                                  frameIndex: closestFrameIndex,
-                                  frameNumber: closestFrameIndex + 1
-                                });
-                              }
-                            }
-                          });
-                          player.play().catch(() => {
-                            console.log('Cloudflare Stream playback failed, muting to try again');
-                            player.muted = true;
-                            player.play();
-                          });
-                        }
-                      }}
-                      onError={() => {
-                        console.error('Cloudflare Stream iframe load error');
-                        setError('Failed to load Cloudflare Stream video');
-                        setLoading(false);
-                      }}
-                    />
-                      
-                      {/* Persistent frame number display for Cloudflare Stream - below video */}
-                      <div className="absolute -bottom-16 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
-                        <div className="text-white text-lg font-bold">
-                          Frame {currentFrameIndex + 1} / {frameData.length}
-                        </div>
-                        <div className="text-gray-300 text-sm">
-                          {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    // Regular HTML5 video element with click-to-advance
-                    <div 
-                      className="relative w-full h-full cursor-pointer"
-                      onClick={goToNextFrame}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        goToPreviousFrame();
-                      }}
-                      title="Click to advance to next frame, right-click to go to previous frame"
-                    >
+                  {/* Always use HTML5 video element for better frame control */}
+                  <div 
+                    className="relative w-full h-full cursor-pointer"
+                    onClick={goToNextFrame}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      goToPreviousFrame();
+                    }}
+                    title="Click to advance to next frame, right-click to go to previous frame"
+                  >
                     <video
                       ref={videoRef}
                       className="w-full h-full max-h-[500px] object-contain"
@@ -1721,6 +1587,7 @@ export default function AutoAnalyzedVideoPlayer({
                       crossOrigin="anonymous"
                       onLoadedData={() => {
                         console.log('Video loaded successfully');
+                        console.log('Video URL:', actualVideoUrl);
                         setLoading(false);
                         // Calculate and set video aspect ratio
                         if (videoRef.current) {
@@ -1783,27 +1650,26 @@ export default function AutoAnalyzedVideoPlayer({
                       onTimeUpdate={handleTimeUpdate}
                       style={{ width: '100%', height: '100%' }}
                     />
-                      
-                      {/* Click overlay indicator */}
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="bg-black bg-opacity-60 rounded-full p-4 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center space-x-2">
-                          <StepBack className="h-5 w-5 text-white" />
-                          <span className="text-white text-sm font-medium">Click to advance</span>
-                          <StepForward className="h-5 w-5 text-white" />
-                        </div>
-                      </div>
-                      
-                      {/* Persistent frame number display on video - below video */}
-                      <div className="absolute -bottom-16 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
-                        <div className="text-white text-lg font-bold">
-                          Frame {currentFrameIndex + 1} / {frameData.length}
-                        </div>
-                        <div className="text-gray-300 text-sm">
-                          {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
-                        </div>
+                    
+                    {/* Click overlay indicator */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="bg-black bg-opacity-60 rounded-full p-4 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center space-x-2">
+                        <StepBack className="h-5 w-5 text-white" />
+                        <span className="text-white text-sm font-medium">Click to advance</span>
+                        <StepForward className="h-5 w-5 text-white" />
                       </div>
                     </div>
-                  )}
+                    
+                    {/* Persistent frame number display on video - below video */}
+                    <div className="absolute -bottom-16 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
+                      <div className="text-white text-lg font-bold">
+                        Frame {currentFrameIndex + 1} / {frameData.length}
+                      </div>
+                      <div className="text-gray-300 text-sm">
+                        {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
               
@@ -1866,7 +1732,7 @@ export default function AutoAnalyzedVideoPlayer({
                   <span className="text-white text-xs px-2">
                   {frameData.length > 0 ? `Frame Time: ${formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}` : ''}
                   </span>
-                </div>
+              </div>
             </div>
             
             {/* Risk Timeline Component - Moved further down */}

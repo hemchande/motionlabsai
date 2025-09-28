@@ -203,7 +203,7 @@
     <div class="container">
         <div class="header">
             <h1>Simple Frame Player Test</h1>
-            <p>Click through frames with real Cloudflare Stream video and analytics data</p>
+            <p>Click through frames with real Cloudflare Stream video and analytics data (Video ID: 0dcb9daa132905082aa699d4e984c214)</p>
         </div>
 
         <div id="loading" class="loading">
@@ -215,7 +215,7 @@
             <!-- Video Player -->
             <div class="video-container">
                 <video id="video" controls width="100%" height="400" style="background: black;">
-                    <source src="https://customer-cxebs7nmdazhytrk.cloudflarestream.com/72a4beb341d720ae9d3fc74804d98484/downloads/default.mp4" type="video/mp4">
+                    <source src="https://customer-cxebs7nmdazhytrk.cloudflarestream.com/0dcb9daa132905082aa699d4e984c214/downloads/default.mp4" type="video/mp4">
                     Your browser does not support the video tag.
                 </video>
                 <div class="click-overlay" onclick="goToNextFrame()" oncontextmenu="goToPreviousFrame(event)"></div>
@@ -341,7 +341,7 @@
         async function loadAnalyticsData() {
             try {
                 debugLog('Starting to load analytics data...');
-                const analyticsId = '68d6c9ddd8c71a7e26cb6f59';
+                const analyticsId = '68d6c9ddd8c71a7e26cb6f59'; // Same analytics ID for both videos
                 debugLog(`Fetching analytics for ID: ${analyticsId}`);
                 
                 const response = await fetch(`https://gymnasticsapi.onrender.com/getAnalytics/${analyticsId}`);

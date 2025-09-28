@@ -129,10 +129,9 @@
         </div>
         
         <div style="margin: 15px 0;">
-            <label>Account ID: <input type="text" id="accountId" placeholder="cxebs7nmdazhytrk" style="width: 200px; padding: 5px;"></label><br><br>
+            <label>Account ID: <input type="text" id="accountId" placeholder="f2b0714a082195118f53d0b8327f6635" style="width: 300px; padding: 5px;"></label><br><br>
             <label>Video ID: <input type="text" id="videoId" placeholder="0dcb9daa132905082aa699d4e984c214" style="width: 300px; padding: 5px;"></label><br><br>
-            <label>Email: <input type="email" id="email" placeholder="your-email@example.com" style="width: 250px; padding: 5px;"></label><br><br>
-            <label>API Key: <input type="password" id="apiKey" placeholder="your-api-key" style="width: 300px; padding: 5px;"></label><br><br>
+            <label>API Token: <input type="password" id="apiToken" placeholder="your-api-token" style="width: 400px; padding: 5px;"></label><br><br>
             <button onclick="createDownloadUrl()">Create Download URL</button>
         </div>
         
@@ -249,10 +248,9 @@
         async function createDownloadUrl() {
             const accountId = document.getElementById('accountId').value;
             const videoId = document.getElementById('videoId').value;
-            const email = document.getElementById('email').value;
-            const apiKey = document.getElementById('apiKey').value;
+            const apiToken = document.getElementById('apiToken').value;
             
-            if (!accountId || !videoId || !email || !apiKey) {
+            if (!accountId || !videoId || !apiToken) {
                 log('❌ Please fill in all fields', 'error');
                 showStatus('status3', '❌ Please fill in all fields', 'error');
                 return;
@@ -266,8 +264,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-Auth-Email': email,
-                        'X-Auth-Key': apiKey
+                        'Authorization': `Bearer ${apiToken}`
                     },
                     body: JSON.stringify({})
                 });
@@ -328,9 +325,10 @@
             log('Click the test buttons to test each video');
             
             // Set default values for easier testing
-            document.getElementById('accountId').value = 'cxebs7nmdazhytrk';
+            document.getElementById('accountId').value = 'f2b0714a082195118f53d0b8327f6635';
             document.getElementById('videoId').value = '0dcb9daa132905082aa699d4e984c214';
-            log('Default values set - please enter your Cloudflare email and API key');
+            document.getElementById('apiToken').value = 'DEmkpIDn5SLgpjTOoDqYrPivnOpD9gnqbVICwzTQ';
+            log('Default values set with your Cloudflare credentials from backend server');
         });
     </script>
 </body>

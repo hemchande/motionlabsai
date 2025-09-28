@@ -205,8 +205,12 @@ export default function AutoAnalyzedVideoPlayer({
     if (!cloudflareStreamUrl) return null;
     
     // Extract account ID from the original URL
+    // URL format: https://customer-{accountId}.cloudflarestream.com/{videoId}/iframe
     const urlParts = cloudflareStreamUrl.split('/');
-    const accountId = urlParts[urlParts.length - 4]; // Get account ID from URL structure
+    const customerPart = urlParts[2]; // customer-{accountId}.cloudflarestream.com
+    const accountId = customerPart.replace('customer-', '').replace('.cloudflarestream.com', '');
+    
+    console.log('🎬 Extracted account ID:', accountId);
     
     // Construct iframe URL with poster
     const iframeUrl = `https://customer-${accountId}.cloudflarestream.com/${videoId}/iframe?poster=https%3A%2F%2Fcustomer-${accountId}.cloudflarestream.com%2F${videoId}%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600`;
@@ -271,6 +275,51 @@ export default function AutoAnalyzedVideoPlayer({
     }
     return null;
   }, [cloudflareStreamUrl]);
+
+  // State for Cloudflare embed HTML
+  const [cloudflareEmbedHtml, setCloudflareEmbedHtml] = useState<string | null>(null);
+  const [fetchingEmbedHtml, setFetchingEmbedHtml] = useState(false);
+
+  // Function to fetch Cloudflare Stream embed HTML via API
+  const fetchCloudflareEmbedHtml = async (videoId: string) => {
+    try {
+      console.log('🎬 Fetching Cloudflare Stream embed HTML for video ID:', videoId);
+      setFetchingEmbedHtml(true);
+      
+      // Use the backend API to fetch the embed HTML
+      const response = await fetch(`${API_BASE_URL}/getCloudflareEmbed/${videoId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🎬 Cloudflare embed HTML response:', data);
+        
+        if (data.success && data.embed_html) {
+          setCloudflareEmbedHtml(data.embed_html);
+          console.log('✅ Cloudflare embed HTML fetched:', data.embed_html);
+          return data.embed_html;
+        } else {
+          console.error('❌ Failed to get embed HTML from API:', data);
+          return null;
+        }
+      } else {
+        console.error('❌ API request failed:', response.status, response.statusText);
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ Error fetching Cloudflare embed HTML:', error);
+      return null;
+    } finally {
+      setFetchingEmbedHtml(false);
+    }
+  };
+
+  // Fetch embed HTML when we have a Cloudflare video ID
+  useEffect(() => {
+    if (cloudflareVideoId && isCloudflareStream) {
+      console.log('🎬 Fetching embed HTML for video ID:', cloudflareVideoId);
+      fetchCloudflareEmbedHtml(cloudflareVideoId);
+    }
+  }, [cloudflareVideoId, isCloudflareStream]);
 
   // Reset error state when videoUrl changes
   useEffect(() => {
@@ -1589,45 +1638,56 @@ export default function AutoAnalyzedVideoPlayer({
                 </div>
               ) : (
                 <div className="relative">
-                  {/* Use iframe for Cloudflare Stream, HTML5 video for other sources */}
+                  {/* Use Cloudflare Stream embed HTML or iframe fallback */}
                   {isCloudflareStream && cloudflareVideoId ? (
-                    // Cloudflare Stream iframe embed with proper styling
-                    <div style={{ position: 'relative', paddingTop: '177.77777777777777%' }}>
-                      <iframe
-                        src={getCloudflareIframeUrl(cloudflareVideoId) || cloudflareStreamUrl || ''}
-                        loading="lazy"
-                        style={{ 
-                          border: 'none', 
-                          position: 'absolute', 
-                          top: 0, 
-                          left: 0, 
-                          height: '100%', 
-                          width: '100%' 
-                        }}
-                        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                        allowFullScreen={true}
-                        onLoad={() => {
-                          console.log('🎬 Cloudflare Stream iframe loaded successfully');
-                          setLoading(false);
-                        }}
-                        onError={() => {
-                          console.error('❌ Cloudflare Stream iframe load error');
-                          setError('Failed to load Cloudflare Stream video');
-                          setLoading(false);
-                        }}
-                      />
+                    <div className="relative">
+                      {cloudflareEmbedHtml ? (
+                        // Use Cloudflare Stream embed HTML
+                        <div 
+                          className="relative w-full h-full"
+                          style={{ minHeight: '400px' }}
+                          dangerouslySetInnerHTML={{ __html: cloudflareEmbedHtml }}
+                        />
+                      ) : (
+                        // Fallback to iframe with proper styling
+                        <div style={{ position: 'relative', paddingTop: '177.77777777777777%' }}>
+                          <iframe
+                            src={getCloudflareIframeUrl(cloudflareVideoId) || cloudflareStreamUrl || ''}
+                            loading="lazy"
+                            style={{ 
+                              border: 'none', 
+                              position: 'absolute', 
+                              top: 0, 
+                              left: 0, 
+                              height: '100%', 
+                              width: '100%' 
+                            }}
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                            allowFullScreen={true}
+                            onLoad={() => {
+                              console.log('🎬 Cloudflare Stream iframe loaded successfully');
+                              setLoading(false);
+                            }}
+                            onError={() => {
+                              console.error('❌ Cloudflare Stream iframe load error');
+                              setError('Failed to load Cloudflare Stream video');
+                              setLoading(false);
+                            }}
+                          />
+                        </div>
+                      )}
                       
-                      {/* Loading indicator for iframe */}
-                      {loading && (
+                      {/* Loading indicator */}
+                      {(loading || fetchingEmbedHtml) && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
                           <div className="text-white text-center">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                            <p>Loading Cloudflare Stream...</p>
+                            <p>{fetchingEmbedHtml ? 'Loading Cloudflare Stream...' : 'Loading video...'}</p>
                           </div>
                         </div>
                       )}
                       
-                      {/* Persistent frame number display for iframe - below video */}
+                      {/* Persistent frame number display - below video */}
                       <div className="absolute -bottom-16 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
                         <div className="text-white text-lg font-bold">
                           Frame {currentFrameIndex + 1} / {frameData.length}

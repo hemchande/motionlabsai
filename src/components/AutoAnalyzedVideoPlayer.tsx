@@ -395,24 +395,12 @@ export default function AutoAnalyzedVideoPlayer({
     console.log('🎬 =====================================');
   }, [cloudflareVideoId, isCloudflareStream]);
 
-  // Log when download URL changes and reload video
+  // Log when download URL changes (but don't auto-load to avoid CORS)
   useEffect(() => {
-    if (cloudflareDownloadUrl && videoRef.current) {
+    if (cloudflareDownloadUrl) {
       console.log('🎬 ===== DOWNLOAD URL UPDATED =====');
       console.log('🎬 New download URL:', cloudflareDownloadUrl);
-      console.log('🎬 Video will now use download URL instead of iframe');
-      console.log('🎬 Reloading video with new source...');
-      
-      // Remove crossorigin attribute (same as HTML file)
-      videoRef.current.removeAttribute('crossorigin');
-      
-      // Set the new source and reload (same as HTML file)
-      const videoSource = document.getElementById('videoSource') as HTMLSourceElement;
-      if (videoSource) {
-        videoSource.src = cloudflareDownloadUrl;
-        videoRef.current.load();
-      }
-      
+      console.log('🎬 Download URL ready - use buttons to load video');
       console.log('🎬 ================================');
     }
   }, [cloudflareDownloadUrl]);
@@ -496,6 +484,31 @@ export default function AutoAnalyzedVideoPlayer({
       }
     } catch (error) {
       console.log(`❌ Download URL test failed: ${error instanceof Error ? error.message : String(error)}`, 'error');
+    }
+  };
+
+  // Try direct video load (same as HTML file tryDirectVideo function)
+  const tryDirectVideoLoad = (downloadUrl: string) => {
+    try {
+      console.log('🎬 Trying direct video load (same as HTML file)...');
+      const video = videoRef.current;
+      const videoSource = document.getElementById('videoSource') as HTMLSourceElement;
+      
+      if (!video || !videoSource) {
+        console.error('❌ Video element or source not found');
+        return;
+      }
+      
+      // Remove crossorigin attribute (same as HTML file)
+      video.removeAttribute('crossorigin');
+      
+      // Set the source and load (same as HTML file)
+      videoSource.src = downloadUrl;
+      video.load();
+      
+      console.log('🎬 Direct video load attempted');
+    } catch (error) {
+      console.error('❌ Error in direct video load:', error);
     }
   };
 
@@ -2121,13 +2134,21 @@ export default function AutoAnalyzedVideoPlayer({
                     </Button>
                       {cloudflareDownloadUrl && (
                         <>
+                    <Button 
+                            variant="outline" 
+                      size="sm" 
+                            onClick={() => testDownloadUrlAccessibility(cloudflareDownloadUrl)}
+                            className="text-white border-white hover:bg-white hover:text-black"
+                    >
+                            Test Download URL
+                  </Button>
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => testDownloadUrlAccessibility(cloudflareDownloadUrl)}
+                            onClick={() => tryDirectVideoLoad(cloudflareDownloadUrl)}
                             className="text-white border-white hover:bg-white hover:text-black"
                           >
-                            Test Download URL
+                            Load Direct Video
                           </Button>
                           <Button 
                             variant="outline" 
@@ -2135,13 +2156,13 @@ export default function AutoAnalyzedVideoPlayer({
                             onClick={() => tryProxyVideoLoad(cloudflareDownloadUrl)}
                             className="text-white border-white hover:bg-white hover:text-black"
                           >
-                            Try Proxy Load
+                            Load Proxy Video
                           </Button>
                         </>
                       )}
                     </>
                   )}
-                  </div>
+                </div>
               )}
 
               {/* Frame-by-Frame Controls - Moved to very bottom */}

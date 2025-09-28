@@ -499,6 +499,28 @@ export default function AutoAnalyzedVideoPlayer({
     }
   };
 
+  // Try proxy video load through backend (same as HTML file)
+  const tryProxyVideoLoad = (downloadUrl: string) => {
+    try {
+      console.log('🎬 Trying proxy video load through backend...');
+      const video = videoRef.current;
+      const videoSource = document.getElementById('videoSource') as HTMLSourceElement;
+      
+      // Try to proxy through the backend (same as HTML file)
+      const proxyUrl = `http://localhost:5004/proxyVideo?url=${encodeURIComponent(downloadUrl)}`;
+      console.log(`🎬 Proxy URL: ${proxyUrl}`);
+      
+      if (videoSource) {
+        videoSource.src = proxyUrl;
+        if (video) {
+          video.load();
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error in proxy video load:', error);
+    }
+  };
+
   // Reset error state when videoUrl changes
   useEffect(() => {
     setError(null);
@@ -2037,6 +2059,15 @@ export default function AutoAnalyzedVideoPlayer({
                       <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-500" />
                       <h3 className="text-lg font-semibold mb-2">No Video Available</h3>
                       <p className="text-sm text-gray-300">No video URL provided</p>
+                      <div className="text-xs text-gray-400 mt-4 space-y-1">
+                        <p>Debug Info:</p>
+                        <p>isCloudflareStream: {String(isCloudflareStream)}</p>
+                        <p>cloudflareVideoId: {cloudflareVideoId || 'null'}</p>
+                        <p>cloudflareDownloadUrl: {cloudflareDownloadUrl || 'null'}</p>
+                        <p>actualVideoUrl: {actualVideoUrl || 'null'}</p>
+                        <p>videoUrl: {videoUrl || 'null'}</p>
+                        <p>processedVideoFilename: {processedVideoFilename || 'null'}</p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -2089,14 +2120,24 @@ export default function AutoAnalyzedVideoPlayer({
                         Get Download URL
                     </Button>
                       {cloudflareDownloadUrl && (
-                    <Button 
-                          variant="outline" 
-                      size="sm" 
-                          onClick={() => testDownloadUrlAccessibility(cloudflareDownloadUrl)}
-                          className="text-white border-white hover:bg-white hover:text-black"
-                    >
-                          Test Download URL
-                  </Button>
+                        <>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => testDownloadUrlAccessibility(cloudflareDownloadUrl)}
+                            className="text-white border-white hover:bg-white hover:text-black"
+                          >
+                            Test Download URL
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => tryProxyVideoLoad(cloudflareDownloadUrl)}
+                            className="text-white border-white hover:bg-white hover:text-black"
+                          >
+                            Try Proxy Load
+                          </Button>
+                        </>
                       )}
                     </>
                   )}

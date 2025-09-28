@@ -214,10 +214,17 @@
         <div id="player" style="display: none;">
             <!-- Video Player -->
             <div class="video-container">
-                <video id="video" controls width="100%" height="400" style="background: black;">
-                    <source src="https://customer-cxebs7nmdazhytrk.cloudflarestream.com/0dcb9daa132905082aa699d4e984c214/downloads/default.mp4" type="video/mp4">
-                    Your browser does not support the video tag.
-                </video>
+                <!-- Embedded Cloudflare Stream iframe -->
+                <div style="position: relative; padding-top: 177.77777777777777%;">
+                    <iframe
+                        id="cloudflare-iframe"
+                        src="https://customer-cxebs7nmdazhytrk.cloudflarestream.com/0dcb9daa132905082aa699d4e984c214/iframe?poster=https%3A%2F%2Fcustomer-cxebs7nmdazhytrk.cloudflarestream.com%2F0dcb9daa132905082aa699d4e984c214%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600"
+                        loading="lazy"
+                        style="border: none; position: absolute; top: 0; left: 0; height: 100%; width: 100%;"
+                        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                        allowfullscreen="true"
+                    ></iframe>
+                </div>
                 <div class="click-overlay" onclick="goToNextFrame()" oncontextmenu="goToPreviousFrame(event)"></div>
                 <div class="frame-overlay" id="frameOverlay">
                     Frame: <span id="currentFrame">1</span> / <span id="totalFrames">314</span>
@@ -296,12 +303,14 @@
             <div class="instructions">
                 <h4>Controls:</h4>
                 <ul>
-                    <li>Click video to advance to next frame</li>
-                    <li>Right-click video to go back to previous frame</li>
-                    <li>Use ← → arrow keys to navigate frames</li>
-                    <li>Press Spacebar to play/pause frame progression</li>
-                    <li>Use Previous/Next buttons for frame navigation</li>
-                    <li>Play button starts automatic frame progression (2 FPS)</li>
+                    <li>Click video area to advance to next frame (analytics display)</li>
+                    <li>Right-click video area to go back to previous frame (analytics display)</li>
+                    <li>Use ← → arrow keys to navigate frames (analytics display)</li>
+                    <li>Press Spacebar to play/pause frame progression (analytics display)</li>
+                    <li>Use Previous/Next buttons for frame navigation (analytics display)</li>
+                    <li>Play button starts automatic frame progression (analytics display)</li>
+                    <li><strong>Note:</strong> Video playback is controlled by the iframe's built-in controls</li>
+                    <li><strong>Analytics:</strong> Frame-by-frame analytics update as you navigate</li>
                 </ul>
             </div>
 
@@ -465,13 +474,15 @@
         }
 
         function seekToFrameTime() {
-            const video = document.getElementById('video');
+            const iframe = document.getElementById('cloudflare-iframe');
             const frame = frameData[currentFrameIndex];
-            if (video && frame) {
-                debugLog(`Seeking to frame ${frame.frame_number} at time ${frame.video_time}s`);
-                video.currentTime = frame.video_time;
+            if (iframe && frame) {
+                debugLog(`Frame ${frame.frame_number} at time ${frame.video_time}s - iframe handles its own controls`);
+                // Note: We can't directly control iframe video playback
+                // The iframe has its own built-in controls for seeking
+                debugLog('Use the iframe controls to seek to the desired time');
             } else {
-                debugLog(`Cannot seek: video=${!!video}, frame=${!!frame}`);
+                debugLog(`Cannot seek: iframe=${!!iframe}, frame=${!!frame}`);
             }
         }
 
@@ -485,11 +496,13 @@
                 isPlaying = false;
                 document.getElementById('playBtn').innerHTML = '▶ Play';
                 document.getElementById('playBtn').className = 'btn play';
+                debugLog('Frame progression stopped');
             } else {
                 // Start
                 isPlaying = true;
                 document.getElementById('playBtn').innerHTML = '⏸ Pause';
                 document.getElementById('playBtn').className = 'btn pause';
+                debugLog('Starting frame progression (iframe handles video playback)');
                 
                 frameInterval = setInterval(() => {
                     if (currentFrameIndex < frameData.length - 1) {
@@ -547,45 +560,31 @@
             }
         });
 
-        // Video event listeners
-        function setupVideoListeners() {
-            const video = document.getElementById('video');
-            if (video) {
-                debugLog('Setting up video event listeners');
+        // Iframe event listeners
+        function setupIframeListeners() {
+            const iframe = document.getElementById('cloudflare-iframe');
+            if (iframe) {
+                debugLog('Setting up iframe event listeners');
                 
-                video.addEventListener('loadedmetadata', () => {
-                    debugLog('Video metadata loaded');
-                    debugLog(`Video duration: ${video.duration}s`);
+                iframe.addEventListener('load', () => {
+                    debugLog('✅ Cloudflare Stream iframe loaded successfully');
+                    debugLog(`Iframe src: ${iframe.src}`);
                 });
                 
-                video.addEventListener('canplay', () => {
-                    debugLog('Video can play');
+                iframe.addEventListener('error', (e) => {
+                    debugLog(`❌ Iframe error: ${e.message || 'Unknown error'}`);
+                    debugLog(`Iframe src: ${iframe.src}`);
                 });
                 
-                video.addEventListener('error', (e) => {
-                    debugLog(`Video error: ${e.message || 'Unknown error'}`);
-                    debugLog(`Video src: ${video.src}`);
-                });
-                
-                video.addEventListener('loadstart', () => {
-                    debugLog('Video loading started');
-                });
-                
-                video.addEventListener('timeupdate', () => {
-                    // Optional: Update display based on video time
-                    // const currentTime = video.currentTime;
-                    // console.log(`Video time: ${currentTime}s`);
-                });
-                
-                debugLog(`Video element found: ${video.tagName}, src: ${video.src}`);
+                debugLog(`Iframe element found: ${iframe.tagName}, src: ${iframe.src}`);
             } else {
-                debugLog('ERROR: Video element not found!');
+                debugLog('ERROR: Iframe element not found!');
             }
         }
 
         // Load data when page loads
         window.addEventListener('load', () => {
-            setupVideoListeners();
+            setupIframeListeners();
             loadAnalyticsData();
         });
     </script>

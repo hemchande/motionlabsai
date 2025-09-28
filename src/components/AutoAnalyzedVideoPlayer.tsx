@@ -1974,6 +1974,23 @@ export default function AutoAnalyzedVideoPlayer({
                           {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
                         </div>
                       </div>
+                      
+                      {/* Hidden video element for download URL loading */}
+                      <video
+                        ref={videoRef}
+                        style={{ display: 'none' }}
+                        preload="auto"
+                        playsInline
+                        muted
+                        crossOrigin={cloudflareDownloadUrl ? undefined : "anonymous"}
+                      >
+                        <source 
+                          src={cloudflareDownloadUrl || actualVideoUrl || ""} 
+                          type="video/mp4" 
+                          id="videoSource"
+                        />
+                        Your browser does not support the video tag.
+                      </video>
                     </div>
                   ) : (() => {
                     console.log('🎬 ===== CONDITIONAL RENDERING CHECK =====');

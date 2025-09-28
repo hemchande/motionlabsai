@@ -388,16 +388,30 @@ export default function AutoAnalyzedVideoPlayer({
 
   // Auto-enable downloads for Cloudflare Stream videos
   useEffect(() => {
+    console.log('🎬 ===== CLOUDFLARE DOWNLOAD CHECK =====');
+    console.log('🎬 cloudflareVideoId:', cloudflareVideoId);
+    console.log('🎬 isCloudflareStream:', isCloudflareStream);
+    console.log('🎬 downloadEnabled:', downloadEnabled);
+    console.log('🎬 =====================================');
+    
     if (cloudflareVideoId && isCloudflareStream && !downloadEnabled) {
-      console.log('🎬 Auto-enabling downloads for Cloudflare video:', cloudflareVideoId);
+      console.log('🎬 ✅ CONDITIONS MET - Starting download process for Cloudflare video:', cloudflareVideoId);
       enableCloudflareDownload(cloudflareVideoId).then((success) => {
         if (success) {
+          console.log('🎬 ✅ Download enabled, checking status in 1 second...');
           // Check download status after enabling
           setTimeout(() => {
             checkCloudflareDownloadStatus(cloudflareVideoId);
           }, 1000);
+        } else {
+          console.log('🎬 ❌ Failed to enable download');
         }
       });
+    } else {
+      console.log('🎬 ⚠️ Conditions not met for auto-enabling downloads');
+      if (!cloudflareVideoId) console.log('🎬 - No cloudflareVideoId');
+      if (!isCloudflareStream) console.log('🎬 - Not a Cloudflare Stream');
+      if (downloadEnabled) console.log('🎬 - Download already enabled');
     }
   }, [cloudflareVideoId, isCloudflareStream, downloadEnabled]);
 
@@ -435,10 +449,10 @@ export default function AutoAnalyzedVideoPlayer({
       });
 
       const data = await response.json();
-      console.log('🎬 Enable download response:', data);
+      console.log('🎬 Enable download response:', JSON.stringify(data, null, 2));
 
       if (data.success) {
-        console.log('✅ Download enabled successfully');
+        console.log('✅ Download enabled successfully!', 'success');
         setDownloadEnabled(true);
         return true;
       } else {
@@ -464,11 +478,11 @@ export default function AutoAnalyzedVideoPlayer({
       });
 
       const data = await response.json();
-      console.log('🎬 Download status response:', data);
+      console.log('🎬 Download status response:', JSON.stringify(data, null, 2));
 
       if (data.success && data.result && data.result.default) {
         const downloadUrl = data.result.default.url;
-        console.log('✅ Download URL found:', downloadUrl);
+        console.log(`✅ Download URL found: ${downloadUrl}`, 'success');
         console.log('🎬 Setting cloudflareDownloadUrl state to:', downloadUrl);
         setCloudflareDownloadUrl(downloadUrl);
         return downloadUrl;

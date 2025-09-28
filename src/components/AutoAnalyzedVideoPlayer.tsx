@@ -249,6 +249,18 @@ export default function AutoAnalyzedVideoPlayer({
   }, [videoUrl, processedVideoUrl]);
 
   const actualVideoUrl = React.useMemo(() => {
+    // FORCE use of test URL for debugging - same as HTML file
+    const testVideoUrl = 'https://customer-cxebs7nmdazhytrk.cloudflarestream.com/72a4beb341d720ae9d3fc74804d98484/downloads/default.mp4';
+    console.log('🧪 FORCING actualVideoUrl to test URL:', testVideoUrl);
+    console.log('🔍 Debug - cloudflareStreamUrl:', cloudflareStreamUrl);
+    console.log('🔍 Debug - processedVideoFilename:', processedVideoFilename);
+    console.log('🔍 Debug - videoName:', videoName);
+    console.log('🔍 Debug - videoUrl:', videoUrl);
+    console.log('🔍 Debug - sessionId:', sessionId);
+    
+    return testVideoUrl;
+    
+    /*
     // Priority 1: If we have a Cloudflare Stream URL (converted to direct video), use it
     if (cloudflareStreamUrl) {
       console.log('🎬 Using Cloudflare Stream direct video URL:', cloudflareStreamUrl);
@@ -286,6 +298,7 @@ export default function AutoAnalyzedVideoPlayer({
     }
     
     return videoUrl;
+    */
   }, [processedVideoFilename, videoName, videoUrl, sessionId, cloudflareStreamUrl]);
 
   // Store original Cloudflare Stream URLs for fallback

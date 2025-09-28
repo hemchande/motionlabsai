@@ -276,48 +276,105 @@ export default function AutoAnalyzedVideoPlayer({
     return null;
   }, [cloudflareStreamUrl]);
 
-  // State for Cloudflare embed HTML
-  const [cloudflareEmbedHtml, setCloudflareEmbedHtml] = useState<string | null>(null);
-  const [fetchingEmbedHtml, setFetchingEmbedHtml] = useState(false);
+  // State for Cloudflare Stream player
+  const [cloudflarePlayer, setCloudflarePlayer] = useState<any>(null);
+  const [playerReady, setPlayerReady] = useState(false);
 
-  // Function to fetch Cloudflare Stream embed HTML via API
-  const fetchCloudflareEmbedHtml = async (videoId: string) => {
+  // Function to create Cloudflare Stream player directly
+  const createCloudflarePlayer = (videoId: string) => {
     try {
-      console.log('🎬 Fetching Cloudflare Stream embed HTML for video ID:', videoId);
-      setFetchingEmbedHtml(true);
+      console.log('🎬 Creating Cloudflare Stream player for video ID:', videoId);
       
-      // Use the backend API to fetch the embed HTML
-      const response = await fetch(`${API_BASE_URL}/getCloudflareEmbed/${videoId}`);
+      // Create the stream element
+      const streamElement = document.createElement('stream');
+      streamElement.setAttribute('id', videoId);
+      streamElement.style.width = '100%';
+      streamElement.style.height = '100%';
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log('🎬 Cloudflare embed HTML response:', data);
-        
-        if (data.success && data.embed_html) {
-          setCloudflareEmbedHtml(data.embed_html);
-          console.log('✅ Cloudflare embed HTML fetched:', data.embed_html);
-          return data.embed_html;
-        } else {
-          console.error('❌ Failed to get embed HTML from API:', data);
-          return null;
-        }
+      // Create container div
+      const container = document.createElement('div');
+      container.style.position = 'relative';
+      container.style.width = '100%';
+      container.style.height = '400px';
+      container.appendChild(streamElement);
+      
+      // Load Cloudflare Stream SDK if not already loaded
+      if (!window.Stream) {
+        const script = document.createElement('script');
+        script.src = 'https://embed.cloudflarestream.com/embed/sdk.latest.js';
+        script.async = true;
+        script.onload = () => {
+          console.log('✅ Cloudflare Stream SDK loaded');
+          initializePlayer(videoId, streamElement);
+        };
+        document.head.appendChild(script);
       } else {
-        console.error('❌ API request failed:', response.status, response.statusText);
-        return null;
+        initializePlayer(videoId, streamElement);
       }
+      
+      return container;
     } catch (error) {
-      console.error('❌ Error fetching Cloudflare embed HTML:', error);
+      console.error('❌ Error creating Cloudflare Stream player:', error);
       return null;
-    } finally {
-      setFetchingEmbedHtml(false);
     }
   };
 
-  // Fetch embed HTML when we have a Cloudflare video ID
+  // Function to initialize the Cloudflare Stream player
+  const initializePlayer = (videoId: string, streamElement: HTMLElement) => {
+    try {
+      if (window.Stream) {
+        const player = window.Stream(streamElement);
+        
+        // Add event listeners
+        player.addEventListener('play', () => {
+          console.log('🎬 Cloudflare Stream playing');
+          setIsPlaying(true);
+        });
+        
+        player.addEventListener('pause', () => {
+          console.log('🎬 Cloudflare Stream paused');
+          setIsPlaying(false);
+        });
+        
+        player.addEventListener('timeupdate', () => {
+          if (player.currentTime !== undefined) {
+            setCurrentTime(player.currentTime);
+            
+            // Update current frame index based on video time
+            const currentTimeMs = player.currentTime * 1000;
+            const closestFrameIndex = frameData.findIndex(frame => 
+              Math.abs((frame.timestamp / 1000) - player.currentTime) < 0.1
+            );
+            
+            if (closestFrameIndex !== -1 && closestFrameIndex !== currentFrameIndex) {
+              setCurrentFrameIndex(closestFrameIndex);
+            }
+          }
+        });
+        
+        player.addEventListener('loadeddata', () => {
+          console.log('✅ Cloudflare Stream player ready');
+          setPlayerReady(true);
+          setLoading(false);
+        });
+        
+        setCloudflarePlayer(player);
+        console.log('✅ Cloudflare Stream player initialized');
+      }
+    } catch (error) {
+      console.error('❌ Error initializing Cloudflare Stream player:', error);
+    }
+  };
+
+  // Create Cloudflare Stream player when we have a video ID
   useEffect(() => {
     if (cloudflareVideoId && isCloudflareStream) {
-      console.log('🎬 Fetching embed HTML for video ID:', cloudflareVideoId);
-      fetchCloudflareEmbedHtml(cloudflareVideoId);
+      console.log('🎬 Creating Cloudflare Stream player for video ID:', cloudflareVideoId);
+      const playerContainer = createCloudflarePlayer(cloudflareVideoId);
+      if (playerContainer) {
+        // Store the container for rendering
+        setCloudflarePlayer(playerContainer);
+      }
     }
   }, [cloudflareVideoId, isCloudflareStream]);
 
@@ -1254,7 +1311,23 @@ export default function AutoAnalyzedVideoPlayer({
   }, [showSkeleton, showAngles, frameData, currentTime])
 
   const togglePlay = async () => {
-    // Use HTML5 video element for all video control
+    // Check if we have a Cloudflare Stream player
+    if (cloudflarePlayer && typeof cloudflarePlayer.play === 'function') {
+      try {
+        if (isPlaying) {
+          cloudflarePlayer.pause();
+          console.log('🎬 Cloudflare Stream paused via togglePlay');
+        } else {
+          await cloudflarePlayer.play();
+          console.log('🎬 Cloudflare Stream played via togglePlay');
+        }
+      } catch (error) {
+        console.error('Error controlling Cloudflare Stream player:', error);
+      }
+      return;
+    }
+
+    // Fallback to HTML5 video element
     const video = videoRef.current
     if (!video || typeof video.pause !== 'function') {
       console.error('Video element not available or pause method missing');
@@ -1638,15 +1711,19 @@ export default function AutoAnalyzedVideoPlayer({
                 </div>
               ) : (
                 <div className="relative">
-                  {/* Use Cloudflare Stream embed HTML or iframe fallback */}
+                  {/* Use Cloudflare Stream player or iframe fallback */}
                   {isCloudflareStream && cloudflareVideoId ? (
                     <div className="relative">
-                      {cloudflareEmbedHtml ? (
-                        // Use Cloudflare Stream embed HTML
+                      {cloudflarePlayer ? (
+                        // Use Cloudflare Stream player
                         <div 
+                          ref={(el) => {
+                            if (el && cloudflarePlayer && !el.contains(cloudflarePlayer)) {
+                              el.appendChild(cloudflarePlayer);
+                            }
+                          }}
                           className="relative w-full h-full"
                           style={{ minHeight: '400px' }}
-                          dangerouslySetInnerHTML={{ __html: cloudflareEmbedHtml }}
                         />
                       ) : (
                         // Fallback to iframe with proper styling
@@ -1678,11 +1755,11 @@ export default function AutoAnalyzedVideoPlayer({
                       )}
                       
                       {/* Loading indicator */}
-                      {(loading || fetchingEmbedHtml) && (
+                      {loading && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
                           <div className="text-white text-center">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                            <p>{fetchingEmbedHtml ? 'Loading Cloudflare Stream...' : 'Loading video...'}</p>
+                            <p>Loading Cloudflare Stream...</p>
                           </div>
                         </div>
                       )}

@@ -237,7 +237,7 @@ export default function AutoAnalyzedVideoPlayer({
         // Check if this is the specific video ID that only works with iframe
         if (videoId === '0dcb9daa132905082aa699d4e984c214') {
           console.log('🎬 Video ID 0dcb9daa132905082aa699d4e984c214 detected - using iframe URL');
-          const iframeUrl = `https://customer-cxebs7nmdazhytrk.cloudflarestream.com/${videoId}/iframe`;
+          const iframeUrl = `https://customer-cxebs7nmdazhytrk.cloudflarestream.com/${videoId}/iframe?poster=https%3A%2F%2Fcustomer-cxebs7nmdazhytrk.cloudflarestream.com%2F${videoId}%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600`;
           console.log('🎬 Using iframe URL for this video:', iframeUrl);
           return iframeUrl;
         }
@@ -1683,11 +1683,19 @@ export default function AutoAnalyzedVideoPlayer({
               ) : (
                 <div className="relative">
                   {actualVideoUrl && actualVideoUrl.includes('/iframe') ? (
-                    // Use iframe for Cloudflare Stream iframe URLs
-                    <div className="relative">
+                    // Use iframe for Cloudflare Stream iframe URLs with proper responsive container
+                    <div className="relative" style={{ position: 'relative', paddingTop: '177.77777777777777%' }}>
                       <iframe
                         src={actualVideoUrl}
-                        style={{ border: 'none', width: '100%', height: '500px' }}
+                        loading="lazy"
+                        style={{ 
+                          border: 'none', 
+                          position: 'absolute', 
+                          top: 0, 
+                          left: 0, 
+                          height: '100%', 
+                          width: '100%' 
+                        }}
                         allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
                         allowFullScreen={true}
                         id="stream-player"

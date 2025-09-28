@@ -491,11 +491,20 @@ export default function AutoAnalyzedVideoPlayer({
   const tryDirectVideoLoad = (downloadUrl: string) => {
     try {
       console.log('🎬 Trying direct video load (same as HTML file)...');
+      console.log('🎬 Download URL:', downloadUrl);
+      console.log('🎬 cloudflareDownloadUrl:', cloudflareDownloadUrl);
+      console.log('🎬 actualVideoUrl:', actualVideoUrl);
+      
       const video = videoRef.current;
       const videoSource = document.getElementById('videoSource') as HTMLSourceElement;
       
+      console.log('🎬 Video element found:', !!video);
+      console.log('🎬 Video source found:', !!videoSource);
+      
       if (!video || !videoSource) {
         console.error('❌ Video element or source not found');
+        console.error('❌ Video ref:', video);
+        console.error('❌ Video source element:', videoSource);
         return;
       }
       
@@ -507,6 +516,20 @@ export default function AutoAnalyzedVideoPlayer({
       video.load();
       
       console.log('🎬 Direct video load attempted');
+      console.log('🎬 Note: CORS errors are expected but video should still load');
+      
+      // Add event listeners to see if video actually loads despite CORS error
+      video.addEventListener('loadstart', () => {
+        console.log('🎬 Video load started (despite CORS error)');
+      });
+      
+      video.addEventListener('canplay', () => {
+        console.log('🎬 Video can play (CORS error ignored)');
+      });
+      
+      video.addEventListener('error', (e) => {
+        console.log('🎬 Video error event (expected due to CORS):', e);
+      });
     } catch (error) {
       console.error('❌ Error in direct video load:', error);
     }
@@ -2121,7 +2144,7 @@ export default function AutoAnalyzedVideoPlayer({
                     className="text-white border-white hover:bg-white hover:text-black"
                     >
                     {downloadEnabled ? 'Download Enabled' : 'Enable Download'}
-                  </Button>
+                    </Button>
                   {downloadEnabled && (
                     <>
                     <Button 
@@ -2131,7 +2154,7 @@ export default function AutoAnalyzedVideoPlayer({
                         className="text-white border-white hover:bg-white hover:text-black"
                     >
                         Get Download URL
-                    </Button>
+                  </Button>
                       {cloudflareDownloadUrl && (
                         <>
                     <Button 
@@ -2141,23 +2164,23 @@ export default function AutoAnalyzedVideoPlayer({
                             className="text-white border-white hover:bg-white hover:text-black"
                     >
                             Test Download URL
-                  </Button>
-                          <Button 
+                    </Button>
+                    <Button 
                             variant="outline" 
-                            size="sm"
+                      size="sm" 
                             onClick={() => tryDirectVideoLoad(cloudflareDownloadUrl)}
                             className="text-white border-white hover:bg-white hover:text-black"
-                          >
+                    >
                             Load Direct Video
-                          </Button>
-                          <Button 
+                  </Button>
+                  <Button 
                             variant="outline" 
-                            size="sm"
+                    size="sm" 
                             onClick={() => tryProxyVideoLoad(cloudflareDownloadUrl)}
                             className="text-white border-white hover:bg-white hover:text-black"
-                          >
+                  >
                             Load Proxy Video
-                          </Button>
+                  </Button>
                         </>
                       )}
                     </>

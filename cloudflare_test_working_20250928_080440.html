@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Stream Test - Working Sessions</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .video-container { position: relative; width: 100%; max-width: 800px; margin: 20px auto; }
+        button { padding: 10px 20px; border: none; border-radius: 4px; background: #007bff; color: white; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .status { padding: 10px; border-radius: 4px; margin: 10px 0; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .session-item { padding: 10px; border: 1px solid #ddd; margin: 10px 0; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>Cloudflare Stream Test - Working Sessions</h1>
+    <p>Generated on: 2025-09-28 08:04:40</p>
+    
+    <div class="container">
+        <h2>Available Sessions (1)</h2>
+
+        <div class="session-item">
+            <h3>Session 1: h264_analyzed_temp_1758906633_h264_analyzed_temp_1758906370_myaNew_1758906382_1758906633.mp4</h3>
+            <p><strong>Video ID:</strong> 72a4beb341d720ae9d3fc74804d98484</p>
+            <p><strong>Cloudflare URL:</strong> https://customer-cxebs7nmdazhytrk.cloudflarestream.com/72a4beb341d720ae9d3fc74804d98484/iframe</p>
+            <button onclick="loadVideo('72a4beb341d720ae9d3fc74804d98484', 'h264_analyzed_temp_1758906633_h264_analyzed_temp_1758906370_myaNew_1758906382_1758906633.mp4')">
+                Load Video 1
+            </button>
+        </div>
+
+    </div>
+    
+    <div class="container">
+        <h2>Video Player</h2>
+        <div class="video-container">
+            <div id="video-player"></div>
+        </div>
+        <div id="status" class="status" style="display: none;"></div>
+    </div>
+
+    <script>
+        let currentPlayer = null;
+        
+        function showStatus(message, type = 'success') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+        }
+        
+        async function loadVideo(videoId, title) {
+            try {
+                showStatus(`Loading video: ${title}...`, 'success');
+                
+                // Clear existing player
+                const playerContainer = document.getElementById('video-player');
+                playerContainer.innerHTML = '';
+                
+                // Create stream element
+                const streamElement = document.createElement('stream');
+                streamElement.setAttribute('id', videoId);
+                streamElement.style.width = '100%';
+                streamElement.style.height = '400px';
+                streamElement.style.borderRadius = '8px';
+                
+                playerContainer.appendChild(streamElement);
+                
+                // Load Cloudflare Stream SDK if not already loaded
+                if (!window.Stream) {
+                    const script = document.createElement('script');
+                    script.src = 'https://embed.cloudflarestream.com/embed/sdk.latest.js';
+                    script.async = true;
+                    script.onload = () => {
+                        initializePlayer(videoId, streamElement);
+                    };
+                    document.head.appendChild(script);
+                } else {
+                    initializePlayer(videoId, streamElement);
+                }
+                
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function initializePlayer(videoId, streamElement) {
+            try {
+                currentPlayer = window.Stream(streamElement);
+                
+                currentPlayer.addEventListener('loadeddata', () => {
+                    showStatus(`Video loaded successfully: ${videoId}`, 'success');
+                });
+                
+                currentPlayer.addEventListener('error', (e) => {
+                    showStatus(`Video error: ${e.message || 'Unknown error'}`, 'error');
+                });
+                
+            } catch (error) {
+                showStatus(`Player error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

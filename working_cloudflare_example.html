@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Working Cloudflare Stream Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            align-items: center;
+            justify-content: center;
+        }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .frame-info {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .video-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .video-info h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .video-info p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        .debug-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .debug-log .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        .debug-log .log-entry.error {
+            color: #dc3545;
+        }
+        .debug-log .log-entry.success {
+            color: #28a745;
+        }
+        .debug-log .log-entry.info {
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 Working Cloudflare Stream Example</h1>
+    <p>This demonstrates the exact functionality that should work in AutoAnalyzedVideoPlayer</p>
+    
+    <div class="container">
+        <h2>📹 Video Player</h2>
+        <div class="video-info">
+            <h3>Video Information</h3>
+            <p><strong>Video ID:</strong> <span id="video-id">72a4beb341d720ae9d3fc74804d98484</span></p>
+            <p><strong>Source:</strong> Production Server Session</p>
+            <p><strong>Status:</strong> <span id="video-status">Ready to load</span></p>
+        </div>
+        
+        <div class="controls">
+            <button id="load-btn" onclick="loadVideo()">Load Video</button>
+            <button id="play-btn" onclick="togglePlay()" disabled>Play</button>
+            <button id="pause-btn" onclick="togglePause()" disabled>Pause</button>
+            <button onclick="toggleFullscreen()">Fullscreen</button>
+        </div>
+        
+        <div class="video-container">
+            <div id="video-player"></div>
+            <div id="frame-info" class="frame-info" style="display: none;">
+                Frame: <span id="current-frame">0</span> / <span id="total-frames">0</span> | 
+                Time: <span id="current-time">0:00</span>
+            </div>
+        </div>
+        
+        <div id="status" class="status" style="display: none;"></div>
+    </div>
+
+    <div class="container">
+        <h2>🔍 Debug Log</h2>
+        <div id="debug-log" class="debug-log"></div>
+    </div>
+
+    <script>
+        // Configuration - Using real video ID from production server
+        const VIDEO_ID = '72a4beb341d720ae9d3fc74804d98484';
+        let currentPlayer = null;
+        let isPlaying = false;
+        let isLoaded = false;
+
+        // Debug logging
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('debug-log');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Show status message
+        function showStatus(message, type = 'success') {
+            const statusElement = document.getElementById('status');
+            const videoStatusElement = document.getElementById('video-status');
+            
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+            statusElement.style.display = 'block';
+            
+            videoStatusElement.textContent = message;
+            videoStatusElement.style.color = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#007bff';
+        }
+
+        // Update button states
+        function updateButtons() {
+            const loadBtn = document.getElementById('load-btn');
+            const playBtn = document.getElementById('play-btn');
+            const pauseBtn = document.getElementById('pause-btn');
+            
+            if (isLoaded) {
+                loadBtn.disabled = true;
+                loadBtn.textContent = 'Video Loaded';
+                playBtn.disabled = false;
+                pauseBtn.disabled = false;
+                
+                if (isPlaying) {
+                    playBtn.textContent = 'Playing...';
+                    pauseBtn.textContent = 'Pause';
+                } else {
+                    playBtn.textContent = 'Play';
+                    pauseBtn.textContent = 'Paused';
+                }
+            } else {
+                loadBtn.disabled = false;
+                loadBtn.textContent = 'Load Video';
+                playBtn.disabled = true;
+                pauseBtn.disabled = true;
+            }
+        }
+
+        // Load Cloudflare Stream video
+        async function loadVideo() {
+            try {
+                log('Starting video load process...');
+                showStatus('Loading Cloudflare Stream video...', 'info');
+                
+                // Clear existing player
+                const playerContainer = document.getElementById('video-player');
+                playerContainer.innerHTML = '';
+                
+                // Create stream element
+                const streamElement = document.createElement('stream');
+                streamElement.setAttribute('id', VIDEO_ID);
+                streamElement.style.width = '100%';
+                streamElement.style.height = '400px';
+                streamElement.style.borderRadius = '8px';
+                
+                playerContainer.appendChild(streamElement);
+                log(`Created stream element with ID: ${VIDEO_ID}`);
+                
+                // Load Cloudflare Stream SDK if not already loaded
+                if (!window.Stream) {
+                    log('Loading Cloudflare Stream SDK...');
+                    const script = document.createElement('script');
+                    script.src = 'https://embed.cloudflarestream.com/embed/sdk.latest.js';
+                    script.async = true;
+                    script.onload = () => {
+                        log('✅ Cloudflare Stream SDK loaded successfully', 'success');
+                        initializePlayer(streamElement);
+                    };
+                    script.onerror = () => {
+                        log('❌ Failed to load Cloudflare Stream SDK', 'error');
+                        showStatus('Failed to load Cloudflare Stream SDK', 'error');
+                    };
+                    document.head.appendChild(script);
+                } else {
+                    log('Cloudflare Stream SDK already loaded');
+                    initializePlayer(streamElement);
+                }
+                
+            } catch (error) {
+                log(`❌ Error loading video: ${error.message}`, 'error');
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize Cloudflare Stream player
+        function initializePlayer(streamElement) {
+            try {
+                log('Initializing Cloudflare Stream player...');
+                
+                if (!window.Stream) {
+                    throw new Error('Cloudflare Stream SDK not available');
+                }
+                
+                currentPlayer = window.Stream(streamElement);
+                log('✅ Cloudflare Stream player created', 'success');
+                
+                // Add event listeners
+                currentPlayer.addEventListener('play', () => {
+                    log('🎬 Video started playing', 'success');
+                    isPlaying = true;
+                    updateButtons();
+                });
+                
+                currentPlayer.addEventListener('pause', () => {
+                    log('🎬 Video paused');
+                    isPlaying = false;
+                    updateButtons();
+                });
+                
+                currentPlayer.addEventListener('timeupdate', () => {
+                    if (currentPlayer.currentTime !== undefined) {
+                        updateFrameInfo(currentPlayer.currentTime);
+                    }
+                });
+                
+                currentPlayer.addEventListener('loadeddata', () => {
+                    log('✅ Video data loaded successfully', 'success');
+                    isLoaded = true;
+                    updateButtons();
+                    showStatus('Video loaded and ready to play!', 'success');
+                });
+                
+                currentPlayer.addEventListener('canplay', () => {
+                    log('✅ Video can start playing', 'success');
+                });
+                
+                currentPlayer.addEventListener('error', (e) => {
+                    log(`❌ Video error: ${e.message || 'Unknown error'}`, 'error');
+                    showStatus('Video playback error', 'error');
+                });
+                
+                currentPlayer.addEventListener('loadstart', () => {
+                    log('🔄 Video loading started');
+                });
+                
+                log('✅ Cloudflare Stream player initialized with event listeners', 'success');
+                
+            } catch (error) {
+                log(`❌ Error initializing player: ${error.message}`, 'error');
+                showStatus(`Player initialization error: ${error.message}`, 'error');
+            }
+        }
+
+        // Toggle play
+        function togglePlay() {
+            if (currentPlayer && !isPlaying) {
+                currentPlayer.play().then(() => {
+                    log('✅ Play command executed successfully', 'success');
+                }).catch(error => {
+                    log(`❌ Play error: ${error.message}`, 'error');
+                    showStatus(`Play error: ${error.message}`, 'error');
+                });
+            }
+        }
+
+        // Toggle pause
+        function togglePause() {
+            if (currentPlayer && isPlaying) {
+                currentPlayer.pause();
+                log('⏸️ Video paused');
+            }
+        }
+
+        // Toggle fullscreen
+        function toggleFullscreen() {
+            if (currentPlayer && currentPlayer.requestFullscreen) {
+                currentPlayer.requestFullscreen().then(() => {
+                    log('✅ Entered fullscreen mode', 'success');
+                }).catch(error => {
+                    log(`❌ Fullscreen error: ${error.message}`, 'error');
+                });
+            } else {
+                log('❌ Fullscreen not supported', 'error');
+            }
+        }
+
+        // Update frame info (mock data for demonstration)
+        function updateFrameInfo(currentTime) {
+            const currentFrame = Math.floor(currentTime * 30); // Assuming 30 FPS
+            const totalFrames = 300; // Mock total frames
+            const minutes = Math.floor(currentTime / 60);
+            const seconds = Math.floor(currentTime % 60);
+            const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            document.getElementById('current-frame').textContent = currentFrame;
+            document.getElementById('total-frames').textContent = totalFrames;
+            document.getElementById('current-time').textContent = timeString;
+            document.getElementById('frame-info').style.display = 'block';
+        }
+
+        // Initialize
+        log('🎬 Working Cloudflare Stream Example initialized');
+        log(`📹 Ready to load video ID: ${VIDEO_ID}`);
+        log('💡 Click "Load Video" to start');
+        
+        updateButtons();
+    </script>
+</body>
+</html>

@@ -1975,7 +1975,15 @@ export default function AutoAnalyzedVideoPlayer({
                         </div>
                       </div>
                     </div>
-                  ) : (isCloudflareStream || cloudflareDownloadUrl || actualVideoUrl) ? (
+                  ) : (() => {
+                    console.log('🎬 ===== CONDITIONAL RENDERING CHECK =====');
+                    console.log('🎬 isCloudflareStream:', isCloudflareStream);
+                    console.log('🎬 cloudflareDownloadUrl:', cloudflareDownloadUrl);
+                    console.log('🎬 actualVideoUrl:', actualVideoUrl);
+                    console.log('🎬 Condition result:', isCloudflareStream || cloudflareDownloadUrl || actualVideoUrl);
+                    console.log('🎬 =====================================');
+                    return isCloudflareStream || cloudflareDownloadUrl || actualVideoUrl;
+                  })() ? (
                     // Regular HTML5 video element with click-to-advance
                     <div 
                       className="relative w-full h-full cursor-pointer"

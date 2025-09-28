@@ -187,6 +187,26 @@ export default function AutoAnalyzedVideoPlayer({
   const cloudflareStreamUrl = React.useMemo(() => {
     console.log('🔍 Debug Cloudflare URL conversion:', { processedVideoUrl, videoUrl });
     
+    // For testing, let's use a known working iframe URL first
+    // Try the exact URL format that was working in the original implementation
+    const testIframeUrl = 'https://customer-cxebs7nmdazhytrk.cloudflarestream.com/72a4beb341d720ae9d3fc74804d98484/iframe';
+    console.log('🧪 Using test iframe URL for debugging:', testIframeUrl);
+    
+    // Also try to use the original URL if it exists
+    if (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com') && processedVideoUrl.includes('/iframe')) {
+      console.log('🎬 Using original processed video URL:', processedVideoUrl);
+      return processedVideoUrl;
+    }
+    
+    if (videoUrl && videoUrl.includes('cloudflarestream.com') && videoUrl.includes('/iframe')) {
+      console.log('🎬 Using original video URL:', videoUrl);
+      return videoUrl;
+    }
+    
+    return testIframeUrl;
+    
+    // TODO: Re-enable dynamic URL extraction once we confirm the test URL works
+    /*
     // Since direct MP4 download doesn't work due to CORS/codec issues, use iframe embed
     // Extract video ID and create iframe URL instead
     const extractVideoIdFromUrl = (url: string) => {
@@ -236,6 +256,7 @@ export default function AutoAnalyzedVideoPlayer({
     }
     
     return null;
+    */
   }, [videoUrl, processedVideoUrl]);
 
   const actualVideoUrl = React.useMemo(() => {
@@ -1689,22 +1710,24 @@ export default function AutoAnalyzedVideoPlayer({
                   {cloudflareStreamUrl && cloudflareStreamUrl.includes('/iframe') ? (
                     // Use iframe for Cloudflare Stream videos
                     <div className="relative">
-                    <iframe
-                      src={cloudflareStreamUrl}
-                      style={{ border: 'none', width: '100%', height: '500px' }}
-                      allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
-                      allowFullScreen={true}
-                      id="stream-player"
-                      onLoad={() => {
+                      <iframe
+                        src={cloudflareStreamUrl}
+                        style={{ border: 'none', width: '100%', height: '500px' }}
+                        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                        allowFullScreen={true}
+                        id="stream-player"
+                        onLoad={() => {
                           console.log('🎬 Cloudflare Stream iframe loaded successfully');
-                        setLoading(false);
-                      }}
-                      onError={() => {
-                          console.error('🎬 Cloudflare Stream iframe load error');
-                        setError('Failed to load Cloudflare Stream video');
-                        setLoading(false);
-                      }}
-                    />
+                          console.log('🎬 Iframe src:', cloudflareStreamUrl);
+                          setLoading(false);
+                        }}
+                        onError={(e) => {
+                          console.error('🎬 Cloudflare Stream iframe load error:', e);
+                          console.error('🎬 Iframe src:', cloudflareStreamUrl);
+                          setError('Failed to load Cloudflare Stream video');
+                          setLoading(false);
+                        }}
+                      />
                       
                       {/* Frame controls overlay for iframe */}
                       <div className="absolute inset-0 pointer-events-none">

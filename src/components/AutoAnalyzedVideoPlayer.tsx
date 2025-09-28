@@ -45,6 +45,7 @@ interface VideoMetrics {
 interface FrameData {
   frame_number: number;
   timestamp: number;
+  video_time?: number; // Add video_time property for direct time access
   pose_data: any;
   landmarks?: any[];
   metrics: {
@@ -186,45 +187,26 @@ export default function AutoAnalyzedVideoPlayer({
   const cloudflareStreamUrl = React.useMemo(() => {
     console.log('🔍 Debug Cloudflare URL conversion:', { processedVideoUrl, videoUrl });
     
+    // Simple and reliable video ID extraction - based on working HTML implementation
     const extractVideoIdFromUrl = (url: string) => {
       console.log('🔍 Processing URL:', url);
-      const urlParts = url.split('/');
-      console.log('🔍 URL parts:', urlParts);
       
-      // Try multiple extraction methods
-      let videoId = null;
+      // Use regex to extract 32-character hex string (Cloudflare Stream ID format)
+      const regex = /cloudflarestream\.com\/([a-f0-9]{32})/i;
+      const match = url.match(regex);
       
-      // Method 1: Look for iframe and get the part before it
-      const iframeIndex = urlParts.findIndex(part => part === 'iframe');
-      if (iframeIndex > 0) {
-        videoId = urlParts[iframeIndex - 1];
-        console.log('🔍 Method 1 - Extracted video ID from iframe:', videoId);
+      if (match && match[1]) {
+        const videoId = match[1];
+        console.log('✅ Extracted video ID:', videoId);
+        return videoId;
       }
       
-      // Method 2: Look for a 32-character hex string (typical Cloudflare Stream ID)
-      if (!videoId) {
-        const hexPattern = /^[a-f0-9]{32}$/i;
-        videoId = urlParts.find(part => hexPattern.test(part));
-        if (videoId) {
-          console.log('🔍 Method 2 - Extracted video ID from hex pattern:', videoId);
-        }
-      }
-      
-      // Method 3: Use regex to extract from URL
-      if (!videoId) {
-        const regex = /cloudflarestream\.com\/([a-f0-9]{32})/i;
-        const match = url.match(regex);
-        if (match) {
-          videoId = match[1];
-          console.log('🔍 Method 3 - Extracted video ID from regex:', videoId);
-        }
-      }
-      
-      console.log('🔍 Final extracted video ID:', videoId);
-      return videoId;
+      console.log('❌ Could not extract video ID from URL:', url);
+      return null;
     };
     
     const createDirectUrl = (videoId: string) => {
+      // Use the exact same format as the working HTML file
       return `https://customer-cxebs7nmdazhytrk.cloudflarestream.com/${videoId}/downloads/default.mp4`;
     };
     
@@ -1350,46 +1332,54 @@ export default function AutoAnalyzedVideoPlayer({
     }
   }
 
-  // Frame-by-frame navigation functions
+  // Frame-by-frame navigation functions - based on working HTML implementation
   const goToPreviousFrame = () => {
+    console.log(`🎬 goToPreviousFrame called. Current index: ${currentFrameIndex}, Total frames: ${frameData.length}`);
     if (currentFrameIndex > 0) {
-      const newFrameIndex = currentFrameIndex - 1
-      setCurrentFrameIndex(newFrameIndex)
-      
-      if (frameData[newFrameIndex]) {
-        const frameTime = frameData[newFrameIndex].timestamp / 1000 // Convert to seconds
-        console.log('🎬 Going to previous frame:', newFrameIndex + 1, 'at time:', frameTime);
-        seekToTime(frameTime)
-      }
+      const newFrameIndex = currentFrameIndex - 1;
+      setCurrentFrameIndex(newFrameIndex);
+      console.log(`🎬 Moving to previous frame: ${newFrameIndex}`);
+      seekToFrameTime();
+    } else {
+      console.log('🎬 Already at first frame');
     }
   }
 
   const goToNextFrame = () => {
+    console.log(`🎬 goToNextFrame called. Current index: ${currentFrameIndex}, Total frames: ${frameData.length}`);
     if (currentFrameIndex < frameData.length - 1) {
-      const newFrameIndex = currentFrameIndex + 1
-      setCurrentFrameIndex(newFrameIndex)
-      
-      if (frameData[newFrameIndex]) {
-        const frameTime = frameData[newFrameIndex].timestamp / 1000 // Convert to seconds
-        console.log('🎬 Going to next frame:', newFrameIndex + 1, 'at time:', frameTime);
-        seekToTime(frameTime)
-      }
+      const newFrameIndex = currentFrameIndex + 1;
+      setCurrentFrameIndex(newFrameIndex);
+      console.log(`🎬 Moving to next frame: ${newFrameIndex}`);
+      seekToFrameTime();
+    } else {
+      console.log('🎬 Already at last frame');
+    }
+  }
+
+  // Seek to frame time - based on working HTML implementation
+  const seekToFrameTime = () => {
+    const video = videoRef.current;
+    const frame = frameData[currentFrameIndex];
+    if (video && frame) {
+      // Use video_time if available, otherwise convert timestamp to seconds
+      const frameTime = frame.video_time || (frame.timestamp / 1000);
+      console.log(`🎬 Seeking to frame ${frame.frame_number} at time ${frameTime}s`);
+      video.currentTime = frameTime;
+    } else {
+      console.log(`🎬 Cannot seek: video=${!!video}, frame=${!!frame}`);
     }
   }
 
   const goToFrame = (frameIndex: number) => {
     if (frameIndex >= 0 && frameIndex < frameData.length) {
-      setCurrentFrameIndex(frameIndex)
-      
-      if (frameData[frameIndex]) {
-        const frameTime = frameData[frameIndex].timestamp / 1000 // Convert to seconds
-        console.log('🎬 Going to frame:', frameIndex + 1, 'at time:', frameTime);
-        seekToTime(frameTime)
-      }
+      setCurrentFrameIndex(frameIndex);
+      console.log('🎬 Going to frame:', frameIndex + 1);
+      seekToFrameTime();
     }
   }
 
-  // Frame timestep progression functions
+  // Frame timestep progression functions - based on working HTML implementation
   const startFrameTimesteps = () => {
     if (frameStepInterval) {
       clearInterval(frameStepInterval)
@@ -1402,28 +1392,26 @@ export default function AutoAnalyzedVideoPlayer({
           // Reached end, stop progression
           clearInterval(interval)
           setFrameStepInterval(null)
+          console.log('🎬 Frame timestep progression reached end')
           return prevIndex
         }
         
-        // Seek to next frame
-        if (frameData[nextIndex]) {
-          const frameTime = frameData[nextIndex].timestamp / 1000 // Convert to seconds
-          seekToTime(frameTime)
-        }
+        // Seek to next frame using the working method
+        seekToFrameTime()
         
         return nextIndex
       })
-    }, 100) // 100ms between frames (10 FPS)
+    }, 500) // 500ms between frames (2 FPS) - same as working HTML
     
     setFrameStepInterval(interval)
-    console.log('Started frame timestep progression')
+    console.log('🎬 Started frame timestep progression')
   }
 
   const stopFrameTimesteps = () => {
     if (frameStepInterval) {
       clearInterval(frameStepInterval)
       setFrameStepInterval(null)
-      console.log('Stopped frame timestep progression')
+      console.log('🎬 Stopped frame timestep progression')
     }
   }
 
@@ -1643,6 +1631,8 @@ export default function AutoAnalyzedVideoPlayer({
                       playsInline
                       muted
                       crossOrigin="anonymous"
+                      controls
+                      style={{ background: 'black' }}
                       onLoadedData={() => {
                         console.log('Video loaded successfully');
                         console.log('Video URL:', actualVideoUrl);
@@ -1730,7 +1720,6 @@ export default function AutoAnalyzedVideoPlayer({
                         setIsPlaying(false);
                       }}
                       onTimeUpdate={handleTimeUpdate}
-                      style={{ width: '100%', height: '100%' }}
                     />
                     
                     {/* Click overlay indicator */}

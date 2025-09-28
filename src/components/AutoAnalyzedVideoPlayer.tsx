@@ -210,10 +210,16 @@ export default function AutoAnalyzedVideoPlayer({
       return `https://customer-cxebs7nmdazhytrk.cloudflarestream.com/${videoId}/downloads/default.mp4`;
     };
     
-    // For testing, use the exact working URL from the HTML file
+    // For testing, ALWAYS use the exact working URL from the HTML file
     const testVideoUrl = 'https://customer-cxebs7nmdazhytrk.cloudflarestream.com/72a4beb341d720ae9d3fc74804d98484/downloads/default.mp4';
-    console.log('🧪 Using test video URL (same as working HTML):', testVideoUrl);
+    console.log('🧪 FORCING test video URL (same as working HTML):', testVideoUrl);
+    console.log('🔍 Debug - processedVideoUrl:', processedVideoUrl);
+    console.log('🔍 Debug - videoUrl:', videoUrl);
     
+    // TEMPORARILY DISABLE dynamic URL selection to test with known working URL
+    return testVideoUrl;
+    
+    /*
     // Check processedVideoUrl first
     if (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com')) {
       const videoId = extractVideoIdFromUrl(processedVideoUrl);
@@ -239,6 +245,7 @@ export default function AutoAnalyzedVideoPlayer({
     }
     
     return testVideoUrl;
+    */
   }, [videoUrl, processedVideoUrl]);
 
   const actualVideoUrl = React.useMemo(() => {

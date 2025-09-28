@@ -382,10 +382,24 @@ export default function AutoAnalyzedVideoPlayer({
   useEffect(() => {
     setError(null);
     setLoading(true);
-    console.log('Video URL changed to:', actualVideoUrl);
-    console.log('Is Cloudflare Stream:', isCloudflareStream);
-    console.log('Cloudflare Stream URL:', cloudflareStreamUrl);
-    console.log('Cloudflare Video ID:', cloudflareVideoId);
+    console.log('🎬 ===== VIDEO URL LOADING DEBUG =====');
+    console.log('🎬 Props received:', {
+      videoUrl,
+      videoName,
+      processedVideoFilename,
+      sessionId,
+      analyticsBaseName
+    });
+    console.log('🎬 Computed URLs:', {
+      actualVideoUrl,
+      cloudflareStreamUrl,
+      processedVideoUrl
+    });
+    console.log('🎬 Video Detection:', {
+      isCloudflareStream,
+      cloudflareVideoId
+    });
+    console.log('🎬 ====================================');
     
     // Test if the video URL is accessible
     if (actualVideoUrl) {
@@ -1741,10 +1755,13 @@ export default function AutoAnalyzedVideoPlayer({
                             }}
                             allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
                             allowFullScreen={true}
-                            onLoad={() => {
-                              console.log('🎬 Cloudflare Stream iframe loaded successfully');
-                              setLoading(false);
-                            }}
+                  onLoad={() => {
+                    console.log('🎬 ===== CLOUDFLARE IFRAME LOADED =====');
+                    console.log('🎬 Iframe src:', getCloudflareIframeUrl(cloudflareVideoId) || cloudflareStreamUrl);
+                    console.log('🎬 Cloudflare Video ID:', cloudflareVideoId);
+                    console.log('🎬 =====================================');
+                    setLoading(false);
+                  }}
                             onError={() => {
                               console.error('❌ Cloudflare Stream iframe load error');
                               setError('Failed to load Cloudflare Stream video');
@@ -1794,7 +1811,13 @@ export default function AutoAnalyzedVideoPlayer({
                       muted
                       crossOrigin="anonymous"
                       onLoadedData={() => {
-                        console.log('Video loaded successfully');
+                        console.log('🎬 ===== VIDEO ELEMENT LOADED =====');
+                        console.log('🎬 Video element src:', videoRef.current?.src);
+                        console.log('🎬 Video element currentSrc:', videoRef.current?.currentSrc);
+                        console.log('🎬 Video element duration:', videoRef.current?.duration);
+                        console.log('🎬 Video element readyState:', videoRef.current?.readyState);
+                        console.log('🎬 Video element networkState:', videoRef.current?.networkState);
+                        console.log('🎬 ================================');
                         setLoading(false);
                         // Calculate and set video aspect ratio
                         if (videoRef.current) {

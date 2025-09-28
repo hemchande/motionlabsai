@@ -2,7 +2,12 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 
-// Cloudflare Stream SDK declaration removed - using direct video URLs now
+// Declare Cloudflare Stream SDK
+declare global {
+  interface Window {
+    Stream: any;
+  }
+}
 import { API_BASE_URL } from '@/lib/api'
 import { extractVideoBaseName } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -45,7 +50,6 @@ interface VideoMetrics {
 interface FrameData {
   frame_number: number;
   timestamp: number;
-  video_time?: number; // Add video_time property for direct time access
   pose_data: any;
   landmarks?: any[];
   metrics: {
@@ -185,120 +189,58 @@ export default function AutoAnalyzedVideoPlayer({
   }, [videoUrl, processedVideoUrl]);
 
   const cloudflareStreamUrl = React.useMemo(() => {
-    console.log('🔍 Debug Cloudflare URL conversion:', { processedVideoUrl, videoUrl });
-    console.log('🔍 Debug - processedVideoUrl type:', typeof processedVideoUrl, 'value:', processedVideoUrl);
-    console.log('🔍 Debug - videoUrl type:', typeof videoUrl, 'value:', videoUrl);
-    
-    const extractVideoIdFromUrl = (url: string) => {
-      console.log('🔍 Processing URL:', url);
-      
-      // Use regex to extract 32-character hex string (Cloudflare Stream ID format)
-      const regex = /cloudflarestream\.com\/([a-f0-9]{32})/i;
-      const match = url.match(regex);
-      
-      if (match && match[1]) {
-        const videoId = match[1];
-        console.log('✅ Extracted video ID:', videoId);
-        return videoId;
-      }
-      
-      console.log('❌ Could not extract video ID from URL:', url);
-      return null;
-    };
-    
-    const createDirectVideoUrl = (videoId: string) => {
-      // Use the exact same format as the working HTML file
-      return `https://customer-cxebs7nmdazhytrk.cloudflarestream.com/${videoId}/downloads/default.mp4`;
-    };
-    
-    const createIframeUrl = (videoId: string) => {
-      // Create iframe URL for videos without direct downloads
-      return `https://customer-cxebs7nmdazhytrk.cloudflarestream.com/${videoId}/iframe`;
-    };
-    
-    console.log('🔍 Debug - processedVideoUrl:', processedVideoUrl);
-    console.log('🔍 Debug - videoUrl:', videoUrl);
-    
-    // Check processedVideoUrl first (this should be the skeleton overlay video)
-    console.log('🔍 Checking processedVideoUrl:', processedVideoUrl, 'includes cloudflarestream.com:', processedVideoUrl?.includes('cloudflarestream.com'));
-    if (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com')) {
-      const videoId = extractVideoIdFromUrl(processedVideoUrl);
-      console.log('🔍 Extracted video ID from processedVideoUrl:', videoId);
-      
-      if (videoId) {
-        // For processed videos, try direct download first, fallback to iframe
-        const directUrl = createDirectVideoUrl(videoId);
-        console.log('🎬 Converted processed video URL to direct URL (skeleton overlay):', directUrl);
-        return { url: directUrl, type: 'video' };
-      }
-      console.log('🎬 Using Cloudflare Stream processed video URL as-is (skeleton overlay):', processedVideoUrl);
-      return { url: processedVideoUrl, type: 'iframe' };
+    if (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com') && processedVideoUrl.includes('/iframe')) {
+      console.log('🎬 Using Cloudflare Stream processed video URL:', processedVideoUrl);
+      return processedVideoUrl;
     }
-    
-    // Check videoUrl (this is the correct video ID from the session)
-    console.log('🔍 Checking videoUrl:', videoUrl, 'includes cloudflarestream.com:', videoUrl?.includes('cloudflarestream.com'));
-    if (videoUrl && videoUrl.includes('cloudflarestream.com')) {
-      const videoId = extractVideoIdFromUrl(videoUrl);
-      console.log('🔍 Extracted video ID from videoUrl:', videoId);
-      console.log('🔍 Original videoUrl:', videoUrl);
-      
-      if (videoId) {
-        // Special handling for problematic video ID - use iframe since direct download doesn't exist
-        if (videoId === '0dcb9daa132905082aa699d4e984c214') {
-          console.log('🚨 Video ID 0dcb9daa132905082aa699d4e984c214 detected - using iframe (no direct download available)');
-          const iframeUrl = createIframeUrl(videoId);
-          console.log('🎬 Using iframe URL for video without direct download:', iframeUrl);
-          return { url: iframeUrl, type: 'iframe' };
-        }
-        
-        // For other videos, try direct download
-        const directUrl = createDirectVideoUrl(videoId);
-        console.log('🎬 Converted video URL to direct URL (same as HTML file):', directUrl);
-        return { url: directUrl, type: 'video' };
-      }
-      console.log('🎬 Using Cloudflare Stream video URL as-is:', videoUrl);
-      return { url: videoUrl, type: 'iframe' };
+    if (videoUrl && videoUrl.includes('cloudflarestream.com') && videoUrl.includes('/iframe')) {
+      console.log('🎬 Using Cloudflare Stream URL directly:', videoUrl);
+      return videoUrl;
     }
-    
-    // Fallback to test URL if no Cloudflare Stream URLs found
-    const testVideoUrl = 'https://customer-cxebs7nmdazhytrk.cloudflarestream.com/72a4beb341d720ae9d3fc74804d98484/downloads/default.mp4';
-    console.log('🎬 No Cloudflare Stream URLs found, using test URL:', testVideoUrl);
-    console.log('🎬 This means neither processedVideoUrl nor videoUrl contained cloudflarestream.com');
-    return { url: testVideoUrl, type: 'video' };
+    return null;
   }, [videoUrl, processedVideoUrl]);
 
+  // Convert Cloudflare Stream iframe URL to direct download URL for HTML5 video
+  const cloudflareDownloadUrl = React.useMemo(() => {
+    if (cloudflareStreamUrl) {
+      // Extract video ID from iframe URL
+      const iframeUrl = cloudflareStreamUrl;
+      const videoIdMatch = iframeUrl.match(/\/iframe$/);
+      if (videoIdMatch) {
+        // Extract the video ID from the URL path
+        const urlParts = iframeUrl.split('/');
+        const videoId = urlParts[urlParts.length - 2]; // Get the part before '/iframe'
+        const accountId = urlParts[urlParts.length - 4]; // Get account ID from URL structure
+        
+        // Construct direct download URL
+        const downloadUrl = `https://customer-${accountId}.cloudflarestream.com/${videoId}/downloads/default.mp4`;
+        console.log('🎬 Converted Cloudflare Stream to download URL:', downloadUrl);
+        return downloadUrl;
+      }
+    }
+    return null;
+  }, [cloudflareStreamUrl]);
+
   const actualVideoUrl = React.useMemo(() => {
-    console.log('🔍 Debug - cloudflareStreamUrl:', cloudflareStreamUrl);
-    console.log('🔍 Debug - processedVideoFilename:', processedVideoFilename);
-    console.log('🔍 Debug - videoName:', videoName);
-    console.log('🔍 Debug - videoUrl:', videoUrl);
-    console.log('🔍 Debug - sessionId:', sessionId);
-    
-    // Priority 1: If we have a Cloudflare Stream URL (converted to direct video or iframe), use it
-    if (cloudflareStreamUrl && cloudflareStreamUrl.url) {
-      console.log('🎬 Using Cloudflare Stream URL:', cloudflareStreamUrl.url);
-      console.log('🎬 URL type:', cloudflareStreamUrl.type);
-      return cloudflareStreamUrl;
+    // Priority 1: If we have a Cloudflare Stream download URL, use it for HTML5 video control
+    if (cloudflareDownloadUrl) {
+      console.log('🎬 Using Cloudflare Stream download URL for HTML5 video:', cloudflareDownloadUrl);
+      return cloudflareDownloadUrl;
     }
     
-    // Priority 2: If we have a processed video filename, use backend API (this should be the skeleton overlay video)
+    // Priority 2: If we have a processed video filename, use backend API
     if (processedVideoFilename) {
-      const processedUrl = `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(processedVideoFilename)}`;
-      console.log('🎬 Using processed video filename (skeleton overlay):', processedUrl);
-      return { url: processedUrl, type: 'video' };
+      return `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(processedVideoFilename)}`;
     }
     
     // Priority 3: If we have a video name, use backend API
     if (videoName) {
-      const videoUrl = `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(videoName)}`;
-      console.log('🎬 Using video name:', videoUrl);
-      return { url: videoUrl, type: 'video' };
+      return `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(videoName)}`;
     }
     
     // Priority 4: Fallback to the provided videoUrl if it exists and doesn't contain localhost
     if (videoUrl && !videoUrl.includes('localhost')) {
-      console.log('🎬 Using provided videoUrl:', videoUrl);
-      return { url: videoUrl, type: videoUrl.includes('/iframe') ? 'iframe' : 'video' };
+      return videoUrl;
     }
     
     // Priority 5: If videoUrl contains localhost, try to extract filename and construct proper URL
@@ -306,59 +248,38 @@ export default function AutoAnalyzedVideoPlayer({
       const url = new URL(videoUrl);
       const filename = url.searchParams.get('video_filename');
       if (filename) {
-        const constructedUrl = `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(filename)}`;
-        console.log('🎬 Constructed URL from localhost videoUrl:', constructedUrl);
-        return { url: constructedUrl, type: 'video' };
+        return `${API_BASE_URL}/getVideo?video_filename=${encodeURIComponent(filename)}`;
       }
     }
     
     // Priority 6: If we have a sessionId, use the session-based video endpoint (last resort)
     if (sessionId) {
-      const sessionUrl = `${API_BASE_URL}/getVideoFromSession/${sessionId}`;
-      console.log('🎬 Using session-based video URL:', sessionUrl);
-      return { url: sessionUrl, type: 'video' };
+      return `${API_BASE_URL}/getVideoFromSession/${sessionId}`;
     }
     
-    // Fallback to test URL if nothing else works
-    const testVideoUrl = 'https://customer-cxebs7nmdazhytrk.cloudflarestream.com/72a4beb341d720ae9d3fc74804d98484/downloads/default.mp4';
-    console.log('🎬 Fallback to test URL:', testVideoUrl);
-    return { url: testVideoUrl, type: 'video' };
-  }, [processedVideoFilename, videoName, videoUrl, sessionId, cloudflareStreamUrl]);
+    return videoUrl;
+  }, [cloudflareDownloadUrl, processedVideoFilename, videoName, videoUrl, sessionId]);
 
-  // Store original Cloudflare Stream URLs for fallback
-  const originalCloudflareUrls = React.useMemo(() => {
-    const urls = [];
-    if (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com')) {
-      urls.push(processedVideoUrl);
-    }
-    if (videoUrl && videoUrl.includes('cloudflarestream.com')) {
-      urls.push(videoUrl);
-    }
-    return urls;
-  }, [processedVideoUrl, videoUrl]);
-
-  // Note: Cloudflare Stream SDK loading removed since we're using direct video URLs
+  // Note: No longer loading Cloudflare Stream SDK since we're using HTML5 video with direct download URLs
 
   // Reset error state when videoUrl changes
   useEffect(() => {
     setError(null);
     setLoading(true);
-    console.log('🎬 Video URL changed to:', actualVideoUrl);
-    console.log('🎬 Is Cloudflare Stream:', isCloudflareStream);
-    console.log('🎬 Cloudflare Stream URL:', cloudflareStreamUrl);
-    console.log('🎬 Video element ref:', videoRef.current);
+    console.log('Video URL changed to:', actualVideoUrl);
+    console.log('Is Cloudflare Stream:', isCloudflareStream);
+    console.log('Cloudflare Stream URL:', cloudflareStreamUrl);
+    console.log('Cloudflare Download URL:', cloudflareDownloadUrl);
     
     // Test if the video URL is accessible
-    if (actualVideoUrl?.url) {
-      console.log('🔍 Testing video URL accessibility:', actualVideoUrl.url);
-      fetch(actualVideoUrl.url, { method: 'HEAD' })
+    if (actualVideoUrl) {
+      fetch(actualVideoUrl, { method: 'HEAD' })
         .then(response => {
-          console.log('🎬 Video URL accessibility test result:', {
-            url: actualVideoUrl.url,
+          console.log('Video URL accessibility test:', {
+            url: actualVideoUrl,
             status: response.status,
             statusText: response.statusText,
-            contentType: response.headers.get('content-type'),
-            contentLength: response.headers.get('content-length')
+            contentType: response.headers.get('content-type')
           });
           if (!response.ok) {
             setError(`Video not accessible: ${response.status} ${response.statusText}`);
@@ -366,7 +287,7 @@ export default function AutoAnalyzedVideoPlayer({
           }
         })
         .catch(err => {
-          console.error('🎬 Video URL accessibility test failed:', err);
+          console.error('Video URL accessibility test failed:', err);
           setError(`Network error: ${err.message}`);
           setLoading(false);
         });
@@ -375,6 +296,7 @@ export default function AutoAnalyzedVideoPlayer({
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  // Removed streamPlayer state since we're using HTML5 video
   const [showSkeleton, setShowSkeleton] = useState(false)
   const [showAngles, setShowAngles] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -531,7 +453,7 @@ export default function AutoAnalyzedVideoPlayer({
     
     // Update real-time metrics based on current frame
     const currentFrame = frameData.find(frame => 
-      Math.abs(frame.timestamp - video.currentTime) < 0.1
+      Math.abs((frame.timestamp / 1000) - video.currentTime) < 0.1
     )
     
     // Update current frame index for frame-by-frame navigation
@@ -582,7 +504,7 @@ export default function AutoAnalyzedVideoPlayer({
       
       // Find the corresponding enhanced frame data
       const currentEnhancedFrame = enhancedFrameData.find(frame => 
-        Math.abs(frame.timestamp - video.currentTime) < 0.1
+        Math.abs((frame.timestamp / 1000) - video.currentTime) < 0.1
       )
       
       // Debug logging
@@ -1146,34 +1068,8 @@ export default function AutoAnalyzedVideoPlayer({
     if (!video) return
 
     const handleError = (e: Event) => {
-      console.error('🎬 Video error:', e)
-      console.error('🎬 Video element:', video)
-      console.error('🎬 Video src:', video.src)
-      console.error('🎬 Video error details:', video.error)
-      console.error('🎬 Video network state:', video.networkState)
-      console.error('🎬 Video ready state:', video.readyState)
-      
-      let errorMessage = 'Failed to load video';
-      if (video.error) {
-        switch (video.error.code) {
-          case 1:
-            errorMessage = 'Video loading aborted';
-            break;
-          case 2:
-            errorMessage = 'Network error while loading video';
-            break;
-          case 3:
-            errorMessage = 'Video decoding error';
-            break;
-          case 4:
-            errorMessage = 'Video format not supported';
-            break;
-          default:
-            errorMessage = `Video error (code: ${video.error.code})`;
-        }
-      }
-      
-      setError(errorMessage)
+      console.error('Video error:', e)
+      setError('Failed to load video')
     }
 
     const handleLoadStart = () => {
@@ -1218,7 +1114,7 @@ export default function AutoAnalyzedVideoPlayer({
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       
       const currentFrame = frameData.find(frame => 
-        Math.abs(frame.timestamp - currentTime) < 0.1
+        Math.abs((frame.timestamp / 1000) - currentTime) < 0.1
       )
       
       if (currentFrame && currentFrame.landmarks && currentFrame.landmarks.length > 0) {
@@ -1299,14 +1195,7 @@ export default function AutoAnalyzedVideoPlayer({
   }, [showSkeleton, showAngles, frameData, currentTime])
 
   const togglePlay = async () => {
-    // Handle iframe videos differently
-    if (actualVideoUrl?.type === 'iframe') {
-      console.log('🎬 Iframe video detected - cannot control playback directly');
-      console.log('🎬 User should use iframe controls for play/pause');
-      return;
-    }
-    
-    // Use video element control for direct video URLs
+    // Use HTML5 video element for all video control
     const video = videoRef.current
     if (!video || typeof video.pause !== 'function') {
       console.error('Video element not available or pause method missing');
@@ -1317,7 +1206,6 @@ export default function AutoAnalyzedVideoPlayer({
       try {
         video.pause();
         setIsPlaying(false);
-        console.log('🎬 Video paused (same as HTML file)');
       } catch (error) {
         console.error('Error pausing video:', error);
         setIsPlaying(false); // Update state anyway
@@ -1329,7 +1217,6 @@ export default function AutoAnalyzedVideoPlayer({
           try {
             await video.play();
             setIsPlaying(true);
-            console.log('🎬 Video playing (same as HTML file)');
           } catch (error) {
             console.error('Error playing video:', error);
             setError('Failed to play video');
@@ -1341,7 +1228,6 @@ export default function AutoAnalyzedVideoPlayer({
               if (typeof video.play === 'function') {
                 await video.play();
                 setIsPlaying(true);
-                console.log('🎬 Video playing after canplay event');
               } else {
                 console.error('Video play method not available');
                 setError('Video play method not available');
@@ -1371,34 +1257,30 @@ export default function AutoAnalyzedVideoPlayer({
   }
 
   const seekToTime = (time: number) => {
-    const video = videoRef.current;
-    if (!video) {
-      console.error('Video element not available for seeking');
-      return;
+    // Use HTML5 video element for seeking
+    if (videoRef.current) {
+      videoRef.current.currentTime = time
+      console.log(`🎬 Video seeked to ${time}s`)
     }
     
-    try {
-      video.currentTime = time;
-      console.log(`🎬 Video seeked to ${time}s`);
-    
       // Immediately update current time and frame analysis
-      setCurrentTime(time);
+      setCurrentTime(time)
       
       // Find and update the current frame
       const currentFrame = frameData.find(frame => 
-        Math.abs(frame.timestamp - time * 1000) < 50 // Convert to milliseconds with 50ms tolerance
-      );
+        Math.abs((frame.timestamp / 1000) - time) < 0.1
+      )
     
     // Find the corresponding enhanced frame data
     const currentEnhancedFrame = enhancedFrameData.find(frame => 
-        Math.abs(frame.timestamp - time * 1000) < 50 // Convert to milliseconds with 50ms tolerance
-      );
-      setSelectedEnhancedFrame(currentEnhancedFrame || null);
+      Math.abs((frame.timestamp / 1000) - time) < 0.1
+    )
+    setSelectedEnhancedFrame(currentEnhancedFrame || null)
       
       if (currentFrame) {
         // Update real-time metrics immediately
       const aclRisk = (currentFrame.metrics as any)?.tumbling_metrics?.acl_risk_factors?.overall_acl_risk || 
-                        currentFrame.metrics?.acl_risk || 0;
+                      currentFrame.metrics?.acl_risk || 0
       
         setRealTimeMetrics({
         motionIQ: Math.max(0, 100 - aclRisk * 0.8),
@@ -1406,84 +1288,55 @@ export default function AutoAnalyzedVideoPlayer({
         precision: Math.max(0, 100 - aclRisk * 0.6),
         power: Math.max(0, 100 - aclRisk * 0.4),
           timestamp: time
-        });
+        })
         
         // Force a re-render of the frame analysis
-        console.log('🎯 Seeked to frame:', currentFrame.frame_number, 'at time:', time);
+        console.log('Seeked to frame:', currentFrame.frame_number, 'at time:', time)
       } else {
-        console.log('❌ No frame found for time:', time);
-      }
-    } catch (error) {
-      console.error('Error seeking video:', error);
+        console.log('No frame found for time:', time)
     }
   }
 
-  // Frame-by-frame navigation functions - based on working HTML implementation
+  // Frame-by-frame navigation functions
   const goToPreviousFrame = () => {
-    console.log(`🎬 goToPreviousFrame called. Current index: ${currentFrameIndex}, Total frames: ${frameData.length}`);
     if (currentFrameIndex > 0) {
-      const newFrameIndex = currentFrameIndex - 1;
-      setCurrentFrameIndex(newFrameIndex);
-      console.log(`🎬 Moving to previous frame: ${newFrameIndex}`);
-      seekToFrameTime();
-    } else {
-      console.log('🎬 Already at first frame');
+      const newFrameIndex = currentFrameIndex - 1
+      setCurrentFrameIndex(newFrameIndex)
+      
+      if (frameData[newFrameIndex]) {
+        const frameTime = frameData[newFrameIndex].timestamp / 1000 // Convert to seconds
+        seekToTime(frameTime)
+        console.log(`🎬 Previous frame: ${newFrameIndex + 1} at ${frameTime}s`)
+      }
     }
   }
 
   const goToNextFrame = () => {
-    console.log(`🎬 goToNextFrame called. Current index: ${currentFrameIndex}, Total frames: ${frameData.length}`);
     if (currentFrameIndex < frameData.length - 1) {
-      const newFrameIndex = currentFrameIndex + 1;
-      setCurrentFrameIndex(newFrameIndex);
-      console.log(`🎬 Moving to next frame: ${newFrameIndex}`);
-      seekToFrameTime();
-    } else {
-      console.log('🎬 Already at last frame');
-    }
-  }
-
-  // Seek to frame time - based on working HTML implementation
-  const seekToFrameTime = () => {
-    const frame = frameData[currentFrameIndex];
-    
-    if (!frame) {
-      console.log(`🎬 Cannot seek: no frame data available`);
-      return;
-    }
-    
-    // Use video_time if available, otherwise convert timestamp to seconds
-    const frameTime = frame.video_time || (frame.timestamp / 1000);
-    console.log(`🎬 Seeking to frame ${frame.frame_number} at time ${frameTime}s`);
-    
-    if (actualVideoUrl?.type === 'iframe') {
-      // For iframe videos, we can't directly control currentTime, but we can log the frame info
-      console.log(`🎬 Iframe video - frame ${frame.frame_number} should be at time ${frameTime}s`);
-      console.log(`🎬 User can manually seek to this time in the iframe controls`);
+      const newFrameIndex = currentFrameIndex + 1
+      setCurrentFrameIndex(newFrameIndex)
       
-      // Update the frame display even though we can't seek
-      setCurrentTime(frameTime);
-    } else {
-      // For direct video URLs, we can control currentTime directly
-      const video = videoRef.current;
-      if (video) {
-        video.currentTime = frameTime;
-        console.log(`🎬 Direct video seeked to ${frameTime}s`);
-      } else {
-        console.log(`🎬 Video element not available for seeking`);
+      if (frameData[newFrameIndex]) {
+        const frameTime = frameData[newFrameIndex].timestamp / 1000 // Convert to seconds
+        seekToTime(frameTime)
+        console.log(`🎬 Next frame: ${newFrameIndex + 1} at ${frameTime}s`)
       }
     }
   }
 
   const goToFrame = (frameIndex: number) => {
     if (frameIndex >= 0 && frameIndex < frameData.length) {
-      setCurrentFrameIndex(frameIndex);
-      console.log('🎬 Going to frame:', frameIndex + 1);
-      seekToFrameTime();
+      setCurrentFrameIndex(frameIndex)
+      
+      if (frameData[frameIndex]) {
+        const frameTime = frameData[frameIndex].timestamp / 1000 // Convert to seconds
+        seekToTime(frameTime)
+        console.log(`🎬 Go to frame: ${frameIndex + 1} at ${frameTime}s`)
+      }
     }
   }
 
-  // Frame timestep progression functions - based on working HTML implementation
+  // Frame timestep progression functions
   const startFrameTimesteps = () => {
     if (frameStepInterval) {
       clearInterval(frameStepInterval)
@@ -1496,26 +1349,29 @@ export default function AutoAnalyzedVideoPlayer({
           // Reached end, stop progression
           clearInterval(interval)
           setFrameStepInterval(null)
-          console.log('🎬 Frame timestep progression reached end')
           return prevIndex
         }
         
-        // Seek to next frame using the working method
-        seekToFrameTime()
+        // Seek to next frame
+        if (frameData[nextIndex]) {
+          const frameTime = frameData[nextIndex].timestamp / 1000 // Convert to seconds
+          seekToTime(frameTime)
+          console.log(`🎬 Frame timestep: ${nextIndex + 1} at ${frameTime}s`)
+        }
         
         return nextIndex
       })
-    }, 500) // 500ms between frames (2 FPS) - same as working HTML
+    }, 100) // 100ms between frames (10 FPS)
     
     setFrameStepInterval(interval)
-    console.log('🎬 Started frame timestep progression')
+    console.log('Started frame timestep progression')
   }
 
   const stopFrameTimesteps = () => {
     if (frameStepInterval) {
       clearInterval(frameStepInterval)
       setFrameStepInterval(null)
-      console.log('🎬 Stopped frame timestep progression')
+      console.log('Stopped frame timestep progression')
     }
   }
 
@@ -1565,7 +1421,8 @@ export default function AutoAnalyzedVideoPlayer({
 
   const toggleFullscreen = () => {
     console.log('Toggling fullscreen, current state:', isFullscreen)
-    
+    console.log('Using HTML5 video fullscreen')
+
     // Handle HTML5 video fullscreen
       const videoElement = videoRef.current
       if (!videoElement) {
@@ -1598,15 +1455,20 @@ export default function AutoAnalyzedVideoPlayer({
           (document as any).webkitExitFullscreen()
         } else if ((document as any).msExitFullscreen) {
           (document as any).msExitFullscreen()
+        }
       }
-    }
   }
 
   // Listen for fullscreen changes
   useEffect(() => {
     const handleFullscreenChange = () => {
       const fullscreenElement = document.fullscreenElement
-      const isCurrentlyFullscreen = fullscreenElement === videoRef.current
+      let isCurrentlyFullscreen = false
+      
+      if (fullscreenElement) {
+        // Check if the video element is in fullscreen
+        isCurrentlyFullscreen = fullscreenElement === videoRef.current
+      }
       
       console.log('Fullscreen change detected:', isCurrentlyFullscreen)
       console.log('Fullscreen element:', fullscreenElement)
@@ -1665,15 +1527,7 @@ export default function AutoAnalyzedVideoPlayer({
           <div>
             <h3 className="text-lg font-semibold">AI Video Analysis</h3>
             <p className="text-xs text-gray-500 mt-1">
-              {actualVideoUrl?.type === 'iframe' ? (
-                <>
-                  Frame navigation updates display only • Use iframe controls to seek to frame time • Use ← → arrow keys for frame display • F for fullscreen
-                </>
-              ) : (
-                <>
-                  Click video to advance frame-by-frame • Right-click to go back • Use ← → arrow keys • Click play button for frame timesteps • Spacebar to play/pause • F for fullscreen
-                </>
-              )}
+              Click video to advance frame-by-frame • Right-click to go back • Use ← → arrow keys • Click play button for frame timesteps • Spacebar to play/pause • F for fullscreen
             </p>
           </div>
                   <div className="flex items-center space-x-2">
@@ -1694,7 +1548,7 @@ export default function AutoAnalyzedVideoPlayer({
                   <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-500" />
                   <h3 className="text-lg font-semibold mb-2">Video Load Error</h3>
                   <p className="text-sm text-gray-300 mb-4">{error}</p>
-                  <p className="text-xs text-gray-400 mb-4">Video URL: {actualVideoUrl?.url}</p>
+                  <p className="text-xs text-gray-400 mb-4">Video URL: {actualVideoUrl}</p>
                   <div className="space-y-2">
                     <Button 
                       onClick={() => {
@@ -1712,8 +1566,8 @@ export default function AutoAnalyzedVideoPlayer({
                     <Button 
                       onClick={() => {
                         // Try opening the video in a new tab
-                        if (actualVideoUrl?.url) {
-                        window.open(actualVideoUrl.url, '_blank');
+                        if (actualVideoUrl) {
+                        window.open(actualVideoUrl, '_blank');
                         }
                       }}
                       variant="outline"
@@ -1725,45 +1579,9 @@ export default function AutoAnalyzedVideoPlayer({
                 </div>
               ) : (
                 <div className="relative">
-                  {/* Conditionally render iframe or video element based on URL type */}
-                  {actualVideoUrl?.type === 'iframe' ? (
-                    // Iframe for videos without direct downloads
-                    <div 
-                      className="relative w-full h-full"
-                      style={{ paddingTop: '56.25%' }} // 16:9 aspect ratio
-                    >
-                      <iframe
-                        src={actualVideoUrl.url}
-                        className="absolute top-0 left-0 w-full h-full border-none"
-                        allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-                        allowFullScreen
-                        title="Cloudflare Stream Video"
-                        onLoad={() => {
-                          console.log('🎬 Iframe loaded successfully');
-                          console.log('🎬 Iframe URL:', actualVideoUrl.url);
-                          setLoading(false);
-                        }}
-                        onError={() => {
-                          console.error('🎬 Iframe failed to load');
-                          console.error('🎬 Iframe URL:', actualVideoUrl.url);
-                          setError('Iframe video failed to load');
-                          setLoading(false);
-                        }}
-                      />
-                      
-                      {/* Iframe overlay with frame information and instructions */}
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div className="bg-black bg-opacity-60 rounded-lg p-4 text-center">
-                          <p className="text-white text-sm font-medium mb-2">Cloudflare Stream Video</p>
-                          <p className="text-gray-300 text-xs">Frame: {currentFrameIndex + 1} / {frameData.length}</p>
-                          <p className="text-gray-300 text-xs">Time: {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}</p>
-                          <p className="text-gray-300 text-xs mt-2">Use iframe controls to seek to frame time</p>
-                          <p className="text-gray-300 text-xs">Frame navigation updates display only</p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    // HTML5 video element for direct downloads
+                  {/* Always use HTML5 video element for frame-by-frame control */}
+                  {actualVideoUrl ? (
+                    // Regular HTML5 video element with click-to-advance
                     <div 
                       className="relative w-full h-full cursor-pointer"
                       onClick={goToNextFrame}
@@ -1773,69 +1591,80 @@ export default function AutoAnalyzedVideoPlayer({
                       }}
                       title="Click to advance to next frame, right-click to go to previous frame"
                     >
-                      <video
-                        ref={videoRef}
-                        className="w-full h-full max-h-[500px] object-contain"
-                        preload="auto"
-                        playsInline
-                        muted
-                        controls
-                        style={{ background: 'black' }}
-                        onLoadedData={() => {
-                          console.log('🎬 Video loaded successfully (exactly like HTML file)');
-                          console.log('🎬 Video URL:', actualVideoUrl?.url);
-                          console.log('🎬 Video element:', videoRef.current);
-                          setLoading(false);
-                          // Calculate and set video aspect ratio
-                          if (videoRef.current) {
-                            const video = videoRef.current;
-                            const aspectRatio = video.videoWidth / video.videoHeight;
-                            setVideoAspectRatio(aspectRatio);
-                            console.log('🎬 Video aspect ratio:', aspectRatio, 'Dimensions:', video.videoWidth, 'x', video.videoHeight);
-                          }
-                        }}
-                        onError={(e) => {
-                          console.error('🎬 Video element onError triggered:', e);
-                          console.error('🎬 Video URL:', actualVideoUrl?.url);
-                          console.error('🎬 Video element:', videoRef.current);
-                          console.error('🎬 Video error details:', videoRef.current?.error);
-                          setError('Video failed to load');
-                          setLoading(false);
-                        }}
-                        onCanPlay={() => {
-                          console.log('🎬 Video can play');
-                          setLoading(false);
-                        }}
-                        onLoadStart={() => {
-                          console.log('🎬 Video load started');
-                          console.log('🎬 Video URL at load start:', actualVideoUrl?.url);
-                          setLoading(true);
-                        }}
-                        onPlay={() => {
-                          console.log('🎬 Video started playing');
-                          setIsPlaying(true);
-                        }}
-                        onPause={() => {
-                          console.log('🎬 Video paused');
-                          setIsPlaying(false);
-                        }}
-                        onTimeUpdate={handleTimeUpdate}
-                      >
-                        <source 
-                          src={actualVideoUrl?.url || ''} 
-                          type="video/mp4" 
-                          onError={(e) => {
-                            console.error('🎬 Source element error:', e);
-                            console.error('🎬 Source src:', actualVideoUrl?.url);
-                          }}
-                          onLoad={() => {
-                            console.log('🎬 Source element loaded successfully');
-                          }}
-                        />
-                        Your browser does not support the video tag.
-                      </video>
+                    <video
+                      ref={videoRef}
+                      className="w-full h-full max-h-[500px] object-contain"
+                      src={actualVideoUrl || undefined}
+                      preload="auto"
+                      playsInline
+                      muted
+                      crossOrigin="anonymous"
+                      onLoadedData={() => {
+                        console.log('Video loaded successfully');
+                        setLoading(false);
+                        // Calculate and set video aspect ratio
+                        if (videoRef.current) {
+                          const video = videoRef.current;
+                          const aspectRatio = video.videoWidth / video.videoHeight;
+                          setVideoAspectRatio(aspectRatio);
+                          console.log('Video aspect ratio:', aspectRatio, 'Dimensions:', video.videoWidth, 'x', video.videoHeight);
+                        }
+                      }}
+                      onError={(e) => {
+                        console.error('Video load error:', e);
+                        console.error('Video URL:', actualVideoUrl);
+                        console.error('Video element error:', e.currentTarget?.error);
+                        console.error('Error details:', {
+                          code: e.currentTarget?.error?.code,
+                          message: e.currentTarget?.error?.message,
+                          networkState: e.currentTarget?.networkState,
+                          readyState: e.currentTarget?.readyState
+                        });
+                        
+                        const errorCode = e.currentTarget?.error?.code;
+                        let errorMessage = 'Unknown video error';
+                        
+                        switch (errorCode) {
+                          case 1:
+                            errorMessage = 'Video loading aborted';
+                            break;
+                          case 2:
+                            errorMessage = 'Network error while loading video';
+                            break;
+                          case 3:
+                            errorMessage = 'Video decoding error';
+                            break;
+                          case 4:
+                            errorMessage = 'Video format not supported';
+                            break;
+                          default:
+                            errorMessage = `Video error (code: ${errorCode})`;
+                        }
+                        
+                        setError(errorMessage);
+                        setLoading(false);
+                      }}
+                      onCanPlay={() => {
+                        console.log('Video can play');
+                        setLoading(false);
+                      }}
+                      onLoadStart={() => {
+                        console.log('Video load started');
+                        setLoading(true);
+                      }}
+                      onPlay={() => {
+                        console.log('Video started playing');
+                        setIsPlaying(true);
+                      }}
+                      onPause={() => {
+                        console.log('Video paused');
+                        setIsPlaying(false);
+                      }}
+                      onTimeUpdate={handleTimeUpdate}
+                      style={{ width: '100%', height: '100%' }}
+                    />
                       
-                      {/* Click overlay indicator - exactly like HTML file */}
+                      {/* Click overlay indicator */}
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="bg-black bg-opacity-60 rounded-full p-4 opacity-0 hover:opacity-100 transition-opacity duration-300 flex items-center space-x-2">
                           <StepBack className="h-5 w-5 text-white" />
@@ -1844,7 +1673,7 @@ export default function AutoAnalyzedVideoPlayer({
                         </div>
                       </div>
                       
-                      {/* Persistent frame number display - exactly like HTML file */}
+                      {/* Persistent frame number display on video - below video */}
                       <div className="absolute -bottom-16 right-4 bg-black bg-opacity-80 rounded-lg px-4 py-2 pointer-events-none">
                         <div className="text-white text-lg font-bold">
                           Frame {currentFrameIndex + 1} / {frameData.length}
@@ -1853,6 +1682,12 @@ export default function AutoAnalyzedVideoPlayer({
                           {formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}
                         </div>
                       </div>
+                    </div>
+                  ) : (
+                    <div className="text-center text-white p-6">
+                      <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-500" />
+                      <h3 className="text-lg font-semibold mb-2">No Video Available</h3>
+                      <p className="text-sm text-gray-300">No video URL provided</p>
                     </div>
                   )}
                 </div>
@@ -1890,7 +1725,6 @@ export default function AutoAnalyzedVideoPlayer({
                     onClick={goToPreviousFrame}
                     disabled={currentFrameIndex <= 0}
                     className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
-                    title={actualVideoUrl?.type === 'iframe' ? "Previous frame (display only)" : "Previous frame"}
                   >
                     <StepBack className="h-3 w-3" />
                   </Button>
@@ -1903,7 +1737,6 @@ export default function AutoAnalyzedVideoPlayer({
                     onClick={goToNextFrame}
                     disabled={currentFrameIndex >= frameData.length - 1}
                     className="text-white hover:bg-white hover:bg-opacity-20 disabled:opacity-50"
-                    title={actualVideoUrl?.type === 'iframe' ? "Next frame (display only)" : "Next frame"}
                   >
                     <StepForward className="h-3 w-3" />
                   </Button>
@@ -1912,19 +1745,14 @@ export default function AutoAnalyzedVideoPlayer({
                     size="sm" 
                     onClick={toggleFrameTimesteps}
                     className={`text-white hover:bg-white hover:bg-opacity-20 ${frameStepInterval ? 'bg-blue-600 bg-opacity-50' : ''}`}
-                    title={actualVideoUrl?.type === 'iframe' ? "Frame timesteps (display only)" : (frameStepInterval ? "Stop frame timesteps" : "Start frame timesteps")}
+                    title={frameStepInterval ? "Stop frame timesteps" : "Start frame timesteps"}
                   >
                     {frameStepInterval ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                   </Button>
                   <span className="text-white text-xs px-2">
                   {frameData.length > 0 ? `Frame Time: ${formatTime((frameData[currentFrameIndex]?.timestamp || 0) / 1000)}` : ''}
                   </span>
-                  {actualVideoUrl?.type === 'iframe' && (
-                    <span className="text-yellow-300 text-xs px-2">
-                      (Display only - use iframe controls to seek)
-                    </span>
-                  )}
-              </div>
+                </div>
             </div>
             
             {/* Risk Timeline Component - Moved further down */}

@@ -386,34 +386,14 @@ export default function AutoAnalyzedVideoPlayer({
     }
   }, [cloudflareVideoId, isCloudflareStream]);
 
-  // Auto-enable downloads for Cloudflare Stream videos
+  // Log Cloudflare Stream detection (manual control like HTML file)
   useEffect(() => {
-    console.log('🎬 ===== CLOUDFLARE DOWNLOAD CHECK =====');
+    console.log('🎬 ===== CLOUDFLARE STREAM DETECTED =====');
     console.log('🎬 cloudflareVideoId:', cloudflareVideoId);
     console.log('🎬 isCloudflareStream:', isCloudflareStream);
-    console.log('🎬 downloadEnabled:', downloadEnabled);
+    console.log('🎬 Manual download controls available in top-right corner');
     console.log('🎬 =====================================');
-    
-    if (cloudflareVideoId && isCloudflareStream && !downloadEnabled) {
-      console.log('🎬 ✅ CONDITIONS MET - Starting download process for Cloudflare video:', cloudflareVideoId);
-      enableCloudflareDownload(cloudflareVideoId).then((success) => {
-        if (success) {
-          console.log('🎬 ✅ Download enabled, checking status in 1 second...');
-          // Check download status after enabling
-          setTimeout(() => {
-            checkCloudflareDownloadStatus(cloudflareVideoId);
-          }, 1000);
-        } else {
-          console.log('🎬 ❌ Failed to enable download');
-        }
-      });
-    } else {
-      console.log('🎬 ⚠️ Conditions not met for auto-enabling downloads');
-      if (!cloudflareVideoId) console.log('🎬 - No cloudflareVideoId');
-      if (!isCloudflareStream) console.log('🎬 - Not a Cloudflare Stream');
-      if (downloadEnabled) console.log('🎬 - Download already enabled');
-    }
-  }, [cloudflareVideoId, isCloudflareStream, downloadEnabled]);
+  }, [cloudflareVideoId, isCloudflareStream]);
 
   // Log when download URL changes and reload video
   useEffect(() => {
@@ -483,9 +463,28 @@ export default function AutoAnalyzedVideoPlayer({
       if (data.success && data.result && data.result.default) {
         const downloadUrl = data.result.default.url;
         console.log(`✅ Download URL found: ${downloadUrl}`, 'success');
-        console.log('🎬 Setting cloudflareDownloadUrl state to:', downloadUrl);
-        setCloudflareDownloadUrl(downloadUrl);
-        return downloadUrl;
+        
+        // Test if the download URL is accessible (same as HTML file)
+        console.log('🔍 Testing download URL accessibility...');
+        try {
+          const testResponse = await fetch(downloadUrl, { method: 'HEAD' });
+          console.log(`🔍 Download URL test: ${testResponse.status} ${testResponse.statusText}`);
+          console.log(`🔍 Content-Type: ${testResponse.headers.get('content-type')}`);
+          console.log(`🔍 Content-Length: ${testResponse.headers.get('content-length')}`);
+          
+          if (testResponse.ok) {
+            console.log('✅ Download URL is accessible!', 'success');
+            console.log('🎬 Setting cloudflareDownloadUrl state to:', downloadUrl);
+            setCloudflareDownloadUrl(downloadUrl);
+            return downloadUrl;
+          } else {
+            console.log(`❌ Download URL not accessible: ${testResponse.status}`, 'error');
+            return null;
+          }
+        } catch (error) {
+          console.log(`❌ Download URL test failed: ${error.message}`, 'error');
+          return null;
+        }
       } else {
         console.log('⚠️ No download URL available yet');
         return null;
@@ -2056,6 +2055,31 @@ export default function AutoAnalyzedVideoPlayer({
                     {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
                   </Button>
                 </div>
+
+              {/* Cloudflare Download Controls */}
+              {isCloudflareStream && cloudflareVideoId && (
+                <div className="absolute top-4 right-4 flex flex-col space-y-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => enableCloudflareDownload(cloudflareVideoId)}
+                    disabled={downloadEnabled}
+                    className="text-white border-white hover:bg-white hover:text-black"
+                  >
+                    {downloadEnabled ? 'Download Enabled' : 'Enable Download'}
+                  </Button>
+                  {downloadEnabled && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => checkCloudflareDownloadStatus(cloudflareVideoId)}
+                      className="text-white border-white hover:bg-white hover:text-black"
+                    >
+                      Get Download URL
+                    </Button>
+                  )}
+                </div>
+              )}
 
               {/* Frame-by-Frame Controls - Moved to very bottom */}
               <div className="absolute bottom-8 left-4 right-4 flex items-center justify-center space-x-2">

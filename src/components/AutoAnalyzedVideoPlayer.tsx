@@ -401,12 +401,21 @@ export default function AutoAnalyzedVideoPlayer({
     }
   }, [cloudflareVideoId, isCloudflareStream, downloadEnabled]);
 
-  // Log when download URL changes
+  // Log when download URL changes and reload video
   useEffect(() => {
-    if (cloudflareDownloadUrl) {
+    if (cloudflareDownloadUrl && videoRef.current) {
       console.log('🎬 ===== DOWNLOAD URL UPDATED =====');
       console.log('🎬 New download URL:', cloudflareDownloadUrl);
       console.log('🎬 Video will now use download URL instead of iframe');
+      console.log('🎬 Reloading video with new source...');
+      
+      // Remove crossorigin attribute (same as HTML file)
+      videoRef.current.removeAttribute('crossorigin');
+      
+      // Set the new source and reload (same as HTML file)
+      videoRef.current.src = cloudflareDownloadUrl;
+      videoRef.current.load();
+      
       console.log('🎬 ================================');
     }
   }, [cloudflareDownloadUrl]);

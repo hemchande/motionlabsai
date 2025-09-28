@@ -278,7 +278,7 @@
                     // Extract download URL from response
                     let downloadUrl = null;
                     if (data.result && data.result.default) {
-                        downloadUrl = data.result.default;
+                        downloadUrl = data.result.default.url;
                     } else if (data.result && typeof data.result === 'string') {
                         downloadUrl = data.result;
                     }

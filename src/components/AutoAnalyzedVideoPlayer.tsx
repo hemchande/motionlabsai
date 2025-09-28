@@ -184,28 +184,74 @@ export default function AutoAnalyzedVideoPlayer({
   }, [videoUrl, processedVideoUrl]);
 
   const cloudflareStreamUrl = React.useMemo(() => {
+    console.log('🔍 Debug Cloudflare URL conversion:', { processedVideoUrl, videoUrl });
+    
+    const extractVideoIdFromUrl = (url: string) => {
+      console.log('🔍 Processing URL:', url);
+      const urlParts = url.split('/');
+      console.log('🔍 URL parts:', urlParts);
+      
+      // Try multiple extraction methods
+      let videoId = null;
+      
+      // Method 1: Look for iframe and get the part before it
+      const iframeIndex = urlParts.findIndex(part => part === 'iframe');
+      if (iframeIndex > 0) {
+        videoId = urlParts[iframeIndex - 1];
+        console.log('🔍 Method 1 - Extracted video ID from iframe:', videoId);
+      }
+      
+      // Method 2: Look for a 32-character hex string (typical Cloudflare Stream ID)
+      if (!videoId) {
+        const hexPattern = /^[a-f0-9]{32}$/i;
+        videoId = urlParts.find(part => hexPattern.test(part));
+        if (videoId) {
+          console.log('🔍 Method 2 - Extracted video ID from hex pattern:', videoId);
+        }
+      }
+      
+      // Method 3: Use regex to extract from URL
+      if (!videoId) {
+        const regex = /cloudflarestream\.com\/([a-f0-9]{32})/i;
+        const match = url.match(regex);
+        if (match) {
+          videoId = match[1];
+          console.log('🔍 Method 3 - Extracted video ID from regex:', videoId);
+        }
+      }
+      
+      console.log('🔍 Final extracted video ID:', videoId);
+      return videoId;
+    };
+    
+    const createDirectUrl = (videoId: string) => {
+      return `https://customer-cxebs7nmdazhytrk.cloudflarestream.com/${videoId}/downloads/default.mp4`;
+    };
+    
+    // Check processedVideoUrl first
     if (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com')) {
-      // Convert iframe URL to direct video URL for better control
-      if (processedVideoUrl.includes('/iframe')) {
-        const videoId = processedVideoUrl.split('/').slice(-2, -1)[0]; // Extract video ID
-        const directUrl = `https://customer-cxebs7nmdazhytrk.cloudflarestream.com/${videoId}/downloads/default.mp4`;
-        console.log('🎬 Converted Cloudflare Stream iframe to direct video URL:', directUrl);
+      const videoId = extractVideoIdFromUrl(processedVideoUrl);
+      if (videoId) {
+        const directUrl = createDirectUrl(videoId);
+        console.log('🎬 Converted processed video URL to direct URL:', directUrl);
         return directUrl;
       }
-      console.log('🎬 Using Cloudflare Stream processed video URL:', processedVideoUrl);
+      console.log('🎬 Using Cloudflare Stream processed video URL as-is:', processedVideoUrl);
       return processedVideoUrl;
     }
+    
+    // Check videoUrl
     if (videoUrl && videoUrl.includes('cloudflarestream.com')) {
-      // Convert iframe URL to direct video URL for better control
-      if (videoUrl.includes('/iframe')) {
-        const videoId = videoUrl.split('/').slice(-2, -1)[0]; // Extract video ID
-        const directUrl = `https://customer-cxebs7nmdazhytrk.cloudflarestream.com/${videoId}/downloads/default.mp4`;
-        console.log('🎬 Converted Cloudflare Stream iframe to direct video URL:', directUrl);
+      const videoId = extractVideoIdFromUrl(videoUrl);
+      if (videoId) {
+        const directUrl = createDirectUrl(videoId);
+        console.log('🎬 Converted video URL to direct URL:', directUrl);
         return directUrl;
       }
-      console.log('🎬 Using Cloudflare Stream URL directly:', videoUrl);
+      console.log('🎬 Using Cloudflare Stream video URL as-is:', videoUrl);
       return videoUrl;
     }
+    
     return null;
   }, [videoUrl, processedVideoUrl]);
 
@@ -247,6 +293,18 @@ export default function AutoAnalyzedVideoPlayer({
     
     return videoUrl;
   }, [processedVideoFilename, videoName, videoUrl, sessionId, cloudflareStreamUrl]);
+
+  // Store original Cloudflare Stream URLs for fallback
+  const originalCloudflareUrls = React.useMemo(() => {
+    const urls = [];
+    if (processedVideoUrl && processedVideoUrl.includes('cloudflarestream.com')) {
+      urls.push(processedVideoUrl);
+    }
+    if (videoUrl && videoUrl.includes('cloudflarestream.com')) {
+      urls.push(videoUrl);
+    }
+    return urls;
+  }, [processedVideoUrl, videoUrl]);
 
   // Note: Cloudflare Stream SDK loading removed since we're using direct video URLs
 
@@ -1626,6 +1684,30 @@ export default function AutoAnalyzedVideoPlayer({
                             break;
                           default:
                             errorMessage = `Video error (code: ${errorCode})`;
+                        }
+                        
+                        // If it's a Cloudflare Stream direct URL that failed, try iframe fallback
+                        if (actualVideoUrl && actualVideoUrl.includes('cloudflarestream.com') && actualVideoUrl.includes('/downloads/')) {
+                          console.log('🔄 Cloudflare Stream direct URL failed, attempting iframe fallback...');
+                          
+                          // Use the first available original iframe URL
+                          const fallbackUrl = originalCloudflareUrls.find(url => url.includes('/iframe'));
+                          if (fallbackUrl) {
+                            console.log('🔄 Trying iframe URL:', fallbackUrl);
+                            
+                            // Update the video source to iframe URL
+                            setTimeout(() => {
+                              if (videoRef.current) {
+                                videoRef.current.src = fallbackUrl;
+                                videoRef.current.load();
+                              }
+                            }, 1000);
+                            
+                            errorMessage = 'Direct video failed, trying iframe embed...';
+                          } else {
+                            console.error('❌ No iframe fallback URL available');
+                            errorMessage = 'Cloudflare Stream video failed to load';
+                          }
                         }
                         
                         setError(errorMessage);

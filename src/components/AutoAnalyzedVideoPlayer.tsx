@@ -1975,7 +1975,7 @@ export default function AutoAnalyzedVideoPlayer({
                         </div>
                       </div>
                     </div>
-                  ) : (cloudflareDownloadUrl || actualVideoUrl) ? (
+                  ) : (isCloudflareStream || cloudflareDownloadUrl || actualVideoUrl) ? (
                     // Regular HTML5 video element with click-to-advance
                     <div 
                       className="relative w-full h-full cursor-pointer"

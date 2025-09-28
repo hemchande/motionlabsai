@@ -463,28 +463,9 @@ export default function AutoAnalyzedVideoPlayer({
       if (data.success && data.result && data.result.default) {
         const downloadUrl = data.result.default.url;
         console.log(`✅ Download URL found: ${downloadUrl}`, 'success');
-        
-        // Test if the download URL is accessible (same as HTML file)
-        console.log('🔍 Testing download URL accessibility...');
-        try {
-          const testResponse = await fetch(downloadUrl, { method: 'HEAD' });
-          console.log(`🔍 Download URL test: ${testResponse.status} ${testResponse.statusText}`);
-          console.log(`🔍 Content-Type: ${testResponse.headers.get('content-type')}`);
-          console.log(`🔍 Content-Length: ${testResponse.headers.get('content-length')}`);
-          
-          if (testResponse.ok) {
-            console.log('✅ Download URL is accessible!', 'success');
-            console.log('🎬 Setting cloudflareDownloadUrl state to:', downloadUrl);
-            setCloudflareDownloadUrl(downloadUrl);
-            return downloadUrl;
-          } else {
-            console.log(`❌ Download URL not accessible: ${testResponse.status}`, 'error');
-            return null;
-          }
-        } catch (error) {
-          console.log(`❌ Download URL test failed: ${error.message}`, 'error');
-          return null;
-        }
+        console.log('🎬 Setting cloudflareDownloadUrl state to:', downloadUrl);
+        setCloudflareDownloadUrl(downloadUrl);
+        return downloadUrl;
       } else {
         console.log('⚠️ No download URL available yet');
         return null;
@@ -492,6 +473,26 @@ export default function AutoAnalyzedVideoPlayer({
     } catch (error) {
       console.error('❌ Error checking download status:', error);
       return null;
+    }
+  };
+
+  // Test download URL accessibility (separate function like HTML file)
+  const testDownloadUrlAccessibility = async (downloadUrl: string) => {
+    try {
+      console.log(`🔍 Testing download URL: ${downloadUrl}`);
+      const response = await fetch(downloadUrl, { method: 'HEAD' });
+      console.log(`🔍 Download URL test result: ${response.status} ${response.statusText}`);
+      console.log(`🔍 Content-Type: ${response.headers.get('content-type')}`);
+      console.log(`🔍 Content-Length: ${response.headers.get('content-length')}`);
+      console.log(`🔍 Last-Modified: ${response.headers.get('last-modified')}`);
+      
+      if (response.ok) {
+        console.log('✅ Download URL is accessible!', 'success');
+      } else {
+        console.log(`❌ Download URL not accessible: ${response.status}`, 'error');
+      }
+    } catch (error) {
+      console.log(`❌ Download URL test failed: ${error.message}`, 'error');
     }
   };
 
@@ -2069,14 +2070,26 @@ export default function AutoAnalyzedVideoPlayer({
                     {downloadEnabled ? 'Download Enabled' : 'Enable Download'}
                   </Button>
                   {downloadEnabled && (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => checkCloudflareDownloadStatus(cloudflareVideoId)}
-                      className="text-white border-white hover:bg-white hover:text-black"
-                    >
-                      Get Download URL
-                    </Button>
+                    <>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => checkCloudflareDownloadStatus(cloudflareVideoId)}
+                        className="text-white border-white hover:bg-white hover:text-black"
+                      >
+                        Get Download URL
+                      </Button>
+                      {cloudflareDownloadUrl && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => testDownloadUrlAccessibility(cloudflareDownloadUrl)}
+                          className="text-white border-white hover:bg-white hover:text-black"
+                        >
+                          Test Download URL
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
               )}

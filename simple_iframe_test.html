@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Iframe Video Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .debug-log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .debug-log .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+        .debug-log .log-entry.error {
+            color: #dc3545;
+        }
+        .debug-log .log-entry.success {
+            color: #28a745;
+        }
+        .debug-log .log-entry.info {
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 Simple Iframe Video Test</h1>
+    <p>Testing basic iframe video loading with Cloudflare Stream</p>
+    
+    <div class="container">
+        <h2>📹 Video Test</h2>
+        <div id="status" class="status info">
+            Loading iframe video...
+        </div>
+        
+        <div class="video-container">
+            <!-- Test 1: Basic iframe -->
+            <div style="position: relative; padding-top: 177.77777777777777%;">
+                <iframe
+                    id="test-iframe"
+                    src="https://customer-cxebs7nmdazhytrk.cloudflarestream.com/0dcb9daa132905082aa699d4e984c214/iframe?poster=https%3A%2F%2Fcustomer-cxebs7nmdazhytrk.cloudflarestream.com%2F0dcb9daa132905082aa699d4e984c214%2Fthumbnails%2Fthumbnail.jpg%3Ftime%3D%26height%3D600"
+                    loading="lazy"
+                    style="border: none; position: absolute; top: 0; left: 0; height: 100%; width: 100%;"
+                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+                    allowfullscreen="true"
+                ></iframe>
+            </div>
+        </div>
+        
+        <div class="container">
+            <h2>🔍 Debug Log</h2>
+            <div id="debug-log" class="debug-log"></div>
+        </div>
+    </div>
+
+    <script>
+        // Debug logging
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logElement = document.getElementById('debug-log');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Show status message
+        function showStatus(message, type = 'info') {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+        }
+
+        // Test iframe loading
+        function testIframeLoading() {
+            const iframe = document.getElementById('test-iframe');
+            
+            if (iframe) {
+                log('Iframe element found, setting up event listeners...');
+                
+                iframe.addEventListener('load', () => {
+                    log('✅ Iframe loaded successfully!', 'success');
+                    showStatus('✅ Iframe loaded successfully!', 'success');
+                });
+                
+                iframe.addEventListener('error', (e) => {
+                    log(`❌ Iframe error: ${e.message || 'Unknown error'}`, 'error');
+                    showStatus('❌ Iframe failed to load', 'error');
+                });
+                
+                // Test if iframe is accessible
+                setTimeout(() => {
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        log('Iframe content accessible: ' + (iframeDoc ? 'Yes' : 'No'));
+                    } catch (e) {
+                        log('Iframe content not accessible (cross-origin): ' + e.message);
+                    }
+                }, 2000);
+                
+                log(`Iframe src: ${iframe.src}`);
+                log('Waiting for iframe to load...');
+                
+            } else {
+                log('❌ Iframe element not found!', 'error');
+                showStatus('❌ Iframe element not found!', 'error');
+            }
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            log('Page loaded, starting iframe test...');
+            testIframeLoading();
+        });
+    </script>
+</body>
+</html>

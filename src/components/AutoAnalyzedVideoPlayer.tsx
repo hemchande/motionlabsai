@@ -2470,9 +2470,9 @@ export default function AutoAnalyzedVideoPlayer({
                     </Button>
         </div>
 
-        <div className="p-2 pb-8 space-y-4">
+        <div className="p-2 pb-8 space-y-2">
           {/* Video Player with Analytics Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-2">
             {/* Video Player - Left Side */}
             <div className="lg:col-span-3">
               <div className="relative bg-black rounded-lg overflow-hidden flex items-center justify-center" style={getVideoContainerStyle()}>
@@ -2849,14 +2849,14 @@ export default function AutoAnalyzedVideoPlayer({
             </div>
             
             {/* Real-time Analytics Panels - Right Side */}
-            <div className="lg:col-span-2 space-y-3">
+            <div className="lg:col-span-2 space-y-1">
               
               {/* Frame Information Panel */}
               <Card key={`frame-info-${analyticsUpdateTrigger}`} className="bg-gray-900 text-white border-gray-700">
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-1">
                   <CardTitle className="text-sm font-semibold text-gray-300">Current Frame</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-1">
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-xs">Frame:</span>
                     <span className="text-blue-400 text-xs font-mono">
@@ -2875,10 +2875,10 @@ export default function AutoAnalyzedVideoPlayer({
 
               {/* Movement Analysis Panel */}
               <Card key={`movement-${analyticsUpdateTrigger}`} className="bg-gray-900 text-white border-gray-700">
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-1">
                   <CardTitle className="text-sm font-semibold text-gray-300">Movement</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-1">
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-xs">Height:</span>
                     <span className="text-cyan-400 text-xs font-mono">
@@ -2902,10 +2902,10 @@ export default function AutoAnalyzedVideoPlayer({
 
               {/* Tumbling Detection Panel */}
               <Card key={`tumbling-${analyticsUpdateTrigger}`} className="bg-gray-900 text-white border-gray-700">
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-1">
                   <CardTitle className="text-sm font-semibold text-gray-300">Tumbling</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-1">
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-xs">Status:</span>
                     <span className={`text-xs font-semibold ${
@@ -2931,10 +2931,10 @@ export default function AutoAnalyzedVideoPlayer({
 
               {/* ACL Risk Analysis Panel */}
               <Card key={`acl-risk-${analyticsUpdateTrigger}`} className="bg-gray-900 text-white border-gray-700">
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-1">
                   <CardTitle className="text-sm font-semibold text-gray-300">ACL Risk</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-1">
                   <div className="flex justify-between">
                     <span className="text-gray-400 text-xs">Overall Risk:</span>
                     <span className={`text-xs font-mono ${
@@ -2977,7 +2977,7 @@ export default function AutoAnalyzedVideoPlayer({
           </div>
 
           {/* Risk Timeline Component - Aligned with video player */}
-          <div className="lg:col-span-3 mt-4">
+          <div className="lg:col-span-3 mt-2">
             <RiskTimeline
               frameData={frameData}
               currentTime={currentTime}
@@ -2989,15 +2989,15 @@ export default function AutoAnalyzedVideoPlayer({
           {/* Enhanced Statistics Summary - Right under Risk Bar */}
           {!loading && !error && enhancedFrameData.length > 0 && enhancedStats && (
             <Card className="bg-gray-900 text-white border-gray-700">
-              <CardHeader className="pb-4">
+              <CardHeader className="pb-2">
                 <CardTitle className="text-lg font-semibold text-gray-200">Enhanced Statistics Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Tumbling Detection Section */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-2">Tumbling Detection</h4>
                     <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-1">Tumbling Detection</h4>
+                    <div className="space-y-1">
                       <div className="flex justify-between">
                         <span className="text-gray-400 text-xs">Tumbling Frames:</span>
                         <span className="text-cyan-400 text-xs font-mono">
@@ -3020,9 +3020,9 @@ export default function AutoAnalyzedVideoPlayer({
                   </div>
 
                   {/* ACL Risk Analysis Section */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-2">ACL Risk Analysis</h4>
                     <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-1">ACL Risk Analysis</h4>
+                    <div className="space-y-1">
                       <div className="flex justify-between">
                         <span className="text-gray-400 text-xs">Avg Overall Risk:</span>
                         <span className={`text-xs font-mono ${
@@ -3048,9 +3048,9 @@ export default function AutoAnalyzedVideoPlayer({
                   </div>
 
                   {/* Movement Analysis Section */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-2">Movement Analysis</h4>
                     <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-1">Movement Analysis</h4>
+                    <div className="space-y-1">
                       <div className="flex justify-between">
                         <span className="text-gray-400 text-xs">Avg Elevation:</span>
                         <span className="text-cyan-400 text-xs font-mono">
@@ -3073,9 +3073,9 @@ export default function AutoAnalyzedVideoPlayer({
                   </div>
 
                   {/* Tumbling Quality Section */}
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-2">Tumbling Quality</h4>
                     <div className="space-y-2">
+                    <h4 className="text-sm font-semibold text-gray-300 border-b border-gray-700 pb-1">Tumbling Quality</h4>
+                    <div className="space-y-1">
                       <div className="flex justify-between">
                         <span className="text-gray-400 text-xs">Avg Quality:</span>
                         <span className="text-cyan-400 text-xs font-mono">

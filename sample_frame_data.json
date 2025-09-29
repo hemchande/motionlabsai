@@ -1,0 +1,3093 @@
+{
+  "metadata": {
+    "generated_at": "2025-09-27T21:29:30.232Z",
+    "total_frames": 180,
+    "sample_rate": 30,
+    "source": "cloudflare_stream_mock"
+  },
+  "frame_data": [
+    {
+      "frame_number": 1,
+      "timestamp": 0,
+      "video_time": 0,
+      "analytics": {
+        "acl_risk": 26.8708664934737,
+        "left_knee_angle": 163.76135506363076,
+        "right_knee_angle": 76.40280429889965,
+        "elevation_angle": 25.412246426265845,
+        "forward_lean": 19.941645819104004,
+        "landing_force": 982.1465538771714,
+        "tumbling_phase": "takeoff",
+        "quality_score": 85.36413428093634,
+        "confidence": 17.363402676247897
+      },
+      "extracted_at": "2025-09-27T21:29:30.220Z"
+    },
+    {
+      "frame_number": 11,
+      "timestamp": 333.3333333333333,
+      "video_time": 0.3333333333333333,
+      "analytics": {
+        "acl_risk": 89.69756454957003,
+        "left_knee_angle": 120.60182442006956,
+        "right_knee_angle": 48.132391840875364,
+        "elevation_angle": 44.18699605885328,
+        "forward_lean": -7.25086306500906,
+        "landing_force": 1989.7001729180824,
+        "tumbling_phase": "landing",
+        "quality_score": 89.30961668133688,
+        "confidence": 42.511560961553926
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 21,
+      "timestamp": 666.6666666666666,
+      "video_time": 0.6666666666666666,
+      "analytics": {
+        "acl_risk": 44.147932224063126,
+        "left_knee_angle": 5.822970293167664,
+        "right_knee_angle": 164.68249603507317,
+        "elevation_angle": 17.78349385123402,
+        "forward_lean": -5.562630388554439,
+        "landing_force": 1604.6270728525926,
+        "tumbling_phase": "approach",
+        "quality_score": 10.168931596653842,
+        "confidence": 27.512684661692255
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 31,
+      "timestamp": 1000,
+      "video_time": 1,
+      "analytics": {
+        "acl_risk": 42.70969858351727,
+        "left_knee_angle": 102.20644844265547,
+        "right_knee_angle": 100.5509401428282,
+        "elevation_angle": 41.64119275405636,
+        "forward_lean": -25.22713088284087,
+        "landing_force": 755.1092134027666,
+        "tumbling_phase": "flight",
+        "quality_score": 87.7316469194947,
+        "confidence": 4.730768457543899
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 41,
+      "timestamp": 1333.3333333333333,
+      "video_time": 1.3333333333333333,
+      "analytics": {
+        "acl_risk": 97.63907294243145,
+        "left_knee_angle": 143.3483915024997,
+        "right_knee_angle": 152.2671800836141,
+        "elevation_angle": 39.90091651461471,
+        "forward_lean": -14.601935266768855,
+        "landing_force": 424.7075515582073,
+        "tumbling_phase": "landing",
+        "quality_score": 98.82079943918454,
+        "confidence": 51.56950720696014
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 51,
+      "timestamp": 1666.6666666666667,
+      "video_time": 1.6666666666666667,
+      "analytics": {
+        "acl_risk": 15.850297381302592,
+        "left_knee_angle": 169.78705716692528,
+        "right_knee_angle": 109.32311139161766,
+        "elevation_angle": 13.703986051693839,
+        "forward_lean": -13.535288105956887,
+        "landing_force": 529.4783786513908,
+        "tumbling_phase": "takeoff",
+        "quality_score": 80.76076238546919,
+        "confidence": 20.07375613836664
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 61,
+      "timestamp": 2000,
+      "video_time": 2,
+      "analytics": {
+        "acl_risk": 63.44435660690573,
+        "left_knee_angle": 118.29379084370335,
+        "right_knee_angle": 165.53535918741548,
+        "elevation_angle": 38.6046995950734,
+        "forward_lean": 17.083196418325862,
+        "landing_force": 513.9866645589266,
+        "tumbling_phase": "approach",
+        "quality_score": 24.97643787790129,
+        "confidence": 53.71397431234885
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 71,
+      "timestamp": 2333.3333333333335,
+      "video_time": 2.3333333333333335,
+      "analytics": {
+        "acl_risk": 5.1031557554438,
+        "left_knee_angle": 13.215137685548246,
+        "right_knee_angle": 52.49160775042502,
+        "elevation_angle": 36.93337730590741,
+        "forward_lean": 0.5147559904826906,
+        "landing_force": 270.28189852288074,
+        "tumbling_phase": "landing",
+        "quality_score": 44.443666038585874,
+        "confidence": 31.111949774846302
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 81,
+      "timestamp": 2666.6666666666665,
+      "video_time": 2.6666666666666665,
+      "analytics": {
+        "acl_risk": 55.12958407684365,
+        "left_knee_angle": 169.21263161630725,
+        "right_knee_angle": 39.53104603316702,
+        "elevation_angle": 32.138434910211615,
+        "forward_lean": 16.899835661966293,
+        "landing_force": 1095.8096855779154,
+        "tumbling_phase": "takeoff",
+        "quality_score": 20.647357142915258,
+        "confidence": 70.6715927828676
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 91,
+      "timestamp": 3000,
+      "video_time": 3,
+      "analytics": {
+        "acl_risk": 28.883991099621518,
+        "left_knee_angle": 58.21178240992794,
+        "right_knee_angle": 8.955061023664634,
+        "elevation_angle": 4.088176235001185,
+        "forward_lean": 16.174041302870833,
+        "landing_force": 1769.9997879561854,
+        "tumbling_phase": "flight",
+        "quality_score": 63.877651595984844,
+        "confidence": 6.903055025857929
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 101,
+      "timestamp": 3333.3333333333335,
+      "video_time": 3.3333333333333335,
+      "analytics": {
+        "acl_risk": 82.23759386060307,
+        "left_knee_angle": 118.72936438267456,
+        "right_knee_angle": 94.26099984876888,
+        "elevation_angle": 21.70883596658637,
+        "forward_lean": -17.09445626351835,
+        "landing_force": 1132.0807603465357,
+        "tumbling_phase": "stabilization",
+        "quality_score": 26.21744893015481,
+        "confidence": 48.02877822347329
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 111,
+      "timestamp": 3666.6666666666665,
+      "video_time": 3.6666666666666665,
+      "analytics": {
+        "acl_risk": 53.2854401275048,
+        "left_knee_angle": 129.4807496723651,
+        "right_knee_angle": 134.69282402526855,
+        "elevation_angle": 31.90831855826196,
+        "forward_lean": -5.843815141739057,
+        "landing_force": 1299.2726460647077,
+        "tumbling_phase": "stabilization",
+        "quality_score": 51.66855841096001,
+        "confidence": 40.539992719747445
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 121,
+      "timestamp": 4000,
+      "video_time": 4,
+      "analytics": {
+        "acl_risk": 0.6438241413587731,
+        "left_knee_angle": 79.41087673903222,
+        "right_knee_angle": 81.15137119049508,
+        "elevation_angle": 8.4623329753783,
+        "forward_lean": -5.672091417640885,
+        "landing_force": 1544.7117260830066,
+        "tumbling_phase": "takeoff",
+        "quality_score": 30.576738676837877,
+        "confidence": 73.08387465530369
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 131,
+      "timestamp": 4333.333333333333,
+      "video_time": 4.333333333333333,
+      "analytics": {
+        "acl_risk": 3.5079954956923842,
+        "left_knee_angle": 74.92879305978107,
+        "right_knee_angle": 13.613851023165111,
+        "elevation_angle": 15.756578529029406,
+        "forward_lean": -25.86762888261967,
+        "landing_force": 928.3645738252421,
+        "tumbling_phase": "landing",
+        "quality_score": 26.82582116587311,
+        "confidence": 74.74370242382717
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 141,
+      "timestamp": 4666.666666666667,
+      "video_time": 4.666666666666667,
+      "analytics": {
+        "acl_risk": 4.399132016970686,
+        "left_knee_angle": 162.80801281645842,
+        "right_knee_angle": 55.705909005168884,
+        "elevation_angle": 4.018655720992168,
+        "forward_lean": 23.231561639658466,
+        "landing_force": 1079.02181136342,
+        "tumbling_phase": "approach",
+        "quality_score": 93.64014150333615,
+        "confidence": 42.27748515989123
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 151,
+      "timestamp": 5000,
+      "video_time": 5,
+      "analytics": {
+        "acl_risk": 31.50222092662296,
+        "left_knee_angle": 7.024151985278175,
+        "right_knee_angle": 92.78518125524091,
+        "elevation_angle": 14.501512414065145,
+        "forward_lean": -1.8627786957508619,
+        "landing_force": 1300.516497362947,
+        "tumbling_phase": "approach",
+        "quality_score": 70.67720937715471,
+        "confidence": 60.506823224962126
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 161,
+      "timestamp": 5333.333333333333,
+      "video_time": 5.333333333333333,
+      "analytics": {
+        "acl_risk": 82.1005342600448,
+        "left_knee_angle": 136.33487182329296,
+        "right_knee_angle": 87.32438787645533,
+        "elevation_angle": 44.20727997081987,
+        "forward_lean": -11.614925007147146,
+        "landing_force": 1269.9296693380068,
+        "tumbling_phase": "flight",
+        "quality_score": 93.67901323942071,
+        "confidence": 6.245513242305689
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 171,
+      "timestamp": 5666.666666666667,
+      "video_time": 5.666666666666667,
+      "analytics": {
+        "acl_risk": 60.500436779254386,
+        "left_knee_angle": 92.47417877749307,
+        "right_knee_angle": 40.44432438796922,
+        "elevation_angle": 28.574549474387034,
+        "forward_lean": -18.84043188984861,
+        "landing_force": 525.4327788231059,
+        "tumbling_phase": "approach",
+        "quality_score": 16.885641787598683,
+        "confidence": 52.33697344183004
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 181,
+      "timestamp": 6000,
+      "video_time": 6,
+      "analytics": {
+        "acl_risk": 98.50109009573231,
+        "left_knee_angle": 131.82445250423453,
+        "right_knee_angle": 117.93166376919322,
+        "elevation_angle": 41.72710388605179,
+        "forward_lean": 29.954729371343703,
+        "landing_force": 1753.3309336390346,
+        "tumbling_phase": "takeoff",
+        "quality_score": 21.09745615992573,
+        "confidence": 88.61029034438057
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 191,
+      "timestamp": 6333.333333333333,
+      "video_time": 6.333333333333333,
+      "analytics": {
+        "acl_risk": 68.68920899242754,
+        "left_knee_angle": 91.69264147666244,
+        "right_knee_angle": 162.72661240606908,
+        "elevation_angle": 11.034454241790925,
+        "forward_lean": -2.153608666650957,
+        "landing_force": 148.60924617183358,
+        "tumbling_phase": "takeoff",
+        "quality_score": 52.390237832391826,
+        "confidence": 84.28923386881297
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 201,
+      "timestamp": 6666.666666666667,
+      "video_time": 6.666666666666667,
+      "analytics": {
+        "acl_risk": 13.741450894313578,
+        "left_knee_angle": 176.52684106550862,
+        "right_knee_angle": 104.06810683332118,
+        "elevation_angle": 39.043064251607696,
+        "forward_lean": -18.856377147590692,
+        "landing_force": 1258.466080305109,
+        "tumbling_phase": "stabilization",
+        "quality_score": 93.56351714558517,
+        "confidence": 70.0367777346314
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 211,
+      "timestamp": 7000,
+      "video_time": 7,
+      "analytics": {
+        "acl_risk": 7.632593031430401,
+        "left_knee_angle": 88.98281768610843,
+        "right_knee_angle": 68.58080253930561,
+        "elevation_angle": 1.948013668634696,
+        "forward_lean": 11.318767321000422,
+        "landing_force": 1269.6194889600342,
+        "tumbling_phase": "stabilization",
+        "quality_score": 54.63492673301238,
+        "confidence": 7.910423141392919
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 221,
+      "timestamp": 7333.333333333333,
+      "video_time": 7.333333333333333,
+      "analytics": {
+        "acl_risk": 93.52050353562635,
+        "left_knee_angle": 12.454674836258889,
+        "right_knee_angle": 91.37838714289893,
+        "elevation_angle": 23.643125772668334,
+        "forward_lean": 10.775747295946346,
+        "landing_force": 1833.0628293075706,
+        "tumbling_phase": "flight",
+        "quality_score": 98.87253723283833,
+        "confidence": 27.333167109609512
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 231,
+      "timestamp": 7666.666666666667,
+      "video_time": 7.666666666666667,
+      "analytics": {
+        "acl_risk": 51.12445624631283,
+        "left_knee_angle": 83.14553316827539,
+        "right_knee_angle": 23.548332497322868,
+        "elevation_angle": 41.87893182298827,
+        "forward_lean": 8.470197339872058,
+        "landing_force": 1654.1594505777323,
+        "tumbling_phase": "takeoff",
+        "quality_score": 24.37723679711199,
+        "confidence": 45.65382531907787
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 241,
+      "timestamp": 8000,
+      "video_time": 8,
+      "analytics": {
+        "acl_risk": 15.391950955208822,
+        "left_knee_angle": 107.20155993709287,
+        "right_knee_angle": 107.26345155857727,
+        "elevation_angle": 6.778001995060806,
+        "forward_lean": -29.560956362667056,
+        "landing_force": 118.01341948604404,
+        "tumbling_phase": "landing",
+        "quality_score": 17.523449857155747,
+        "confidence": 11.049599546277665
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 251,
+      "timestamp": 8333.333333333334,
+      "video_time": 8.333333333333334,
+      "analytics": {
+        "acl_risk": 29.26411007060963,
+        "left_knee_angle": 68.9204808498693,
+        "right_knee_angle": 155.6002655882696,
+        "elevation_angle": 12.100560573419617,
+        "forward_lean": 28.692815712559536,
+        "landing_force": 618.6761721405061,
+        "tumbling_phase": "stabilization",
+        "quality_score": 19.421786746542445,
+        "confidence": 77.33817120400437
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 261,
+      "timestamp": 8666.666666666666,
+      "video_time": 8.666666666666666,
+      "analytics": {
+        "acl_risk": 38.54109751667505,
+        "left_knee_angle": 38.67579239481006,
+        "right_knee_angle": 93.51995548231953,
+        "elevation_angle": 6.407644921115888,
+        "forward_lean": -28.946180500533345,
+        "landing_force": 69.9084186856025,
+        "tumbling_phase": "landing",
+        "quality_score": 67.97957890042336,
+        "confidence": 1.6177583505962323
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 271,
+      "timestamp": 9000,
+      "video_time": 9,
+      "analytics": {
+        "acl_risk": 56.4523247375998,
+        "left_knee_angle": 39.69754475641477,
+        "right_knee_angle": 145.5473986965876,
+        "elevation_angle": 4.5629253296729555,
+        "forward_lean": 19.32752621866301,
+        "landing_force": 273.3142166125324,
+        "tumbling_phase": "approach",
+        "quality_score": 74.13269946627743,
+        "confidence": 1.535614570845012
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 281,
+      "timestamp": 9333.333333333334,
+      "video_time": 9.333333333333334,
+      "analytics": {
+        "acl_risk": 36.22383934307618,
+        "left_knee_angle": 142.53034655831672,
+        "right_knee_angle": 29.72153096125135,
+        "elevation_angle": 39.536281230225086,
+        "forward_lean": -18.542728486398374,
+        "landing_force": 911.9226456365466,
+        "tumbling_phase": "landing",
+        "quality_score": 49.578270361273425,
+        "confidence": 72.16727794118378
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 291,
+      "timestamp": 9666.666666666666,
+      "video_time": 9.666666666666666,
+      "analytics": {
+        "acl_risk": 53.41537366225424,
+        "left_knee_angle": 29.83912689610478,
+        "right_knee_angle": 21.853968321272884,
+        "elevation_angle": 4.210596808918917,
+        "forward_lean": -12.505543764661219,
+        "landing_force": 1950.9665117724237,
+        "tumbling_phase": "approach",
+        "quality_score": 71.1039225991149,
+        "confidence": 69.42172194364122
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 301,
+      "timestamp": 10000,
+      "video_time": 10,
+      "analytics": {
+        "acl_risk": 6.798292270426942,
+        "left_knee_angle": 31.347696619252527,
+        "right_knee_angle": 129.6329324244222,
+        "elevation_angle": 35.72517536486074,
+        "forward_lean": -12.159989490247817,
+        "landing_force": 1690.6879835686364,
+        "tumbling_phase": "stabilization",
+        "quality_score": 94.39054463015046,
+        "confidence": 86.46503398214762
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 311,
+      "timestamp": 10333.333333333334,
+      "video_time": 10.333333333333334,
+      "analytics": {
+        "acl_risk": 46.942679064202444,
+        "left_knee_angle": 27.837156299159286,
+        "right_knee_angle": 70.68672676378672,
+        "elevation_angle": 37.0190525748093,
+        "forward_lean": -21.82385028487719,
+        "landing_force": 1667.6798211869714,
+        "tumbling_phase": "takeoff",
+        "quality_score": 62.087279549652166,
+        "confidence": 19.308872324828897
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 321,
+      "timestamp": 10666.666666666666,
+      "video_time": 10.666666666666666,
+      "analytics": {
+        "acl_risk": 65.29152433993495,
+        "left_knee_angle": 0.5143959675429244,
+        "right_knee_angle": 126.44210270243713,
+        "elevation_angle": 20.264393541435048,
+        "forward_lean": -29.990789277825712,
+        "landing_force": 1782.7464560508379,
+        "tumbling_phase": "approach",
+        "quality_score": 76.08033422409876,
+        "confidence": 15.443906349205093
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 331,
+      "timestamp": 11000,
+      "video_time": 11,
+      "analytics": {
+        "acl_risk": 61.21336789691145,
+        "left_knee_angle": 25.022512358013632,
+        "right_knee_angle": 59.997408969049076,
+        "elevation_angle": 23.29885811679659,
+        "forward_lean": -18.721876989383524,
+        "landing_force": 804.2687945117244,
+        "tumbling_phase": "landing",
+        "quality_score": 77.78649808096299,
+        "confidence": 84.32800582101858
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 341,
+      "timestamp": 11333.333333333334,
+      "video_time": 11.333333333333334,
+      "analytics": {
+        "acl_risk": 4.003692929983771,
+        "left_knee_angle": 158.91573964434843,
+        "right_knee_angle": 6.7774031926019385,
+        "elevation_angle": 18.26649006131159,
+        "forward_lean": -16.83374163532337,
+        "landing_force": 678.4262741605613,
+        "tumbling_phase": "approach",
+        "quality_score": 51.8191787173631,
+        "confidence": 18.086096545736964
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 351,
+      "timestamp": 11666.666666666666,
+      "video_time": 11.666666666666666,
+      "analytics": {
+        "acl_risk": 23.689038597578804,
+        "left_knee_angle": 34.19338275286075,
+        "right_knee_angle": 68.29857787477515,
+        "elevation_angle": 44.88131591429613,
+        "forward_lean": 23.69063245312607,
+        "landing_force": 221.58274196796546,
+        "tumbling_phase": "flight",
+        "quality_score": 28.680696895000658,
+        "confidence": 42.577520539770376
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 361,
+      "timestamp": 12000,
+      "video_time": 12,
+      "analytics": {
+        "acl_risk": 50.97081251144393,
+        "left_knee_angle": 162.58971772815585,
+        "right_knee_angle": 12.58296036883371,
+        "elevation_angle": 32.428353884561474,
+        "forward_lean": -16.36211459488222,
+        "landing_force": 1757.2754348116791,
+        "tumbling_phase": "landing",
+        "quality_score": 92.33514917322452,
+        "confidence": 62.226447951102124
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 371,
+      "timestamp": 12333.333333333334,
+      "video_time": 12.333333333333334,
+      "analytics": {
+        "acl_risk": 10.180466302629721,
+        "left_knee_angle": 32.698309513062924,
+        "right_knee_angle": 12.145860978088692,
+        "elevation_angle": 17.934544179023835,
+        "forward_lean": -15.98854566357836,
+        "landing_force": 763.0453672190174,
+        "tumbling_phase": "flight",
+        "quality_score": 94.185782618322,
+        "confidence": 86.76766939226755
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 381,
+      "timestamp": 12666.666666666666,
+      "video_time": 12.666666666666666,
+      "analytics": {
+        "acl_risk": 75.84388167971031,
+        "left_knee_angle": 51.12509960978262,
+        "right_knee_angle": 101.20817945267804,
+        "elevation_angle": 11.34227619920592,
+        "forward_lean": -3.971631811528237,
+        "landing_force": 1229.7360179232292,
+        "tumbling_phase": "stabilization",
+        "quality_score": 48.04902359803733,
+        "confidence": 64.01540051666422
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 391,
+      "timestamp": 13000,
+      "video_time": 13,
+      "analytics": {
+        "acl_risk": 42.07558274911296,
+        "left_knee_angle": 113.47963738072302,
+        "right_knee_angle": 118.55632890752612,
+        "elevation_angle": 4.968293764504784,
+        "forward_lean": 17.67061113566959,
+        "landing_force": 1748.359450069236,
+        "tumbling_phase": "stabilization",
+        "quality_score": 64.73665975279563,
+        "confidence": 48.98845240549172
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 401,
+      "timestamp": 13333.333333333334,
+      "video_time": 13.333333333333334,
+      "analytics": {
+        "acl_risk": 56.224159488874356,
+        "left_knee_angle": 26.818245590705324,
+        "right_knee_angle": 72.01947522196916,
+        "elevation_angle": 36.05200884835908,
+        "forward_lean": 7.747071081883988,
+        "landing_force": 1091.5300619167692,
+        "tumbling_phase": "approach",
+        "quality_score": 2.143914472950126,
+        "confidence": 26.35580731809486
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 411,
+      "timestamp": 13666.666666666666,
+      "video_time": 13.666666666666666,
+      "analytics": {
+        "acl_risk": 83.14340798487878,
+        "left_knee_angle": 109.72247698408462,
+        "right_knee_angle": 29.90977158108812,
+        "elevation_angle": 40.51491370601479,
+        "forward_lean": 12.435031961209184,
+        "landing_force": 802.8274082513129,
+        "tumbling_phase": "stabilization",
+        "quality_score": 27.013955182977313,
+        "confidence": 56.10722486653099
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 421,
+      "timestamp": 14000,
+      "video_time": 14,
+      "analytics": {
+        "acl_risk": 94.30849831184301,
+        "left_knee_angle": 74.3044014500321,
+        "right_knee_angle": 102.94509261826018,
+        "elevation_angle": 32.93019489650395,
+        "forward_lean": -26.24175865543223,
+        "landing_force": 1066.5493345439797,
+        "tumbling_phase": "flight",
+        "quality_score": 92.39152095638501,
+        "confidence": 5.268556466467511
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 431,
+      "timestamp": 14333.333333333334,
+      "video_time": 14.333333333333334,
+      "analytics": {
+        "acl_risk": 60.45349218107112,
+        "left_knee_angle": 142.87636817424726,
+        "right_knee_angle": 136.82438655482778,
+        "elevation_angle": 31.955970896880004,
+        "forward_lean": -28.790842672315527,
+        "landing_force": 1525.5042199281806,
+        "tumbling_phase": "approach",
+        "quality_score": 54.40167502015496,
+        "confidence": 0.27250650942549637
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 441,
+      "timestamp": 14666.666666666666,
+      "video_time": 14.666666666666666,
+      "analytics": {
+        "acl_risk": 72.41169450167469,
+        "left_knee_angle": 51.68352711759199,
+        "right_knee_angle": 72.65850145182516,
+        "elevation_angle": 20.027160851841153,
+        "forward_lean": -25.192251143030767,
+        "landing_force": 392.0527317205913,
+        "tumbling_phase": "flight",
+        "quality_score": 29.428887514785764,
+        "confidence": 17.065597824319024
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 451,
+      "timestamp": 15000,
+      "video_time": 15,
+      "analytics": {
+        "acl_risk": 76.37759015787611,
+        "left_knee_angle": 153.11572970462962,
+        "right_knee_angle": 158.96023686091294,
+        "elevation_angle": 16.950962081790465,
+        "forward_lean": -26.652220146432853,
+        "landing_force": 1421.3502069794831,
+        "tumbling_phase": "landing",
+        "quality_score": 70.23713314870825,
+        "confidence": 26.05592247192259
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 461,
+      "timestamp": 15333.333333333334,
+      "video_time": 15.333333333333334,
+      "analytics": {
+        "acl_risk": 45.37580634125524,
+        "left_knee_angle": 142.9515693746438,
+        "right_knee_angle": 162.061093169587,
+        "elevation_angle": 30.1385371212946,
+        "forward_lean": 0.9615310581445868,
+        "landing_force": 878.886788214369,
+        "tumbling_phase": "flight",
+        "quality_score": 66.28549917781596,
+        "confidence": 50.683788881298916
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 471,
+      "timestamp": 15666.666666666666,
+      "video_time": 15.666666666666666,
+      "analytics": {
+        "acl_risk": 84.44330619461915,
+        "left_knee_angle": 118.42630741700762,
+        "right_knee_angle": 61.98737721623574,
+        "elevation_angle": 19.146946971240784,
+        "forward_lean": 24.521655041474723,
+        "landing_force": 1051.6417052735476,
+        "tumbling_phase": "takeoff",
+        "quality_score": 43.19697192332399,
+        "confidence": 67.43628449099181
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 481,
+      "timestamp": 16000,
+      "video_time": 16,
+      "analytics": {
+        "acl_risk": 80.53597268207501,
+        "left_knee_angle": 121.41707479194099,
+        "right_knee_angle": 26.592649238528647,
+        "elevation_angle": 13.187712333773586,
+        "forward_lean": 22.5812284246135,
+        "landing_force": 1913.2641253264308,
+        "tumbling_phase": "landing",
+        "quality_score": 44.46055037677596,
+        "confidence": 94.88066803451662
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 491,
+      "timestamp": 16333.333333333332,
+      "video_time": 16.333333333333332,
+      "analytics": {
+        "acl_risk": 70.22406090748048,
+        "left_knee_angle": 139.1057650426347,
+        "right_knee_angle": 168.5528168728212,
+        "elevation_angle": 9.082190934322618,
+        "forward_lean": 8.398715251437338,
+        "landing_force": 1525.3156006893742,
+        "tumbling_phase": "landing",
+        "quality_score": 62.7818488159372,
+        "confidence": 63.79411866693674
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 501,
+      "timestamp": 16666.666666666668,
+      "video_time": 16.666666666666668,
+      "analytics": {
+        "acl_risk": 33.69239967579176,
+        "left_knee_angle": 82.31378674549107,
+        "right_knee_angle": 87.65730231810375,
+        "elevation_angle": 24.998888233639317,
+        "forward_lean": -27.561400132727346,
+        "landing_force": 696.2039147535309,
+        "tumbling_phase": "stabilization",
+        "quality_score": 29.53241794638748,
+        "confidence": 68.91157846933949
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 511,
+      "timestamp": 17000,
+      "video_time": 17,
+      "analytics": {
+        "acl_risk": 12.475024355152996,
+        "left_knee_angle": 107.76137811051683,
+        "right_knee_angle": 41.728042789231225,
+        "elevation_angle": 28.978698991210933,
+        "forward_lean": -1.0452826682777143,
+        "landing_force": 789.8587531361585,
+        "tumbling_phase": "approach",
+        "quality_score": 48.72635695038152,
+        "confidence": 29.23519890955859
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 521,
+      "timestamp": 17333.333333333332,
+      "video_time": 17.333333333333332,
+      "analytics": {
+        "acl_risk": 14.56738799463675,
+        "left_knee_angle": 107.67869633188637,
+        "right_knee_angle": 61.62913629825799,
+        "elevation_angle": 8.621917953702473,
+        "forward_lean": 6.472656649023577,
+        "landing_force": 1366.5750068428988,
+        "tumbling_phase": "stabilization",
+        "quality_score": 3.0177294780282526,
+        "confidence": 14.23823784794973
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 531,
+      "timestamp": 17666.666666666668,
+      "video_time": 17.666666666666668,
+      "analytics": {
+        "acl_risk": 45.19960062981052,
+        "left_knee_angle": 121.5758653413177,
+        "right_knee_angle": 151.18247579130878,
+        "elevation_angle": 31.98758378312787,
+        "forward_lean": 7.3682927398316735,
+        "landing_force": 655.3646264783586,
+        "tumbling_phase": "takeoff",
+        "quality_score": 40.623348660834345,
+        "confidence": 78.75258790941417
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 541,
+      "timestamp": 18000,
+      "video_time": 18,
+      "analytics": {
+        "acl_risk": 11.475368729868274,
+        "left_knee_angle": 6.308016145032749,
+        "right_knee_angle": 149.83552877380248,
+        "elevation_angle": 19.95596054855549,
+        "forward_lean": -20.93259209244499,
+        "landing_force": 246.22923945806497,
+        "tumbling_phase": "landing",
+        "quality_score": 32.06419407498873,
+        "confidence": 64.65996758130153
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 551,
+      "timestamp": 18333.333333333332,
+      "video_time": 18.333333333333332,
+      "analytics": {
+        "acl_risk": 85.04132247304368,
+        "left_knee_angle": 122.95363763659019,
+        "right_knee_angle": 142.501253297587,
+        "elevation_angle": 18.16958970486984,
+        "forward_lean": -13.514879319112246,
+        "landing_force": 430.1545825004696,
+        "tumbling_phase": "stabilization",
+        "quality_score": 35.23203764483509,
+        "confidence": 24.150700010738333
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 561,
+      "timestamp": 18666.666666666668,
+      "video_time": 18.666666666666668,
+      "analytics": {
+        "acl_risk": 34.28987488928892,
+        "left_knee_angle": 14.530416617453362,
+        "right_knee_angle": 127.90072838488283,
+        "elevation_angle": 24.996638697240023,
+        "forward_lean": -22.173842638084004,
+        "landing_force": 1087.5017981913331,
+        "tumbling_phase": "takeoff",
+        "quality_score": 2.0685168394583897,
+        "confidence": 1.8455521519728402
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 571,
+      "timestamp": 19000,
+      "video_time": 19,
+      "analytics": {
+        "acl_risk": 54.03347078417659,
+        "left_knee_angle": 12.42960596015986,
+        "right_knee_angle": 98.12831778061091,
+        "elevation_angle": 33.422197261887355,
+        "forward_lean": 9.300739076321783,
+        "landing_force": 944.5579959254253,
+        "tumbling_phase": "flight",
+        "quality_score": 27.69570763887983,
+        "confidence": 17.045510373192418
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 581,
+      "timestamp": 19333.333333333332,
+      "video_time": 19.333333333333332,
+      "analytics": {
+        "acl_risk": 43.47473392553385,
+        "left_knee_angle": 129.4390508991989,
+        "right_knee_angle": 95.12778953449464,
+        "elevation_angle": 29.776637721808815,
+        "forward_lean": -19.670998987525643,
+        "landing_force": 1238.5523580013805,
+        "tumbling_phase": "landing",
+        "quality_score": 12.693716667796773,
+        "confidence": 38.285134606411496
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 591,
+      "timestamp": 19666.666666666668,
+      "video_time": 19.666666666666668,
+      "analytics": {
+        "acl_risk": 5.349437138204571,
+        "left_knee_angle": 26.701547174061723,
+        "right_knee_angle": 33.69719330954942,
+        "elevation_angle": 37.53543309061631,
+        "forward_lean": 13.855664175307616,
+        "landing_force": 120.8888012316236,
+        "tumbling_phase": "flight",
+        "quality_score": 82.93710510095964,
+        "confidence": 24.732119683853693
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 601,
+      "timestamp": 20000,
+      "video_time": 20,
+      "analytics": {
+        "acl_risk": 78.32763360445487,
+        "left_knee_angle": 68.11910943023294,
+        "right_knee_angle": 169.9804977219019,
+        "elevation_angle": 7.068466846390686,
+        "forward_lean": 9.301260663614435,
+        "landing_force": 600.3205210956523,
+        "tumbling_phase": "stabilization",
+        "quality_score": 44.35106309538315,
+        "confidence": 61.65212405376508
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 611,
+      "timestamp": 20333.333333333332,
+      "video_time": 20.333333333333332,
+      "analytics": {
+        "acl_risk": 68.1734831472377,
+        "left_knee_angle": 117.02850399741769,
+        "right_knee_angle": 115.94362747551196,
+        "elevation_angle": 17.377411953100303,
+        "forward_lean": 22.406910182211554,
+        "landing_force": 1118.6171047716584,
+        "tumbling_phase": "takeoff",
+        "quality_score": 93.37649599043705,
+        "confidence": 21.085066193511114
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 621,
+      "timestamp": 20666.666666666668,
+      "video_time": 20.666666666666668,
+      "analytics": {
+        "acl_risk": 50.21851484165061,
+        "left_knee_angle": 29.039109927014163,
+        "right_knee_angle": 127.00242765715417,
+        "elevation_angle": 6.212032261658593,
+        "forward_lean": -6.820700473823248,
+        "landing_force": 1557.1960274866021,
+        "tumbling_phase": "approach",
+        "quality_score": 16.08655158171739,
+        "confidence": 36.69300498512615
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 631,
+      "timestamp": 21000,
+      "video_time": 21,
+      "analytics": {
+        "acl_risk": 79.68359884035878,
+        "left_knee_angle": 40.21727122505821,
+        "right_knee_angle": 44.17196554154704,
+        "elevation_angle": 12.417400654852296,
+        "forward_lean": -16.98236480397313,
+        "landing_force": 823.0512370031802,
+        "tumbling_phase": "takeoff",
+        "quality_score": 9.633853506574352,
+        "confidence": 53.58071126010557
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 641,
+      "timestamp": 21333.333333333332,
+      "video_time": 21.333333333333332,
+      "analytics": {
+        "acl_risk": 20.997427911530586,
+        "left_knee_angle": 53.9507578399362,
+        "right_knee_angle": 104.13639866192987,
+        "elevation_angle": 42.082063532355875,
+        "forward_lean": 25.610129262103854,
+        "landing_force": 1039.2767257449318,
+        "tumbling_phase": "takeoff",
+        "quality_score": 8.358297179537132,
+        "confidence": 86.04157643529985
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 651,
+      "timestamp": 21666.666666666668,
+      "video_time": 21.666666666666668,
+      "analytics": {
+        "acl_risk": 23.075651479891192,
+        "left_knee_angle": 61.46051692062798,
+        "right_knee_angle": 36.23705952916574,
+        "elevation_angle": 42.63265328874918,
+        "forward_lean": -21.93557819128007,
+        "landing_force": 2.191022648065477,
+        "tumbling_phase": "landing",
+        "quality_score": 35.96263651539866,
+        "confidence": 43.21011250560245
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 661,
+      "timestamp": 22000,
+      "video_time": 22,
+      "analytics": {
+        "acl_risk": 15.83271147800196,
+        "left_knee_angle": 78.80399203108882,
+        "right_knee_angle": 69.44999230389843,
+        "elevation_angle": 6.196220370981936,
+        "forward_lean": 13.99942143599975,
+        "landing_force": 1075.1025835935172,
+        "tumbling_phase": "landing",
+        "quality_score": 59.55386983094424,
+        "confidence": 19.856620351341235
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 671,
+      "timestamp": 22333.333333333332,
+      "video_time": 22.333333333333332,
+      "analytics": {
+        "acl_risk": 34.510802615966284,
+        "left_knee_angle": 11.015218630310194,
+        "right_knee_angle": 9.16166114292471,
+        "elevation_angle": 15.196046223569564,
+        "forward_lean": 4.979237121440072,
+        "landing_force": 1958.577210078925,
+        "tumbling_phase": "flight",
+        "quality_score": 26.39118228521371,
+        "confidence": 22.89831732540417
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 681,
+      "timestamp": 22666.666666666668,
+      "video_time": 22.666666666666668,
+      "analytics": {
+        "acl_risk": 7.060842728655681,
+        "left_knee_angle": 36.40109767730519,
+        "right_knee_angle": 115.6174032717404,
+        "elevation_angle": 10.721645965209634,
+        "forward_lean": 25.61682315168764,
+        "landing_force": 525.4610953298662,
+        "tumbling_phase": "takeoff",
+        "quality_score": 54.31404764706797,
+        "confidence": 68.87435283769203
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 691,
+      "timestamp": 23000,
+      "video_time": 23,
+      "analytics": {
+        "acl_risk": 88.58872473131485,
+        "left_knee_angle": 65.3301370328173,
+        "right_knee_angle": 119.11580996171075,
+        "elevation_angle": 10.478322056640694,
+        "forward_lean": -11.908579773246913,
+        "landing_force": 907.1376348788842,
+        "tumbling_phase": "stabilization",
+        "quality_score": 53.058971107425926,
+        "confidence": 41.71776801913267
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 701,
+      "timestamp": 23333.333333333332,
+      "video_time": 23.333333333333332,
+      "analytics": {
+        "acl_risk": 68.66920305545261,
+        "left_knee_angle": 154.03031839843106,
+        "right_knee_angle": 167.41300687981868,
+        "elevation_angle": 28.86064177929431,
+        "forward_lean": -1.9273120740490377,
+        "landing_force": 1469.7037785906332,
+        "tumbling_phase": "approach",
+        "quality_score": 95.30251456754972,
+        "confidence": 64.63548266628261
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 711,
+      "timestamp": 23666.666666666668,
+      "video_time": 23.666666666666668,
+      "analytics": {
+        "acl_risk": 51.32427019653032,
+        "left_knee_angle": 150.97974274483892,
+        "right_knee_angle": 108.42465242448675,
+        "elevation_angle": 21.258776691836264,
+        "forward_lean": -12.732641676198718,
+        "landing_force": 1192.875305121146,
+        "tumbling_phase": "takeoff",
+        "quality_score": 73.42225878734885,
+        "confidence": 3.3152331481339337
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 721,
+      "timestamp": 24000,
+      "video_time": 24,
+      "analytics": {
+        "acl_risk": 18.71341003042477,
+        "left_knee_angle": 34.861809667344374,
+        "right_knee_angle": 86.95286889127547,
+        "elevation_angle": 30.82932595218606,
+        "forward_lean": 7.179374389664808,
+        "landing_force": 1358.8315510918196,
+        "tumbling_phase": "flight",
+        "quality_score": 27.275674305655095,
+        "confidence": 31.955440050008587
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 731,
+      "timestamp": 24333.333333333332,
+      "video_time": 24.333333333333332,
+      "analytics": {
+        "acl_risk": 68.85814240011332,
+        "left_knee_angle": 30.304558566896702,
+        "right_knee_angle": 36.354160162338104,
+        "elevation_angle": 13.435803639824673,
+        "forward_lean": -13.741677556548481,
+        "landing_force": 874.6849063483437,
+        "tumbling_phase": "landing",
+        "quality_score": 62.83686706368441,
+        "confidence": 6.442332759691638
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 741,
+      "timestamp": 24666.666666666668,
+      "video_time": 24.666666666666668,
+      "analytics": {
+        "acl_risk": 78.73762218294782,
+        "left_knee_angle": 44.09085782459231,
+        "right_knee_angle": 102.03690432096859,
+        "elevation_angle": 18.313773283018236,
+        "forward_lean": -0.6436477850359736,
+        "landing_force": 544.6420468850381,
+        "tumbling_phase": "stabilization",
+        "quality_score": 70.01091402443198,
+        "confidence": 54.50206903290644
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 751,
+      "timestamp": 25000,
+      "video_time": 25,
+      "analytics": {
+        "acl_risk": 33.52488788930346,
+        "left_knee_angle": 154.7317244524089,
+        "right_knee_angle": 122.5207576491272,
+        "elevation_angle": 35.72783261903275,
+        "forward_lean": 12.944689902410637,
+        "landing_force": 86.55010856199618,
+        "tumbling_phase": "landing",
+        "quality_score": 66.09912398684368,
+        "confidence": 13.27500706413398
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 761,
+      "timestamp": 25333.333333333332,
+      "video_time": 25.333333333333332,
+      "analytics": {
+        "acl_risk": 77.43080029978886,
+        "left_knee_angle": 8.111406105249767,
+        "right_knee_angle": 176.46491752526194,
+        "elevation_angle": 10.267629110864917,
+        "forward_lean": -1.9295975006905834,
+        "landing_force": 1550.4814496781466,
+        "tumbling_phase": "stabilization",
+        "quality_score": 56.77383801093725,
+        "confidence": 72.98059216754109
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 771,
+      "timestamp": 25666.666666666668,
+      "video_time": 25.666666666666668,
+      "analytics": {
+        "acl_risk": 10.999741762337202,
+        "left_knee_angle": 132.86659459023386,
+        "right_knee_angle": 41.383429562413085,
+        "elevation_angle": 28.507585683925242,
+        "forward_lean": 7.955032988322166,
+        "landing_force": 1381.8969011693496,
+        "tumbling_phase": "stabilization",
+        "quality_score": 66.65488185364418,
+        "confidence": 63.24947855542422
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 781,
+      "timestamp": 26000,
+      "video_time": 26,
+      "analytics": {
+        "acl_risk": 16.72406353055884,
+        "left_knee_angle": 172.94245352239852,
+        "right_knee_angle": 115.71682501692331,
+        "elevation_angle": 26.421724166221026,
+        "forward_lean": 22.533487015552183,
+        "landing_force": 1301.272110066999,
+        "tumbling_phase": "takeoff",
+        "quality_score": 30.084474774723624,
+        "confidence": 79.70306588211263
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 791,
+      "timestamp": 26333.333333333332,
+      "video_time": 26.333333333333332,
+      "analytics": {
+        "acl_risk": 36.05589704890082,
+        "left_knee_angle": 120.4196454879042,
+        "right_knee_angle": 79.85338624189335,
+        "elevation_angle": 6.6176694519486805,
+        "forward_lean": 7.735397514166365,
+        "landing_force": 1561.825338100205,
+        "tumbling_phase": "stabilization",
+        "quality_score": 68.59378287697382,
+        "confidence": 1.3840233298141547
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 801,
+      "timestamp": 26666.666666666668,
+      "video_time": 26.666666666666668,
+      "analytics": {
+        "acl_risk": 81.97303404069307,
+        "left_knee_angle": 43.53744370426226,
+        "right_knee_angle": 43.24061717589317,
+        "elevation_angle": 36.433441821290224,
+        "forward_lean": -17.473069821830652,
+        "landing_force": 1978.6956379655155,
+        "tumbling_phase": "approach",
+        "quality_score": 88.30690647195985,
+        "confidence": 0.2551409141012817
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 811,
+      "timestamp": 27000,
+      "video_time": 27,
+      "analytics": {
+        "acl_risk": 87.94139640355256,
+        "left_knee_angle": 136.5154725377216,
+        "right_knee_angle": 22.58516576047007,
+        "elevation_angle": 30.828035306415202,
+        "forward_lean": -12.665907557824383,
+        "landing_force": 1489.2550334715932,
+        "tumbling_phase": "stabilization",
+        "quality_score": 49.162520996253264,
+        "confidence": 33.82799342812537
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 821,
+      "timestamp": 27333.333333333332,
+      "video_time": 27.333333333333332,
+      "analytics": {
+        "acl_risk": 90.55340050611275,
+        "left_knee_angle": 179.6221369523762,
+        "right_knee_angle": 126.48803477525036,
+        "elevation_angle": 14.815519972854657,
+        "forward_lean": -14.633941776853629,
+        "landing_force": 937.7137252611947,
+        "tumbling_phase": "flight",
+        "quality_score": 94.24329926390094,
+        "confidence": 38.37692640934025
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 831,
+      "timestamp": 27666.666666666668,
+      "video_time": 27.666666666666668,
+      "analytics": {
+        "acl_risk": 89.60604025515228,
+        "left_knee_angle": 142.7019375111069,
+        "right_knee_angle": 178.73116104582655,
+        "elevation_angle": 17.066457877743062,
+        "forward_lean": -16.418805229313683,
+        "landing_force": 532.0570738941175,
+        "tumbling_phase": "flight",
+        "quality_score": 41.095836796647035,
+        "confidence": 16.455087487174126
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 841,
+      "timestamp": 28000,
+      "video_time": 28,
+      "analytics": {
+        "acl_risk": 88.57500114612698,
+        "left_knee_angle": 145.1313906423185,
+        "right_knee_angle": 87.16995494321274,
+        "elevation_angle": 20.045407424571014,
+        "forward_lean": 8.761143737480921,
+        "landing_force": 1375.8107195109162,
+        "tumbling_phase": "stabilization",
+        "quality_score": 89.46402719019034,
+        "confidence": 60.12894675164415
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 851,
+      "timestamp": 28333.333333333332,
+      "video_time": 28.333333333333332,
+      "analytics": {
+        "acl_risk": 43.02426664169312,
+        "left_knee_angle": 78.25564947641608,
+        "right_knee_angle": 48.60056020475763,
+        "elevation_angle": 24.32386134128238,
+        "forward_lean": -7.084456063732105,
+        "landing_force": 1859.276300621382,
+        "tumbling_phase": "takeoff",
+        "quality_score": 69.72013851065273,
+        "confidence": 57.31143218770374
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 861,
+      "timestamp": 28666.666666666668,
+      "video_time": 28.666666666666668,
+      "analytics": {
+        "acl_risk": 54.11251384274032,
+        "left_knee_angle": 30.248713017273023,
+        "right_knee_angle": 164.73572650960514,
+        "elevation_angle": 2.8547706385855074,
+        "forward_lean": -29.524491044479944,
+        "landing_force": 610.850896725366,
+        "tumbling_phase": "takeoff",
+        "quality_score": 68.20556964299638,
+        "confidence": 93.76441692631028
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 871,
+      "timestamp": 29000,
+      "video_time": 29,
+      "analytics": {
+        "acl_risk": 35.60159232905704,
+        "left_knee_angle": 10.68132107067072,
+        "right_knee_angle": 162.688158294901,
+        "elevation_angle": 8.647344495270055,
+        "forward_lean": -9.087219999564024,
+        "landing_force": 273.57179956601607,
+        "tumbling_phase": "stabilization",
+        "quality_score": 4.684698120603725,
+        "confidence": 96.68328923274913
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 881,
+      "timestamp": 29333.333333333332,
+      "video_time": 29.333333333333332,
+      "analytics": {
+        "acl_risk": 99.16574962577418,
+        "left_knee_angle": 148.45584546550893,
+        "right_knee_angle": 48.2206767588402,
+        "elevation_angle": 42.96212942076855,
+        "forward_lean": 5.1611005228548805,
+        "landing_force": 977.0832354999985,
+        "tumbling_phase": "approach",
+        "quality_score": 87.37370591566452,
+        "confidence": 34.14338255710214
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 891,
+      "timestamp": 29666.666666666668,
+      "video_time": 29.666666666666668,
+      "analytics": {
+        "acl_risk": 59.1727271556423,
+        "left_knee_angle": 29.75174721674094,
+        "right_knee_angle": 96.78788148726963,
+        "elevation_angle": 32.16018005538603,
+        "forward_lean": -22.73517514554065,
+        "landing_force": 229.54695430995287,
+        "tumbling_phase": "landing",
+        "quality_score": 56.15600504642468,
+        "confidence": 45.535567789607946
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 901,
+      "timestamp": 30000,
+      "video_time": 30,
+      "analytics": {
+        "acl_risk": 78.80748747546491,
+        "left_knee_angle": 131.16369073129263,
+        "right_knee_angle": 11.372681817747981,
+        "elevation_angle": 32.370052129390864,
+        "forward_lean": -2.850094851269432,
+        "landing_force": 1345.644570708156,
+        "tumbling_phase": "stabilization",
+        "quality_score": 35.85475946216792,
+        "confidence": 66.56443169978708
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 911,
+      "timestamp": 30333.333333333332,
+      "video_time": 30.333333333333332,
+      "analytics": {
+        "acl_risk": 73.61808185674789,
+        "left_knee_angle": 48.15128063549031,
+        "right_knee_angle": 175.5414391945006,
+        "elevation_angle": 6.975677866447585,
+        "forward_lean": 19.682722482505483,
+        "landing_force": 950.9381185560551,
+        "tumbling_phase": "approach",
+        "quality_score": 83.7571684615543,
+        "confidence": 9.121297596157829
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 921,
+      "timestamp": 30666.666666666668,
+      "video_time": 30.666666666666668,
+      "analytics": {
+        "acl_risk": 94.75649835682995,
+        "left_knee_angle": 67.00839890872714,
+        "right_knee_angle": 22.505075902142046,
+        "elevation_angle": 19.299137980515187,
+        "forward_lean": -28.90802368651254,
+        "landing_force": 163.64695040314814,
+        "tumbling_phase": "stabilization",
+        "quality_score": 52.860036563147794,
+        "confidence": 14.880316861836796
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 931,
+      "timestamp": 31000,
+      "video_time": 31,
+      "analytics": {
+        "acl_risk": 87.74898359093888,
+        "left_knee_angle": 175.23788269620798,
+        "right_knee_angle": 157.87439288205715,
+        "elevation_angle": 26.63887679584064,
+        "forward_lean": 3.3283994679351494,
+        "landing_force": 1409.8614880878313,
+        "tumbling_phase": "landing",
+        "quality_score": 23.14529594689345,
+        "confidence": 59.85629600197453
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 941,
+      "timestamp": 31333.333333333332,
+      "video_time": 31.333333333333332,
+      "analytics": {
+        "acl_risk": 59.40511498629433,
+        "left_knee_angle": 14.432753949625795,
+        "right_knee_angle": 92.91813684908703,
+        "elevation_angle": 34.42784961161835,
+        "forward_lean": 14.444160304017203,
+        "landing_force": 1067.4784098262317,
+        "tumbling_phase": "landing",
+        "quality_score": 58.44038284874642,
+        "confidence": 7.357361724999523
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 951,
+      "timestamp": 31666.666666666668,
+      "video_time": 31.666666666666668,
+      "analytics": {
+        "acl_risk": 18.266697672838283,
+        "left_knee_angle": 128.02425110804757,
+        "right_knee_angle": 13.911878802415965,
+        "elevation_angle": 39.12991841666769,
+        "forward_lean": -22.771512320629125,
+        "landing_force": 1800.6823418577258,
+        "tumbling_phase": "approach",
+        "quality_score": 31.42999079296267,
+        "confidence": 98.83235262943415
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 961,
+      "timestamp": 32000,
+      "video_time": 32,
+      "analytics": {
+        "acl_risk": 92.95624794916093,
+        "left_knee_angle": 108.75890937751124,
+        "right_knee_angle": 86.92970861426033,
+        "elevation_angle": 30.61172591634926,
+        "forward_lean": -2.622638010875068,
+        "landing_force": 139.26143499638675,
+        "tumbling_phase": "flight",
+        "quality_score": 14.96319405306461,
+        "confidence": 64.7780182548946
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 971,
+      "timestamp": 32333.333333333336,
+      "video_time": 32.333333333333336,
+      "analytics": {
+        "acl_risk": 72.36167465527569,
+        "left_knee_angle": 125.58104069869006,
+        "right_knee_angle": 147.46707598770803,
+        "elevation_angle": 33.30286432290053,
+        "forward_lean": -1.4690560068445926,
+        "landing_force": 1793.6806989332533,
+        "tumbling_phase": "stabilization",
+        "quality_score": 48.345522884888666,
+        "confidence": 24.42695784290163
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 981,
+      "timestamp": 32666.666666666664,
+      "video_time": 32.666666666666664,
+      "analytics": {
+        "acl_risk": 40.90504860439612,
+        "left_knee_angle": 129.32242617401852,
+        "right_knee_angle": 39.654591392853476,
+        "elevation_angle": 6.586913472268387,
+        "forward_lean": -26.606146747088722,
+        "landing_force": 1652.2531439515974,
+        "tumbling_phase": "landing",
+        "quality_score": 58.11785368389246,
+        "confidence": 5.967607364770067
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 991,
+      "timestamp": 33000,
+      "video_time": 33,
+      "analytics": {
+        "acl_risk": 99.35983893570372,
+        "left_knee_angle": 98.04118706029786,
+        "right_knee_angle": 152.19484112705382,
+        "elevation_angle": 12.032760276130928,
+        "forward_lean": 10.174020885548757,
+        "landing_force": 1610.2496576210426,
+        "tumbling_phase": "stabilization",
+        "quality_score": 60.43648394232466,
+        "confidence": 0.615864507828201
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1001,
+      "timestamp": 33333.333333333336,
+      "video_time": 33.333333333333336,
+      "analytics": {
+        "acl_risk": 24.47105224731505,
+        "left_knee_angle": 27.815732644216382,
+        "right_knee_angle": 175.76809383322018,
+        "elevation_angle": 22.38592366365023,
+        "forward_lean": 19.585206504882265,
+        "landing_force": 665.5778828732122,
+        "tumbling_phase": "stabilization",
+        "quality_score": 31.73982969868392,
+        "confidence": 84.45095315960958
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1011,
+      "timestamp": 33666.666666666664,
+      "video_time": 33.666666666666664,
+      "analytics": {
+        "acl_risk": 24.07264359367145,
+        "left_knee_angle": 179.93996365320208,
+        "right_knee_angle": 97.62861621723165,
+        "elevation_angle": 23.5784730585864,
+        "forward_lean": -8.40979588506164,
+        "landing_force": 464.7004318240069,
+        "tumbling_phase": "takeoff",
+        "quality_score": 24.009301560918452,
+        "confidence": 77.1448350984204
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1021,
+      "timestamp": 34000,
+      "video_time": 34,
+      "analytics": {
+        "acl_risk": 58.409171437309524,
+        "left_knee_angle": 53.14960471220138,
+        "right_knee_angle": 41.23400459391859,
+        "elevation_angle": 7.8028322938559675,
+        "forward_lean": 9.845078497395448,
+        "landing_force": 1190.725831355719,
+        "tumbling_phase": "takeoff",
+        "quality_score": 17.164621836148285,
+        "confidence": 64.77765937186139
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1031,
+      "timestamp": 34333.333333333336,
+      "video_time": 34.333333333333336,
+      "analytics": {
+        "acl_risk": 84.03691467966037,
+        "left_knee_angle": 174.47429628496494,
+        "right_knee_angle": 71.65425451842322,
+        "elevation_angle": 16.182280666854563,
+        "forward_lean": 19.1161816680995,
+        "landing_force": 278.00790787054507,
+        "tumbling_phase": "landing",
+        "quality_score": 47.168762405858566,
+        "confidence": 66.34166361208953
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1041,
+      "timestamp": 34666.666666666664,
+      "video_time": 34.666666666666664,
+      "analytics": {
+        "acl_risk": 21.11375215906326,
+        "left_knee_angle": 24.733630760017657,
+        "right_knee_angle": 130.91548241298582,
+        "elevation_angle": 37.87305578983637,
+        "forward_lean": 28.668097902572555,
+        "landing_force": 165.17858952675235,
+        "tumbling_phase": "approach",
+        "quality_score": 13.611402583013144,
+        "confidence": 35.12168491543086
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1051,
+      "timestamp": 35000,
+      "video_time": 35,
+      "analytics": {
+        "acl_risk": 16.99068920247533,
+        "left_knee_angle": 109.3084698263716,
+        "right_knee_angle": 48.83334786869518,
+        "elevation_angle": 35.1175140771285,
+        "forward_lean": -15.464624854977934,
+        "landing_force": 1620.1174768044918,
+        "tumbling_phase": "landing",
+        "quality_score": 29.54441498882623,
+        "confidence": 48.11055196946516
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1061,
+      "timestamp": 35333.333333333336,
+      "video_time": 35.333333333333336,
+      "analytics": {
+        "acl_risk": 93.05473411000132,
+        "left_knee_angle": 134.77358222582487,
+        "right_knee_angle": 3.2304167513243875,
+        "elevation_angle": 43.51137560484282,
+        "forward_lean": -14.670305034058142,
+        "landing_force": 245.0641782417873,
+        "tumbling_phase": "approach",
+        "quality_score": 24.432802170173428,
+        "confidence": 28.980677071227067
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1071,
+      "timestamp": 35666.666666666664,
+      "video_time": 35.666666666666664,
+      "analytics": {
+        "acl_risk": 1.428752722293014,
+        "left_knee_angle": 150.73110489179248,
+        "right_knee_angle": 149.1898299815244,
+        "elevation_angle": 23.2747374263106,
+        "forward_lean": 16.453446777344197,
+        "landing_force": 159.26273746799157,
+        "tumbling_phase": "flight",
+        "quality_score": 26.100673039684395,
+        "confidence": 87.60959886400335
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1081,
+      "timestamp": 36000,
+      "video_time": 36,
+      "analytics": {
+        "acl_risk": 61.827519387882205,
+        "left_knee_angle": 83.48851992437434,
+        "right_knee_angle": 3.1321533117992306,
+        "elevation_angle": 5.2938460267234415,
+        "forward_lean": -20.716944394268516,
+        "landing_force": 268.1358119750761,
+        "tumbling_phase": "takeoff",
+        "quality_score": 26.895467833171296,
+        "confidence": 30.734457877664646
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1091,
+      "timestamp": 36333.333333333336,
+      "video_time": 36.333333333333336,
+      "analytics": {
+        "acl_risk": 34.390632179235546,
+        "left_knee_angle": 84.514956207058,
+        "right_knee_angle": 25.11429578092933,
+        "elevation_angle": 7.282816791611191,
+        "forward_lean": -5.504626863952673,
+        "landing_force": 826.6523258161355,
+        "tumbling_phase": "approach",
+        "quality_score": 98.19452241231144,
+        "confidence": 6.176960006799037
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1101,
+      "timestamp": 36666.666666666664,
+      "video_time": 36.666666666666664,
+      "analytics": {
+        "acl_risk": 23.263452166695963,
+        "left_knee_angle": 22.888299779382383,
+        "right_knee_angle": 50.97487434275157,
+        "elevation_angle": 35.62606376899618,
+        "forward_lean": -23.748903782894132,
+        "landing_force": 93.10695149701687,
+        "tumbling_phase": "takeoff",
+        "quality_score": 55.008421170640666,
+        "confidence": 31.251317740665186
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1111,
+      "timestamp": 37000,
+      "video_time": 37,
+      "analytics": {
+        "acl_risk": 72.1313046504477,
+        "left_knee_angle": 14.799871249282589,
+        "right_knee_angle": 77.07822741798245,
+        "elevation_angle": 20.047871097032655,
+        "forward_lean": -10.499937777552969,
+        "landing_force": 1934.2395874361055,
+        "tumbling_phase": "flight",
+        "quality_score": 57.466710542600374,
+        "confidence": 68.92855558876165
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1121,
+      "timestamp": 37333.333333333336,
+      "video_time": 37.333333333333336,
+      "analytics": {
+        "acl_risk": 63.64410526689004,
+        "left_knee_angle": 144.9922126731407,
+        "right_knee_angle": 169.1014897987973,
+        "elevation_angle": 7.682662470981299,
+        "forward_lean": -20.365355383174904,
+        "landing_force": 1887.9730580599903,
+        "tumbling_phase": "flight",
+        "quality_score": 15.432003302605057,
+        "confidence": 31.857560731473257
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1131,
+      "timestamp": 37666.666666666664,
+      "video_time": 37.666666666666664,
+      "analytics": {
+        "acl_risk": 7.532291360218291,
+        "left_knee_angle": 148.59939126395597,
+        "right_knee_angle": 119.17413879621748,
+        "elevation_angle": 12.8841959275838,
+        "forward_lean": -14.652917646735958,
+        "landing_force": 120.47506063886892,
+        "tumbling_phase": "takeoff",
+        "quality_score": 54.12756616366292,
+        "confidence": 26.583599138468152
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1141,
+      "timestamp": 38000,
+      "video_time": 38,
+      "analytics": {
+        "acl_risk": 66.68614615551928,
+        "left_knee_angle": 139.81001954387204,
+        "right_knee_angle": 5.254349148659192,
+        "elevation_angle": 4.962048405377969,
+        "forward_lean": 18.203071399887293,
+        "landing_force": 1859.6623536180994,
+        "tumbling_phase": "flight",
+        "quality_score": 60.422933321504324,
+        "confidence": 77.22490052764182
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1151,
+      "timestamp": 38333.333333333336,
+      "video_time": 38.333333333333336,
+      "analytics": {
+        "acl_risk": 27.723313583594123,
+        "left_knee_angle": 68.90120499164664,
+        "right_knee_angle": 153.3063766877916,
+        "elevation_angle": 25.840794110334308,
+        "forward_lean": 4.644590770323042,
+        "landing_force": 626.0219374134839,
+        "tumbling_phase": "landing",
+        "quality_score": 0.15276627373932428,
+        "confidence": 21.72795017277116
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1161,
+      "timestamp": 38666.666666666664,
+      "video_time": 38.666666666666664,
+      "analytics": {
+        "acl_risk": 59.07769951855817,
+        "left_knee_angle": 45.58512661803893,
+        "right_knee_angle": 92.52046816448086,
+        "elevation_angle": 17.368004131049265,
+        "forward_lean": -14.643547808795706,
+        "landing_force": 1040.2816891993464,
+        "tumbling_phase": "approach",
+        "quality_score": 93.62192748980229,
+        "confidence": 10.12744768594005
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1171,
+      "timestamp": 39000,
+      "video_time": 39,
+      "analytics": {
+        "acl_risk": 9.302960409284712,
+        "left_knee_angle": 156.99490395505768,
+        "right_knee_angle": 118.01587560477725,
+        "elevation_angle": 8.829291835451862,
+        "forward_lean": 15.819056069764244,
+        "landing_force": 418.7926695401689,
+        "tumbling_phase": "landing",
+        "quality_score": 85.14888500027212,
+        "confidence": 50.82267049372224
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1181,
+      "timestamp": 39333.333333333336,
+      "video_time": 39.333333333333336,
+      "analytics": {
+        "acl_risk": 87.67511526000915,
+        "left_knee_angle": 79.81389451069741,
+        "right_knee_angle": 38.42328043633027,
+        "elevation_angle": 38.66412670213613,
+        "forward_lean": -9.871847237705712,
+        "landing_force": 170.02144068459836,
+        "tumbling_phase": "stabilization",
+        "quality_score": 74.87837492410966,
+        "confidence": 3.741112593517304
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1191,
+      "timestamp": 39666.666666666664,
+      "video_time": 39.666666666666664,
+      "analytics": {
+        "acl_risk": 39.62014705441741,
+        "left_knee_angle": 18.143050957461444,
+        "right_knee_angle": 150.993683292756,
+        "elevation_angle": 23.896059125290336,
+        "forward_lean": -2.2483695536148076,
+        "landing_force": 67.08430597532767,
+        "tumbling_phase": "takeoff",
+        "quality_score": 61.22947490018256,
+        "confidence": 4.239757519136145
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1201,
+      "timestamp": 40000,
+      "video_time": 40,
+      "analytics": {
+        "acl_risk": 75.24900840484435,
+        "left_knee_angle": 131.95915699462944,
+        "right_knee_angle": 76.29550177581564,
+        "elevation_angle": 2.7190456426013454,
+        "forward_lean": -14.57916402511012,
+        "landing_force": 1124.4925868930866,
+        "tumbling_phase": "approach",
+        "quality_score": 81.35655459219583,
+        "confidence": 51.222844396942534
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1211,
+      "timestamp": 40333.333333333336,
+      "video_time": 40.333333333333336,
+      "analytics": {
+        "acl_risk": 70.22423767413324,
+        "left_knee_angle": 175.49944182333246,
+        "right_knee_angle": 158.39752439319207,
+        "elevation_angle": 39.0312039793563,
+        "forward_lean": -9.022397506992021,
+        "landing_force": 1553.2296312524645,
+        "tumbling_phase": "stabilization",
+        "quality_score": 90.69890973830329,
+        "confidence": 2.8664498615352807
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1221,
+      "timestamp": 40666.666666666664,
+      "video_time": 40.666666666666664,
+      "analytics": {
+        "acl_risk": 88.47260536203845,
+        "left_knee_angle": 134.75637718058752,
+        "right_knee_angle": 35.76494909139828,
+        "elevation_angle": 9.54393659893039,
+        "forward_lean": -1.686354977631595,
+        "landing_force": 1985.7415414069476,
+        "tumbling_phase": "approach",
+        "quality_score": 58.07284446207852,
+        "confidence": 88.64108743278594
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1231,
+      "timestamp": 41000,
+      "video_time": 41,
+      "analytics": {
+        "acl_risk": 62.516627753861464,
+        "left_knee_angle": 159.94378490721132,
+        "right_knee_angle": 174.66171164031363,
+        "elevation_angle": 4.431915924422238,
+        "forward_lean": 0.8758262606092551,
+        "landing_force": 1352.3481409761725,
+        "tumbling_phase": "approach",
+        "quality_score": 29.563126415845108,
+        "confidence": 89.4208014210042
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1241,
+      "timestamp": 41333.333333333336,
+      "video_time": 41.333333333333336,
+      "analytics": {
+        "acl_risk": 22.549815056621103,
+        "left_knee_angle": 85.39629166240357,
+        "right_knee_angle": 28.647953683581168,
+        "elevation_angle": 24.245242832998272,
+        "forward_lean": -20.421935052913668,
+        "landing_force": 695.6248210993828,
+        "tumbling_phase": "flight",
+        "quality_score": 36.505430980189104,
+        "confidence": 16.53996648745839
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1251,
+      "timestamp": 41666.666666666664,
+      "video_time": 41.666666666666664,
+      "analytics": {
+        "acl_risk": 40.55763561927061,
+        "left_knee_angle": 101.40105913654105,
+        "right_knee_angle": 58.8606614521548,
+        "elevation_angle": 14.4137061538148,
+        "forward_lean": -28.472692832245635,
+        "landing_force": 454.7325198646814,
+        "tumbling_phase": "flight",
+        "quality_score": 89.2936630013911,
+        "confidence": 18.430427403273807
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1261,
+      "timestamp": 42000,
+      "video_time": 42,
+      "analytics": {
+        "acl_risk": 11.138854512408836,
+        "left_knee_angle": 128.99016778754674,
+        "right_knee_angle": 129.94837205989992,
+        "elevation_angle": 3.0175179681763407,
+        "forward_lean": -28.931252878390247,
+        "landing_force": 686.0933922732384,
+        "tumbling_phase": "takeoff",
+        "quality_score": 86.33385528702729,
+        "confidence": 44.011695287231035
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1271,
+      "timestamp": 42333.333333333336,
+      "video_time": 42.333333333333336,
+      "analytics": {
+        "acl_risk": 35.558962388311535,
+        "left_knee_angle": 74.92888759015919,
+        "right_knee_angle": 33.81872905417615,
+        "elevation_angle": 42.568387942720754,
+        "forward_lean": 20.969875621453973,
+        "landing_force": 63.55312786969192,
+        "tumbling_phase": "approach",
+        "quality_score": 94.11207399444346,
+        "confidence": 13.307033380462595
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1281,
+      "timestamp": 42666.666666666664,
+      "video_time": 42.666666666666664,
+      "analytics": {
+        "acl_risk": 83.52816789068606,
+        "left_knee_angle": 160.6354150571231,
+        "right_knee_angle": 88.42692300219863,
+        "elevation_angle": 42.41189580515246,
+        "forward_lean": -13.901819358621186,
+        "landing_force": 1060.3051654216492,
+        "tumbling_phase": "takeoff",
+        "quality_score": 65.3278278780139,
+        "confidence": 59.271770215579856
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1291,
+      "timestamp": 43000,
+      "video_time": 43,
+      "analytics": {
+        "acl_risk": 30.30849085617342,
+        "left_knee_angle": 74.36076241793272,
+        "right_knee_angle": 136.73506519896185,
+        "elevation_angle": 22.19494075895846,
+        "forward_lean": -26.23606200612874,
+        "landing_force": 1526.221674952645,
+        "tumbling_phase": "takeoff",
+        "quality_score": 97.37239327134803,
+        "confidence": 81.07228670190909
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1301,
+      "timestamp": 43333.333333333336,
+      "video_time": 43.333333333333336,
+      "analytics": {
+        "acl_risk": 86.76247488816429,
+        "left_knee_angle": 15.872283570503143,
+        "right_knee_angle": 163.82900757723925,
+        "elevation_angle": 42.0845518092341,
+        "forward_lean": -18.67634144907626,
+        "landing_force": 1334.0631630002972,
+        "tumbling_phase": "landing",
+        "quality_score": 93.19653462893234,
+        "confidence": 96.43413618707042
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1311,
+      "timestamp": 43666.666666666664,
+      "video_time": 43.666666666666664,
+      "analytics": {
+        "acl_risk": 66.96161865869482,
+        "left_knee_angle": 118.53284506267079,
+        "right_knee_angle": 40.343282367941015,
+        "elevation_angle": 41.74925647706381,
+        "forward_lean": -29.202262101921374,
+        "landing_force": 896.1802984737673,
+        "tumbling_phase": "landing",
+        "quality_score": 58.19737284221338,
+        "confidence": 94.00066115342372
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1321,
+      "timestamp": 44000,
+      "video_time": 44,
+      "analytics": {
+        "acl_risk": 75.26473575075154,
+        "left_knee_angle": 58.19808595986708,
+        "right_knee_angle": 44.269123240747696,
+        "elevation_angle": 13.237823479448059,
+        "forward_lean": -17.351565948739275,
+        "landing_force": 871.2775867887461,
+        "tumbling_phase": "landing",
+        "quality_score": 90.56828278687716,
+        "confidence": 6.651941389697846
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1331,
+      "timestamp": 44333.333333333336,
+      "video_time": 44.333333333333336,
+      "analytics": {
+        "acl_risk": 14.260707160451735,
+        "left_knee_angle": 104.40375493664767,
+        "right_knee_angle": 145.11532891172297,
+        "elevation_angle": 8.139686041598383,
+        "forward_lean": 4.659157650661243,
+        "landing_force": 1298.4967488817856,
+        "tumbling_phase": "approach",
+        "quality_score": 64.07154837372846,
+        "confidence": 97.78107796960984
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1341,
+      "timestamp": 44666.666666666664,
+      "video_time": 44.666666666666664,
+      "analytics": {
+        "acl_risk": 24.966375610888324,
+        "left_knee_angle": 127.10283515406944,
+        "right_knee_angle": 36.840950786561265,
+        "elevation_angle": 5.519297490866276,
+        "forward_lean": 20.976304630399397,
+        "landing_force": 241.9983976290938,
+        "tumbling_phase": "stabilization",
+        "quality_score": 78.89506872672784,
+        "confidence": 15.741827957601306
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1351,
+      "timestamp": 45000,
+      "video_time": 45,
+      "analytics": {
+        "acl_risk": 20.353744443726683,
+        "left_knee_angle": 49.80856771795813,
+        "right_knee_angle": 34.272431234131346,
+        "elevation_angle": 28.91775811611347,
+        "forward_lean": 29.822047362249585,
+        "landing_force": 1996.16185225477,
+        "tumbling_phase": "landing",
+        "quality_score": 61.430891031105794,
+        "confidence": 83.98941211488868
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1361,
+      "timestamp": 45333.333333333336,
+      "video_time": 45.333333333333336,
+      "analytics": {
+        "acl_risk": 21.406262952404887,
+        "left_knee_angle": 1.7424464354636982,
+        "right_knee_angle": 171.16439110278267,
+        "elevation_angle": 25.992898031068634,
+        "forward_lean": -16.716840189498825,
+        "landing_force": 1564.5585983912583,
+        "tumbling_phase": "flight",
+        "quality_score": 11.571601228429863,
+        "confidence": 48.35100135340695
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1371,
+      "timestamp": 45666.666666666664,
+      "video_time": 45.666666666666664,
+      "analytics": {
+        "acl_risk": 94.40155736882436,
+        "left_knee_angle": 57.08118130770234,
+        "right_knee_angle": 49.776561490930504,
+        "elevation_angle": 9.394368061806254,
+        "forward_lean": 8.378976447862655,
+        "landing_force": 596.5666425676251,
+        "tumbling_phase": "stabilization",
+        "quality_score": 46.66575056065114,
+        "confidence": 92.28314472772918
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1381,
+      "timestamp": 46000,
+      "video_time": 46,
+      "analytics": {
+        "acl_risk": 62.96370301422105,
+        "left_knee_angle": 72.04491025437335,
+        "right_knee_angle": 129.662157229619,
+        "elevation_angle": 15.291571505390257,
+        "forward_lean": -19.458383849781804,
+        "landing_force": 1553.939518405839,
+        "tumbling_phase": "flight",
+        "quality_score": 2.0830358981429375,
+        "confidence": 87.85474976831127
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1391,
+      "timestamp": 46333.333333333336,
+      "video_time": 46.333333333333336,
+      "analytics": {
+        "acl_risk": 98.24738643333473,
+        "left_knee_angle": 175.32634485263796,
+        "right_knee_angle": 12.711397625615572,
+        "elevation_angle": 30.12642279635361,
+        "forward_lean": -28.938440738019743,
+        "landing_force": 939.0215499616605,
+        "tumbling_phase": "stabilization",
+        "quality_score": 31.51984209023626,
+        "confidence": 37.0574932631516
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1401,
+      "timestamp": 46666.666666666664,
+      "video_time": 46.666666666666664,
+      "analytics": {
+        "acl_risk": 88.82214934843992,
+        "left_knee_angle": 96.87871180667854,
+        "right_knee_angle": 172.0149911801411,
+        "elevation_angle": 4.814578049205364,
+        "forward_lean": 26.374319472896907,
+        "landing_force": 1730.835011607316,
+        "tumbling_phase": "stabilization",
+        "quality_score": 23.413015694994456,
+        "confidence": 53.970614642435066
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1411,
+      "timestamp": 47000,
+      "video_time": 47,
+      "analytics": {
+        "acl_risk": 45.80307921933402,
+        "left_knee_angle": 82.08414773020804,
+        "right_knee_angle": 88.4988316629461,
+        "elevation_angle": 7.363431538963958,
+        "forward_lean": -20.092345518571484,
+        "landing_force": 706.3947560279731,
+        "tumbling_phase": "approach",
+        "quality_score": 4.40178350701772,
+        "confidence": 40.0522277652692
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1421,
+      "timestamp": 47333.333333333336,
+      "video_time": 47.333333333333336,
+      "analytics": {
+        "acl_risk": 59.43765593207886,
+        "left_knee_angle": 156.84361263380038,
+        "right_knee_angle": 135.44518286229578,
+        "elevation_angle": 42.26665398429827,
+        "forward_lean": -8.89788567520575,
+        "landing_force": 449.77344936382303,
+        "tumbling_phase": "landing",
+        "quality_score": 92.76924602452858,
+        "confidence": 33.257484811122005
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1431,
+      "timestamp": 47666.666666666664,
+      "video_time": 47.666666666666664,
+      "analytics": {
+        "acl_risk": 5.391451231102118,
+        "left_knee_angle": 68.1875728883087,
+        "right_knee_angle": 118.64613758279498,
+        "elevation_angle": 0.9384824093620969,
+        "forward_lean": -6.123448977088188,
+        "landing_force": 1599.4171315717128,
+        "tumbling_phase": "flight",
+        "quality_score": 53.56075475581379,
+        "confidence": 12.367642726293981
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1441,
+      "timestamp": 48000,
+      "video_time": 48,
+      "analytics": {
+        "acl_risk": 42.314719916570475,
+        "left_knee_angle": 76.63843891749143,
+        "right_knee_angle": 152.69410049284085,
+        "elevation_angle": 29.50002410047421,
+        "forward_lean": 2.5917574939071315,
+        "landing_force": 1238.8989201583468,
+        "tumbling_phase": "landing",
+        "quality_score": 26.162904332496993,
+        "confidence": 5.404459644402326
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1451,
+      "timestamp": 48333.333333333336,
+      "video_time": 48.333333333333336,
+      "analytics": {
+        "acl_risk": 81.99842715504924,
+        "left_knee_angle": 37.393339142408,
+        "right_knee_angle": 5.645511922021185,
+        "elevation_angle": 24.310795335388754,
+        "forward_lean": 0.8923459477257794,
+        "landing_force": 1138.5110842283086,
+        "tumbling_phase": "flight",
+        "quality_score": 95.21914652407497,
+        "confidence": 23.68497086099954
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1461,
+      "timestamp": 48666.666666666664,
+      "video_time": 48.666666666666664,
+      "analytics": {
+        "acl_risk": 66.60423753225484,
+        "left_knee_angle": 26.36462761330526,
+        "right_knee_angle": 153.14270503629365,
+        "elevation_angle": 3.4729399789361617,
+        "forward_lean": 23.480259276970862,
+        "landing_force": 461.3992691747031,
+        "tumbling_phase": "takeoff",
+        "quality_score": 48.64756052586421,
+        "confidence": 12.532332372880294
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1471,
+      "timestamp": 49000,
+      "video_time": 49,
+      "analytics": {
+        "acl_risk": 48.79186304543182,
+        "left_knee_angle": 29.661958640512324,
+        "right_knee_angle": 17.338470834410217,
+        "elevation_angle": 8.162069926550874,
+        "forward_lean": -11.263944100227882,
+        "landing_force": 1667.422463128069,
+        "tumbling_phase": "flight",
+        "quality_score": 25.63621976370316,
+        "confidence": 16.88571000422243
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1481,
+      "timestamp": 49333.333333333336,
+      "video_time": 49.333333333333336,
+      "analytics": {
+        "acl_risk": 32.51035481862543,
+        "left_knee_angle": 167.52404995572863,
+        "right_knee_angle": 144.73417510864337,
+        "elevation_angle": 40.21829069128264,
+        "forward_lean": -28.931757129589002,
+        "landing_force": 724.6195641447816,
+        "tumbling_phase": "takeoff",
+        "quality_score": 77.99865991723787,
+        "confidence": 70.86030518524073
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1491,
+      "timestamp": 49666.666666666664,
+      "video_time": 49.666666666666664,
+      "analytics": {
+        "acl_risk": 21.32351716802252,
+        "left_knee_angle": 45.44356791149494,
+        "right_knee_angle": 85.12080558558108,
+        "elevation_angle": 26.2569772906517,
+        "forward_lean": 10.527977298562135,
+        "landing_force": 1398.471961456729,
+        "tumbling_phase": "takeoff",
+        "quality_score": 51.14627376207102,
+        "confidence": 32.03089886318517
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1501,
+      "timestamp": 50000,
+      "video_time": 50,
+      "analytics": {
+        "acl_risk": 96.3352578486266,
+        "left_knee_angle": 114.21605629475431,
+        "right_knee_angle": 23.53117974854633,
+        "elevation_angle": 21.28001856223354,
+        "forward_lean": -29.63576780743344,
+        "landing_force": 1508.144789871216,
+        "tumbling_phase": "landing",
+        "quality_score": 52.874946205999265,
+        "confidence": 94.89659985048173
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1511,
+      "timestamp": 50333.333333333336,
+      "video_time": 50.333333333333336,
+      "analytics": {
+        "acl_risk": 46.9961649731222,
+        "left_knee_angle": 85.65962686274801,
+        "right_knee_angle": 107.3315033602641,
+        "elevation_angle": 2.155535423491133,
+        "forward_lean": 12.716125025631662,
+        "landing_force": 675.3055867244968,
+        "tumbling_phase": "flight",
+        "quality_score": 54.96308380047268,
+        "confidence": 34.529968122786215
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1521,
+      "timestamp": 50666.666666666664,
+      "video_time": 50.666666666666664,
+      "analytics": {
+        "acl_risk": 66.2092028970865,
+        "left_knee_angle": 177.63622398934382,
+        "right_knee_angle": 124.4905449013586,
+        "elevation_angle": 19.507519151239546,
+        "forward_lean": -11.138737959236053,
+        "landing_force": 1906.3767888742063,
+        "tumbling_phase": "stabilization",
+        "quality_score": 10.377719935841267,
+        "confidence": 39.13142301629946
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1531,
+      "timestamp": 51000,
+      "video_time": 51,
+      "analytics": {
+        "acl_risk": 78.49268570076265,
+        "left_knee_angle": 96.44071658727925,
+        "right_knee_angle": 159.55992874589526,
+        "elevation_angle": 12.06203440721697,
+        "forward_lean": -6.349119471328059,
+        "landing_force": 908.516962306142,
+        "tumbling_phase": "takeoff",
+        "quality_score": 6.406855694963087,
+        "confidence": 25.526001651584494
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1541,
+      "timestamp": 51333.333333333336,
+      "video_time": 51.333333333333336,
+      "analytics": {
+        "acl_risk": 40.77825813331839,
+        "left_knee_angle": 161.93542550333277,
+        "right_knee_angle": 7.197193250057983,
+        "elevation_angle": 35.57396730095085,
+        "forward_lean": -4.863655546967593,
+        "landing_force": 1063.885250547116,
+        "tumbling_phase": "stabilization",
+        "quality_score": 59.82646887149983,
+        "confidence": 13.224963740236317
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1551,
+      "timestamp": 51666.666666666664,
+      "video_time": 51.666666666666664,
+      "analytics": {
+        "acl_risk": 38.48117415320371,
+        "left_knee_angle": 145.67230686669754,
+        "right_knee_angle": 127.34757392014703,
+        "elevation_angle": 18.173618931132335,
+        "forward_lean": 15.99695983088722,
+        "landing_force": 110.77467822995723,
+        "tumbling_phase": "landing",
+        "quality_score": 82.53564221465042,
+        "confidence": 88.69888267524146
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1561,
+      "timestamp": 52000,
+      "video_time": 52,
+      "analytics": {
+        "acl_risk": 42.12437102351421,
+        "left_knee_angle": 62.6987561706708,
+        "right_knee_angle": 119.07747619685175,
+        "elevation_angle": 19.61404301000007,
+        "forward_lean": -26.762298932096567,
+        "landing_force": 115.30647866205169,
+        "tumbling_phase": "takeoff",
+        "quality_score": 26.465702886175755,
+        "confidence": 88.77668363452851
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1571,
+      "timestamp": 52333.333333333336,
+      "video_time": 52.333333333333336,
+      "analytics": {
+        "acl_risk": 37.97535606207143,
+        "left_knee_angle": 89.19973584059528,
+        "right_knee_angle": 98.37219525228967,
+        "elevation_angle": 17.69564635729635,
+        "forward_lean": 17.150074125287617,
+        "landing_force": 1449.9802776843137,
+        "tumbling_phase": "approach",
+        "quality_score": 49.73613933465746,
+        "confidence": 75.43682734784012
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1581,
+      "timestamp": 52666.666666666664,
+      "video_time": 52.666666666666664,
+      "analytics": {
+        "acl_risk": 81.76714699363943,
+        "left_knee_angle": 43.93312841598869,
+        "right_knee_angle": 22.845185491956457,
+        "elevation_angle": 7.590438049327575,
+        "forward_lean": 18.500645916984062,
+        "landing_force": 1395.8874563022846,
+        "tumbling_phase": "stabilization",
+        "quality_score": 34.81117741396134,
+        "confidence": 3.7836021582763557
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1591,
+      "timestamp": 53000,
+      "video_time": 53,
+      "analytics": {
+        "acl_risk": 72.99737829851193,
+        "left_knee_angle": 122.33834522777391,
+        "right_knee_angle": 42.80267368951712,
+        "elevation_angle": 16.7505873781113,
+        "forward_lean": 24.402333820275572,
+        "landing_force": 1904.17010050657,
+        "tumbling_phase": "landing",
+        "quality_score": 58.87940693261762,
+        "confidence": 87.70961392881671
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1601,
+      "timestamp": 53333.333333333336,
+      "video_time": 53.333333333333336,
+      "analytics": {
+        "acl_risk": 31.39695107568008,
+        "left_knee_angle": 30.228014986354626,
+        "right_knee_angle": 104.77901321257873,
+        "elevation_angle": 14.05674364538105,
+        "forward_lean": 7.129184732240155,
+        "landing_force": 188.06738551794044,
+        "tumbling_phase": "approach",
+        "quality_score": 20.769454633295446,
+        "confidence": 51.347621968116016
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1611,
+      "timestamp": 53666.666666666664,
+      "video_time": 53.666666666666664,
+      "analytics": {
+        "acl_risk": 2.631815564523765,
+        "left_knee_angle": 176.10662338819796,
+        "right_knee_angle": 79.87379305018061,
+        "elevation_angle": 30.987465439600975,
+        "forward_lean": -20.886805750395023,
+        "landing_force": 1608.1663029722552,
+        "tumbling_phase": "approach",
+        "quality_score": 65.42884580234183,
+        "confidence": 83.7906181796636
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1621,
+      "timestamp": 54000,
+      "video_time": 54,
+      "analytics": {
+        "acl_risk": 37.02891092780946,
+        "left_knee_angle": 3.19744097968393,
+        "right_knee_angle": 23.42417079783801,
+        "elevation_angle": 32.45006533219039,
+        "forward_lean": 24.16725751506901,
+        "landing_force": 813.7186091626392,
+        "tumbling_phase": "flight",
+        "quality_score": 38.06307955877575,
+        "confidence": 59.11242319401659
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1631,
+      "timestamp": 54333.333333333336,
+      "video_time": 54.333333333333336,
+      "analytics": {
+        "acl_risk": 48.139352217196894,
+        "left_knee_angle": 20.356334350095434,
+        "right_knee_angle": 60.82947905817167,
+        "elevation_angle": 4.209332041432125,
+        "forward_lean": 19.0717332115673,
+        "landing_force": 1176.0513824637947,
+        "tumbling_phase": "stabilization",
+        "quality_score": 0.8027705371954408,
+        "confidence": 38.631304465809826
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1641,
+      "timestamp": 54666.666666666664,
+      "video_time": 54.666666666666664,
+      "analytics": {
+        "acl_risk": 0.5710051215752188,
+        "left_knee_angle": 78.50304467491638,
+        "right_knee_angle": 59.80667854506757,
+        "elevation_angle": 23.042582589451225,
+        "forward_lean": -22.863659027529316,
+        "landing_force": 125.47529993442596,
+        "tumbling_phase": "flight",
+        "quality_score": 54.04485548980213,
+        "confidence": 17.032017264735266
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1651,
+      "timestamp": 55000,
+      "video_time": 55,
+      "analytics": {
+        "acl_risk": 79.53527469010189,
+        "left_knee_angle": 128.0932760938232,
+        "right_knee_angle": 136.3918033118252,
+        "elevation_angle": 32.78899027119827,
+        "forward_lean": 5.624005251013095,
+        "landing_force": 1756.7445763109397,
+        "tumbling_phase": "approach",
+        "quality_score": 93.74386161122963,
+        "confidence": 83.70284016721384
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1661,
+      "timestamp": 55333.333333333336,
+      "video_time": 55.333333333333336,
+      "analytics": {
+        "acl_risk": 48.72044646289597,
+        "left_knee_angle": 4.145508184577795,
+        "right_knee_angle": 90.04692736742624,
+        "elevation_angle": 2.780225191499155,
+        "forward_lean": 13.080240862184993,
+        "landing_force": 193.22982490299978,
+        "tumbling_phase": "stabilization",
+        "quality_score": 82.0095916333999,
+        "confidence": 45.93717191540571
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1671,
+      "timestamp": 55666.666666666664,
+      "video_time": 55.666666666666664,
+      "analytics": {
+        "acl_risk": 17.923599925887768,
+        "left_knee_angle": 9.860193826814765,
+        "right_knee_angle": 50.702299585996876,
+        "elevation_angle": 35.159074661906764,
+        "forward_lean": -6.146157517936125,
+        "landing_force": 899.437873516228,
+        "tumbling_phase": "approach",
+        "quality_score": 14.05764006963761,
+        "confidence": 39.58989715666055
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1681,
+      "timestamp": 56000,
+      "video_time": 56,
+      "analytics": {
+        "acl_risk": 58.73862286018774,
+        "left_knee_angle": 69.62365642258744,
+        "right_knee_angle": 174.28206703342363,
+        "elevation_angle": 40.9122302373197,
+        "forward_lean": 1.5787167622165654,
+        "landing_force": 1241.3778164477808,
+        "tumbling_phase": "flight",
+        "quality_score": 86.76295007984064,
+        "confidence": 31.495893524126007
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1691,
+      "timestamp": 56333.333333333336,
+      "video_time": 56.333333333333336,
+      "analytics": {
+        "acl_risk": 52.8617267465739,
+        "left_knee_angle": 39.49132068648197,
+        "right_knee_angle": 116.48226724316494,
+        "elevation_angle": 1.966534433998156,
+        "forward_lean": -29.91966474372404,
+        "landing_force": 160.5367958117645,
+        "tumbling_phase": "takeoff",
+        "quality_score": 83.10770951908772,
+        "confidence": 4.68982312227697
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1701,
+      "timestamp": 56666.666666666664,
+      "video_time": 56.666666666666664,
+      "analytics": {
+        "acl_risk": 8.936927380359649,
+        "left_knee_angle": 16.206980919046245,
+        "right_knee_angle": 144.47902963787587,
+        "elevation_angle": 17.92670889741236,
+        "forward_lean": -27.78424764172344,
+        "landing_force": 872.2445994284338,
+        "tumbling_phase": "flight",
+        "quality_score": 76.13272255522978,
+        "confidence": 28.83782252689564
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1711,
+      "timestamp": 57000,
+      "video_time": 57,
+      "analytics": {
+        "acl_risk": 88.03371686534818,
+        "left_knee_angle": 153.48152407420852,
+        "right_knee_angle": 151.53343514812673,
+        "elevation_angle": 31.791036430680297,
+        "forward_lean": -27.538701914783715,
+        "landing_force": 1647.9836522270023,
+        "tumbling_phase": "stabilization",
+        "quality_score": 86.85016429701176,
+        "confidence": 80.67286950517398
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1721,
+      "timestamp": 57333.333333333336,
+      "video_time": 57.333333333333336,
+      "analytics": {
+        "acl_risk": 63.27181687411425,
+        "left_knee_angle": 74.65203568421724,
+        "right_knee_angle": 87.0921997775127,
+        "elevation_angle": 29.76140349759677,
+        "forward_lean": -9.049869442114993,
+        "landing_force": 512.8003820392308,
+        "tumbling_phase": "approach",
+        "quality_score": 50.74467564370335,
+        "confidence": 56.746235270835314
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1731,
+      "timestamp": 57666.666666666664,
+      "video_time": 57.666666666666664,
+      "analytics": {
+        "acl_risk": 45.00930773000751,
+        "left_knee_angle": 81.20554232104385,
+        "right_knee_angle": 163.00146613467413,
+        "elevation_angle": 26.01975561590132,
+        "forward_lean": -13.964100710771955,
+        "landing_force": 155.3091439863832,
+        "tumbling_phase": "approach",
+        "quality_score": 57.70854499925828,
+        "confidence": 13.082440839075481
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1741,
+      "timestamp": 58000,
+      "video_time": 58,
+      "analytics": {
+        "acl_risk": 77.67730299904932,
+        "left_knee_angle": 136.24750935868104,
+        "right_knee_angle": 73.55190973517207,
+        "elevation_angle": 15.26482163894395,
+        "forward_lean": -10.215587034435849,
+        "landing_force": 419.83371136220217,
+        "tumbling_phase": "takeoff",
+        "quality_score": 76.86923404754606,
+        "confidence": 28.02829472320063
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1751,
+      "timestamp": 58333.333333333336,
+      "video_time": 58.333333333333336,
+      "analytics": {
+        "acl_risk": 25.064370182364073,
+        "left_knee_angle": 123.29009039575631,
+        "right_knee_angle": 8.699452845389501,
+        "elevation_angle": 9.24231608442298,
+        "forward_lean": 2.295146165601466,
+        "landing_force": 1303.3421296177742,
+        "tumbling_phase": "flight",
+        "quality_score": 58.341828426955566,
+        "confidence": 38.55729759941002
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1761,
+      "timestamp": 58666.666666666664,
+      "video_time": 58.666666666666664,
+      "analytics": {
+        "acl_risk": 84.35846716663357,
+        "left_knee_angle": 75.64580162488339,
+        "right_knee_angle": 24.144507794627565,
+        "elevation_angle": 38.95996345068714,
+        "forward_lean": -24.340124805675003,
+        "landing_force": 888.5335216711678,
+        "tumbling_phase": "approach",
+        "quality_score": 20.649617051509182,
+        "confidence": 67.70475736847115
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1771,
+      "timestamp": 59000,
+      "video_time": 59,
+      "analytics": {
+        "acl_risk": 5.980284081558174,
+        "left_knee_angle": 34.78111787476527,
+        "right_knee_angle": 74.77975837376351,
+        "elevation_angle": 15.507701103940335,
+        "forward_lean": 14.204038799826108,
+        "landing_force": 414.1575858277058,
+        "tumbling_phase": "landing",
+        "quality_score": 10.462513419767273,
+        "confidence": 11.001626911303152
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1781,
+      "timestamp": 59333.333333333336,
+      "video_time": 59.333333333333336,
+      "analytics": {
+        "acl_risk": 80.9642885648729,
+        "left_knee_angle": 41.45909598430321,
+        "right_knee_angle": 56.55310352091115,
+        "elevation_angle": 19.827790812093063,
+        "forward_lean": 25.09072634448016,
+        "landing_force": 106.18843728405113,
+        "tumbling_phase": "approach",
+        "quality_score": 13.146462019133388,
+        "confidence": 70.97126925927695
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    },
+    {
+      "frame_number": 1791,
+      "timestamp": 59666.666666666664,
+      "video_time": 59.666666666666664,
+      "analytics": {
+        "acl_risk": 62.74720675616634,
+        "left_knee_angle": 108.07020413410821,
+        "right_knee_angle": 85.42460743249138,
+        "elevation_angle": 22.93810335991282,
+        "forward_lean": -24.122036339382138,
+        "landing_force": 1729.4240651819482,
+        "tumbling_phase": "takeoff",
+        "quality_score": 61.50754775622005,
+        "confidence": 44.908913874615884
+      },
+      "extracted_at": "2025-09-27T21:29:30.229Z"
+    }
+  ],
+  "statistics": {
+    "total_frames": 180,
+    "time_span": {
+      "start": 0,
+      "end": 59.666666666666664,
+      "duration": 59.666666666666664
+    },
+    "acl_risk": {
+      "min": 0.5710051215752188,
+      "max": 99.35983893570372,
+      "avg": 50.84759824714014
+    },
+    "knee_angle": {
+      "min": 0.5143959675429244,
+      "max": 179.93996365320208,
+      "avg": 89.02859845424776
+    },
+    "quality": {
+      "min": 0.15276627373932428,
+      "max": 98.87253723283833,
+      "avg": 52.45644652197348
+    }
+  }
+}

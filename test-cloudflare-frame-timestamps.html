@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Stream Frame Timestamps Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            background: black;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .control-btn {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .control-btn:hover {
+            background: #0056b3;
+        }
+        .control-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .info-panel {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+        .frame-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .frame-item {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Cloudflare Stream Frame Timestamps Test</h1>
+        <p>This script tests loading a Cloudflare Stream video and extracting frame timestamps corresponding to image frames.</p>
+        
+        <div class="info-panel">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Enter a Cloudflare Stream video URL or ID</li>
+                <li>Click "Load Video" to initialize the player</li>
+                <li>Use controls to play/pause and seek through the video</li>
+                <li>Click "Capture Frame Timestamp" to get current frame info</li>
+                <li>Click "Start Frame Analysis" to analyze frame timestamps</li>
+            </ol>
+        </div>
+
+        <div class="controls">
+            <input type="text" id="videoUrl" placeholder="Enter Cloudflare Stream URL or Video ID" style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+            <button class="control-btn" onclick="loadVideo()">Load Video</button>
+            <button class="control-btn" onclick="togglePlay()" id="playBtn">Play</button>
+            <button class="control-btn" onclick="captureFrameTimestamp()">Capture Frame Timestamp</button>
+            <button class="control-btn" onclick="startFrameAnalysis()">Start Frame Analysis</button>
+            <button class="control-btn" onclick="stopFrameAnalysis()">Stop Frame Analysis</button>
+            <button class="control-btn" onclick="clearLogs()">Clear Logs</button>
+        </div>
+
+        <div id="status" class="status info" style="display: none;"></div>
+
+        <div class="video-container">
+            <iframe id="stream-player" width="100%" height="400" frameborder="0" allowfullscreen></iframe>
+        </div>
+
+        <div class="container">
+            <h3>Current Frame Information</h3>
+            <div class="frame-info" id="frameInfo">
+                <div class="frame-item">Current Time: <span id="currentTime">0.00</span>s</div>
+                <div class="frame-item">Frame Index: <span id="frameIndex">-</span></div>
+                <div class="frame-item">Frame Timestamp: <span id="frameTimestamp">-</span>ms</div>
+                <div class="frame-item">Video Duration: <span id="videoDuration">-</span>s</div>
+            </div>
+        </div>
+
+        <div class="container">
+            <h3>Captured Frame Timestamps</h3>
+            <div id="capturedFrames"></div>
+        </div>
+
+        <div class="container">
+            <h3>Analysis Log</h3>
+            <div id="log" class="log">Ready to test Cloudflare Stream frame timestamps...\n</div>
+        </div>
+    </div>
+
+    <script src="https://embed.cloudflarestream.com/embed/sdk.latest.js"></script>
+    <script>
+        let player = null;
+        let isPlaying = false;
+        let frameAnalysisInterval = null;
+        let capturedFrames = [];
+        let frameData = [];
+
+        // Mock frame data for testing (replace with real analytics data)
+        function generateMockFrameData(duration, fps = 30) {
+            const totalFrames = Math.floor(duration * fps);
+            frameData = [];
+            
+            for (let i = 0; i < totalFrames; i++) {
+                const timestamp = (i / fps) * 1000; // Convert to milliseconds
+                frameData.push({
+                    frame_number: i + 1,
+                    timestamp: timestamp,
+                    metrics: {
+                        acl_risk: Math.random() * 100,
+                        left_knee_angle: Math.random() * 180,
+                        right_knee_angle: Math.random() * 180,
+                        elevation_angle: Math.random() * 45
+                    }
+                });
+            }
+            
+            log(`Generated ${totalFrames} mock frames for ${duration}s video at ${fps} FPS`);
+        }
+
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.textContent += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function showStatus(message, type = 'info') {
+            const statusElement = document.getElementById('status');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+            statusElement.style.display = 'block';
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 5000);
+        }
+
+        function updateFrameInfo() {
+            if (player) {
+                const currentTime = player.currentTime || 0;
+                const duration = player.duration || 0;
+                
+                document.getElementById('currentTime').textContent = currentTime.toFixed(2);
+                document.getElementById('videoDuration').textContent = duration.toFixed(2);
+                
+                // Find closest frame
+                const currentTimeMs = currentTime * 1000;
+                const closestFrame = frameData.find(frame => 
+                    Math.abs(frame.timestamp - currentTimeMs) < 50
+                );
+                
+                if (closestFrame) {
+                    document.getElementById('frameIndex').textContent = closestFrame.frame_number;
+                    document.getElementById('frameTimestamp').textContent = closestFrame.timestamp.toFixed(0);
+                } else {
+                    document.getElementById('frameIndex').textContent = '-';
+                    document.getElementById('frameTimestamp').textContent = '-';
+                }
+            }
+        }
+
+        function loadVideo() {
+            const videoUrl = document.getElementById('videoUrl').value.trim();
+            
+            if (!videoUrl) {
+                showStatus('Please enter a Cloudflare Stream URL or Video ID', 'error');
+                return;
+            }
+
+            try {
+                let embedUrl;
+                
+                // Check if it's already a full URL
+                if (videoUrl.includes('cloudflarestream.com')) {
+                    embedUrl = videoUrl;
+                } else {
+                    // Assume it's a video ID
+                    embedUrl = `https://iframe.cloudflarestream.com/${videoUrl}`;
+                }
+
+                const iframe = document.getElementById('stream-player');
+                iframe.src = embedUrl;
+                
+                log(`Loading Cloudflare Stream video: ${embedUrl}`);
+                showStatus('Loading video...', 'info');
+
+                // Wait for iframe to load
+                iframe.onload = () => {
+                    setTimeout(() => {
+                        initializePlayer();
+                    }, 1000);
+                };
+
+            } catch (error) {
+                log(`Error loading video: ${error.message}`);
+                showStatus('Error loading video', 'error');
+            }
+        }
+
+        function initializePlayer() {
+            try {
+                const iframe = document.getElementById('stream-player');
+                player = window.Stream(iframe);
+                
+                if (player) {
+                    log('Cloudflare Stream player initialized successfully');
+                    
+                    // Set up event listeners
+                    player.addEventListener('play', () => {
+                        isPlaying = true;
+                        document.getElementById('playBtn').textContent = 'Pause';
+                        log('Video started playing');
+                    });
+                    
+                    player.addEventListener('pause', () => {
+                        isPlaying = false;
+                        document.getElementById('playBtn').textContent = 'Play';
+                        log('Video paused');
+                    });
+                    
+                    player.addEventListener('timeupdate', () => {
+                        updateFrameInfo();
+                    });
+                    
+                    player.addEventListener('loadedmetadata', () => {
+                        const duration = player.duration || 0;
+                        generateMockFrameData(duration);
+                        log(`Video metadata loaded. Duration: ${duration.toFixed(2)}s`);
+                        showStatus('Video loaded successfully', 'success');
+                    });
+                    
+                    // Try to get duration
+                    setTimeout(() => {
+                        if (player.duration) {
+                            const duration = player.duration;
+                            generateMockFrameData(duration);
+                            log(`Video duration detected: ${duration.toFixed(2)}s`);
+                        }
+                    }, 2000);
+                    
+                } else {
+                    log('Failed to initialize Cloudflare Stream player');
+                    showStatus('Failed to initialize player', 'error');
+                }
+                
+            } catch (error) {
+                log(`Error initializing player: ${error.message}`);
+                showStatus('Error initializing player', 'error');
+            }
+        }
+
+        function togglePlay() {
+            if (player) {
+                if (isPlaying) {
+                    player.pause();
+                } else {
+                    player.play();
+                }
+            } else {
+                showStatus('Player not initialized', 'error');
+            }
+        }
+
+        function captureFrameTimestamp() {
+            if (!player) {
+                showStatus('Player not initialized', 'error');
+                return;
+            }
+
+            const currentTime = player.currentTime || 0;
+            const currentTimeMs = currentTime * 1000;
+            
+            // Find closest frame
+            const closestFrame = frameData.find(frame => 
+                Math.abs(frame.timestamp - currentTimeMs) < 50
+            );
+            
+            if (closestFrame) {
+                const frameInfo = {
+                    timestamp: new Date().toISOString(),
+                    videoTime: currentTime,
+                    frameNumber: closestFrame.frame_number,
+                    frameTimestamp: closestFrame.timestamp,
+                    metrics: closestFrame.metrics
+                };
+                
+                capturedFrames.push(frameInfo);
+                
+                // Display captured frame
+                const capturedDiv = document.getElementById('capturedFrames');
+                const frameElement = document.createElement('div');
+                frameElement.className = 'frame-item';
+                frameElement.innerHTML = `
+                    <strong>Frame ${frameInfo.frameNumber}</strong><br>
+                    Video Time: ${frameInfo.videoTime.toFixed(2)}s<br>
+                    Frame Timestamp: ${frameInfo.frameTimestamp.toFixed(0)}ms<br>
+                    ACL Risk: ${frameInfo.metrics.acl_risk.toFixed(1)}%<br>
+                    Captured: ${frameInfo.timestamp}
+                `;
+                capturedDiv.appendChild(frameElement);
+                
+                log(`Captured Frame ${frameInfo.frameNumber} at ${currentTime.toFixed(2)}s (timestamp: ${frameInfo.frameTimestamp.toFixed(0)}ms)`);
+                showStatus(`Captured Frame ${frameInfo.frameNumber}`, 'success');
+                
+            } else {
+                log(`No frame found for current time: ${currentTime.toFixed(2)}s`);
+                showStatus('No frame data available for current time', 'error');
+            }
+        }
+
+        function startFrameAnalysis() {
+            if (!player) {
+                showStatus('Player not initialized', 'error');
+                return;
+            }
+
+            if (frameAnalysisInterval) {
+                stopFrameAnalysis();
+                return;
+            }
+
+            log('Starting frame analysis...');
+            showStatus('Frame analysis started', 'info');
+            
+            let analysisCount = 0;
+            frameAnalysisInterval = setInterval(() => {
+                if (!isPlaying) {
+                    log('Video paused, stopping frame analysis');
+                    stopFrameAnalysis();
+                    return;
+                }
+                
+                const currentTime = player.currentTime || 0;
+                const currentTimeMs = currentTime * 1000;
+                
+                // Find closest frame
+                const closestFrame = frameData.find(frame => 
+                    Math.abs(frame.timestamp - currentTimeMs) < 50
+                );
+                
+                if (closestFrame) {
+                    log(`Analysis ${++analysisCount}: Frame ${closestFrame.frame_number} at ${currentTime.toFixed(2)}s (${closestFrame.timestamp.toFixed(0)}ms) - ACL Risk: ${closestFrame.metrics.acl_risk.toFixed(1)}%`);
+                } else {
+                    log(`Analysis ${++analysisCount}: No frame data for ${currentTime.toFixed(2)}s`);
+                }
+                
+                // Stop after 20 analyses
+                if (analysisCount >= 20) {
+                    log('Frame analysis completed (20 samples)');
+                    stopFrameAnalysis();
+                }
+                
+            }, 500); // Analyze every 500ms
+        }
+
+        function stopFrameAnalysis() {
+            if (frameAnalysisInterval) {
+                clearInterval(frameAnalysisInterval);
+                frameAnalysisInterval = null;
+                log('Frame analysis stopped');
+                showStatus('Frame analysis stopped', 'info');
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('log').textContent = 'Logs cleared...\n';
+            document.getElementById('capturedFrames').innerHTML = '';
+            capturedFrames = [];
+        }
+
+        // Initialize with a sample video ID (replace with your own)
+        document.getElementById('videoUrl').value = 'your-video-id-here';
+        
+        log('Cloudflare Stream Frame Timestamps Test initialized');
+        log('Enter a Cloudflare Stream video URL or ID and click "Load Video" to begin');
+    </script>
+</body>
+</html>
+
+

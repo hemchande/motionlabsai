@@ -1,0 +1,49 @@
+{
+  "test_timestamp": "20250927_184457",
+  "session_id": "68d6c7b5d8c71a7e26cb6e6c",
+  "analytics_id": null,
+  "total_frames": 314,
+  "timestamp_analysis": {
+    "total_frames": 314,
+    "timestamp_info": {
+      "first_timestamp": 0.6623969078063965,
+      "last_timestamp": 65.72661781311035,
+      "timestamp_range": 65.06422090530396,
+      "timestamp_type": "relative",
+      "sample_timestamps": [
+        0.6623969078063965,
+        1.3569378852844238,
+        2.04011869430542,
+        2.8616011142730713,
+        3.5065555572509766
+      ],
+      "average_interval": 0.6639206214826934,
+      "interval_variance": 0.22470879554748535,
+      "relative_timestamps": {
+        "first_relative": 0.6623969078063965,
+        "last_relative": 65.72661781311035,
+        "relative_range": 65.06422090530396,
+        "sample_relative": [
+          0.6623969078063965,
+          1.3569378852844238,
+          2.04011869430542,
+          2.8616011142730713,
+          3.5065555572509766
+        ]
+      }
+    },
+    "frame_structure": {
+      "first_frame": 0,
+      "last_frame": 99,
+      "frame_count": 100,
+      "frame_interval": 1
+    },
+    "alignment_issues": [],
+    "recommendations": []
+  },
+  "frame_mapping_metadata": {
+    "fps": 30.0,
+    "total_frames": 314,
+    "video_duration": 206.34594917297363
+  }
+}
